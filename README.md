@@ -1,6 +1,6 @@
 # stringy
 
-A simple to use, immutable, clone-efficient String replacement for Rust
+A simple to use, immutable, clone-efficient `String` replacement for Rust
 
 ## Overview
 
@@ -123,13 +123,12 @@ fn main() {
 
 ### Borrowing
 
-Works just like `String`
-
-NOTE: Only borrow if the receiving function doesn't need ownership (if it 
-does, pass an owned `Stringy` and `.clone()`)
+Works just like `String`. There is no real benefit to passing as `&str` as 
+you can always deference inside the function. By passing in as `&Stringy` 
+you retain the option for cheap conditional ownership via `clone()`.
 
 ```rust
-fn my_func(str: &str) {
+fn my_func(str: &Stringy) {
     println!("Borrowed string: {}", str);
 }
 
@@ -146,33 +145,33 @@ since multi ownership is cheap.
 
 ```rust
 struct MyStruct {
-    str: Stringy
+    s: Stringy
 }
 
 impl MyStruct {
-    fn to_own_or_not_to_own(str: Stringy) -> Self {
-        let str = if &str == "own_me" {
-            str
+    fn to_own_or_not_to_own(s: &Stringy) -> Self {
+        let s = if &*s == "own_me" {
+            s.clone()
         } else {
             // Wrapped literal - no allocation
             "own_me".into()
         };
 
-        Self { str }
+        Self { s }
     }
 }
 
 fn main() {
     // Wrapped literal - no allocation
-    let str = "borrow me".into();
+    let s = "borrow me".into();
     // Inlined string - `String` allocation released
-    let str2 = "own me".to_string().into();
+    let s2 = "own me".to_string().into();
 
-    let s1 = MyStruct::to_own_or_not_to_own(str.clone());
-    let s2 = MyStruct::to_own_or_not_to_own(str2.clone());
+    let struct1 = MyStruct::to_own_or_not_to_own(s.clone());
+    let struct2 = MyStruct::to_own_or_not_to_own(s2.clone());
 
-    assert_eq!(str2, s1.str);
-    assert_eq!(str2, s2.str);
+    assert_eq!(s2, struct1.str);
+    assert_eq!(s2, struct2.str);
 }
 ```
 
