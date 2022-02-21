@@ -109,7 +109,7 @@ impl From<InlineStringy> for String {
 // *** Stringy macro ***
 
 macro_rules! stringy {
-    ($name:ident, $rc:ty, $to_func:ident) => {
+    ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident) => {
         #[derive(Clone, Debug)]
         pub enum $name {
             Static(&'static str),
@@ -126,7 +126,7 @@ macro_rules! stringy {
 
             /// Returns true if this is an inlined string
             #[inline]
-            pub fn is_inline(&self) -> bool {
+            pub fn is_inlined(&self) -> bool {
                 matches!(self, $name::Inlined(_))
             }
 
@@ -184,24 +184,72 @@ macro_rules! stringy {
             }
         }
 
+        /// ```
+        /// use stringy::Stringy;
+        ///
+        /// let s: Stringy = "inlined".into();
+        /// let s2: Stringy = s.clone();
+        /// assert_eq!(s, s2);
+        /// ```
         impl PartialEq for $name {
             #[inline]
             fn eq(&self, other: &Self) -> bool {
-                PartialEq::eq(&**self, &**other)
+                <&str as PartialEq>::eq(&self.deref(), &other.deref())
             }
         }
 
+        /// ```
+        /// use stringy::{AStringy, Stringy, ToAStringy};
+        ///
+        /// let s: Stringy = "inlined".into();
+        /// let s2: AStringy = s.to_a_stringy();
+        /// assert_eq!(s, s2);
+        /// ```
+        impl PartialEq<$name2> for $name {
+            fn eq(&self, other: &$name2) -> bool {
+                <&str as PartialEq>::eq(&self.deref(), &other.deref())
+            }
+        }
+
+        /// ```
+        /// use stringy::{Stringy, ToStringy};
+        ///
+        /// let lit = "inlined";
+        /// let s = lit.to_stringy();
+        /// assert_eq!(s, lit);
+        /// ```
+        impl PartialEq<&str> for $name {
+            #[inline]
+            fn eq(&self, other: &&str) -> bool {
+                <&str as PartialEq>::eq(&self.deref(), &other.deref())
+            }
+        }
+
+        /// ```
+        /// use stringy::{Stringy, ToStringy};
+        ///
+        /// let lit = "inlined";
+        /// let s = lit.to_stringy();
+        /// assert_eq!(s, lit);
+        /// ```
         impl PartialEq<str> for $name {
             #[inline]
             fn eq(&self, other: &str) -> bool {
-                PartialEq::eq(&**self, other)
+                <&str as PartialEq>::eq(&self.deref(), &other.deref())
             }
         }
 
+        /// ```
+        /// use stringy::Stringy;
+        ///
+        /// let lit = "inlined";
+        /// let s: Stringy = lit.into();
+        /// assert_eq!(s, lit.to_string());
+        /// ```
         impl PartialEq<String> for $name {
             #[inline]
             fn eq(&self, other: &String) -> bool {
-                PartialEq::eq(&**self, other)
+                <&str as PartialEq>::eq(&self.deref(), &other.deref())
             }
         }
 
@@ -210,28 +258,28 @@ macro_rules! stringy {
         impl PartialOrd for $name {
             #[inline]
             fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                PartialOrd::partial_cmp(&**self, &**other)
+                <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
             }
         }
 
         impl PartialOrd<str> for $name {
             #[inline]
             fn partial_cmp(&self, other: &str) -> Option<Ordering> {
-                PartialOrd::partial_cmp(&**self, other)
+                <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
             }
         }
 
         impl PartialOrd<String> for $name {
             #[inline]
             fn partial_cmp(&self, other: &String) -> Option<Ordering> {
-                PartialOrd::partial_cmp(&**self, other)
+                <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
             }
         }
 
         impl Ord for $name {
             #[inline]
             fn cmp(&self, other: &Self) -> Ordering {
-                Ord::cmp(&**self, &**other)
+                <&str as Ord>::cmp(&self.deref(), &other.deref())
             }
         }
 
@@ -263,6 +311,42 @@ macro_rules! stringy {
 
         // *** From ***
 
+        impl From<&$name2> for $name {
+            #[inline]
+            fn from(s: &$name2) -> Self {
+                s.clone().into()
+            }
+        }
+
+        impl From<$name2> for $name {
+            fn from(s: $name2) -> Self {
+                match s {
+                    $name2::Static(s) => $name::Static(s),
+                    $name2::Inlined(s) => $name::Inlined(s),
+                    $name2::RefCounted(rc) => {
+                        let s = match <$rc2>::try_unwrap(rc) {
+                            Ok(s) => s,
+                            Err(rc) => (&*rc).to_owned(),
+                        };
+                        $name::RefCounted(<$rc>::new(s))
+                    }
+                }
+            }
+        }
+
+        /// ```
+        /// use stringy::Stringy;
+        ///
+        /// let lit = "inlined";
+        /// let s: Stringy = lit.to_string().into();
+        /// assert!(s.is_inlined());
+        /// assert_eq!(&s, lit);
+        ///
+        /// let lit = "This is too long too be inlined!";
+        /// let s: Stringy = lit.to_string().into();
+        /// assert!(s.is_ref_counted());
+        /// assert_eq!(&s, lit);
+        /// ```
         impl From<String> for $name {
             #[inline]
             fn from(s: String) -> Self {
@@ -273,6 +357,20 @@ macro_rules! stringy {
             }
         }
 
+        /// ```
+        /// use stringy::Stringy;
+        ///
+        /// let lit = "inlined";
+        /// let s: Stringy = (&lit.to_string()).into();
+        /// assert!(s.is_inlined());
+        /// assert_eq!(&s, lit);
+        ///
+        /// let lit = "This is too long too be inlined!";
+        /// let s: Stringy = (&lit.to_string()).into();
+        /// assert!(s.is_ref_counted());
+        /// assert!(s.can_unwrap_string());
+        /// assert_eq!(&s, lit);
+        /// ```
         impl From<&String> for $name {
             #[inline]
             fn from(s: &String) -> Self {
@@ -280,6 +378,14 @@ macro_rules! stringy {
             }
         }
 
+        /// ```
+        /// use stringy::Stringy;
+        ///
+        /// let lit = "static";
+        /// let s: Stringy = lit.into();
+        /// assert!(s.is_static());
+        /// assert_eq!(&s, lit);
+        /// ```
         impl From<&'static str> for $name {
             #[inline]
             fn from(s: &'static str) -> Self {
@@ -289,33 +395,9 @@ macro_rules! stringy {
     };
 }
 
-stringy!(Stringy, Rc<String>, to_stringy);
-stringy!(AStringy, Arc<String>, to_astringy);
-
 // *** Stringy ***
 
-impl From<&AStringy> for Stringy {
-    #[inline]
-    fn from(s: &AStringy) -> Self {
-        s.clone().into()
-    }
-}
-
-impl From<AStringy> for Stringy {
-    fn from(s: AStringy) -> Self {
-        match s {
-            AStringy::Static(s) => Stringy::Static(s),
-            AStringy::Inlined(s) => Stringy::Inlined(s),
-            AStringy::RefCounted(rc) => {
-                let s = match Arc::try_unwrap(rc) {
-                    Ok(s) => s,
-                    Err(rc) => (&*rc).to_owned(),
-                };
-                Stringy::RefCounted(Rc::new(s))
-            }
-        }
-    }
-}
+stringy!(Stringy, AStringy, Rc<String>, Arc<String>, to_stringy);
 
 pub trait ToStringy {
     fn to_stringy(&self) -> Stringy;
@@ -333,36 +415,15 @@ impl ToStringy for str {
 
 // *** AStringy ***
 
-impl From<&Stringy> for AStringy {
-    #[inline]
-    fn from(s: &Stringy) -> Self {
-        s.clone().into()
-    }
-}
-
-impl From<Stringy> for AStringy {
-    fn from(s: Stringy) -> Self {
-        match s {
-            Stringy::Static(s) => AStringy::Static(s),
-            Stringy::Inlined(s) => AStringy::Inlined(s),
-            Stringy::RefCounted(rc) => {
-                let s = match Rc::try_unwrap(rc) {
-                    Ok(s) => s,
-                    Err(rc) => (&*rc).to_owned(),
-                };
-                AStringy::RefCounted(Arc::new(s))
-            }
-        }
-    }
-}
+stringy!(AStringy, Stringy, Arc<String>, Rc<String>, to_a_stringy);
 
 pub trait ToAStringy {
-    fn to_astringy(&self) -> AStringy;
+    fn to_a_stringy(&self) -> AStringy;
 }
 
 impl ToAStringy for str {
     #[inline]
-    fn to_astringy(&self) -> AStringy {
+    fn to_a_stringy(&self) -> AStringy {
         match self.try_into() {
             Ok(s) => AStringy::Inlined(s),
             Err(_) => AStringy::wrap(self.to_string()),
