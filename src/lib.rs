@@ -7,12 +7,104 @@ use alloc::rc::Rc;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use core::cmp::Ordering;
-use core::fmt;
 use core::fmt::{Debug, Display, Formatter};
 use core::hash::{Hash, Hasher};
+use core::mem;
 use core::ops::Deref;
+use core::str;
+use core::{fmt, ptr};
 
-use smartstring::{LazyCompact, SmartString};
+// *** Inline String ***
+
+/// The max capacity of an inline string (in bytes)
+pub const MAX_INLINE: usize = mem::size_of::<String>() + mem::size_of::<usize>() - 2;
+
+#[derive(Clone, Debug)]
+pub struct InlineStringy {
+    len: u8,
+    data: [u8; MAX_INLINE],
+}
+
+impl InlineStringy {
+    #[inline]
+    pub fn try_new<T: AsRef<str>>(s: T) -> Result<Self, T> {
+        let s_ref = s.as_ref();
+
+        if s_ref.len() > MAX_INLINE {
+            Err(s)
+        } else {
+            unsafe { Ok(Self::new(s_ref)) }
+        }
+    }
+
+    unsafe fn new(s: &str) -> Self {
+        // Safety: This is safe because while uninitialized to start, we copy the the str contents
+        // over the top. We check to ensure it is not too long in `try_new` and don't call this
+        // function directly. The copy is restrained to the length of the str.
+
+        // Declare array, but keep uninitialized (we will overwrite momentarily)
+        let data: [mem::MaybeUninit<u8>; MAX_INLINE] = mem::MaybeUninit::uninit().assume_init();
+        let mut data = mem::transmute::<_, [u8; MAX_INLINE]>(data);
+
+        // Copy contents of &str to our data buffer
+        ptr::copy_nonoverlapping(s.as_ptr(), &mut data as *mut u8, s.len());
+
+        Self {
+            len: s.len() as u8,
+            data,
+        }
+    }
+}
+
+impl Display for InlineStringy {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&**self, f)
+    }
+}
+
+impl Deref for InlineStringy {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        // Safety: The contents are always obtained from a valid UTF8 str, so they must be valid
+        // Additionally, we clamp the size of the slice passed to be no longer than our str length
+        unsafe { str::from_utf8_unchecked(&self.data[..(self.len as usize)]) }
+    }
+}
+
+impl TryFrom<String> for InlineStringy {
+    type Error = String;
+
+    #[inline]
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+impl<'s> TryFrom<&'s String> for InlineStringy {
+    type Error = &'s String;
+
+    #[inline]
+    fn try_from(value: &'s String) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+impl<'s> TryFrom<&'s str> for InlineStringy {
+    type Error = &'s str;
+
+    #[inline]
+    fn try_from(value: &'s str) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+impl From<InlineStringy> for String {
+    #[inline]
+    fn from(s: InlineStringy) -> Self {
+        (&*s).to_string()
+    }
+}
 
 // *** Stringy macro ***
 
@@ -21,11 +113,38 @@ macro_rules! stringy {
         #[derive(Clone, Debug)]
         pub enum $name {
             Static(&'static str),
-            Inlined(SmartString<LazyCompact>),
+            Inlined(InlineStringy),
             RefCounted($rc),
         }
 
         impl $name {
+            /// Returns true if this is a wrapped &'static str (string literal)
+            #[inline]
+            pub fn is_static(&self) -> bool {
+                matches!(self, $name::Static(_))
+            }
+
+            /// Returns true if this is an inlined string
+            #[inline]
+            pub fn is_inline(&self) -> bool {
+                matches!(self, $name::Inlined(_))
+            }
+
+            /// Returns true if this Stringy is a wrapped String using reference counting
+            #[inline]
+            pub fn is_ref_counted(&self) -> bool {
+                matches!(self, $name::RefCounted(_))
+            }
+
+            /// Returns true if we can unwrap a native Rust String without allocating else false
+            #[inline]
+            pub fn can_unwrap_string(&self) -> bool {
+                match self {
+                    $name::RefCounted(rc) => <$rc>::strong_count(rc) == 1,
+                    _ => false,
+                }
+            }
+
             /// Wrap string verbatim (without possibility of inlining). This can be useful in exclusive
             /// ownership situations where you need to extract the original String later
             pub fn wrap(s: String) -> Self {
@@ -147,10 +266,9 @@ macro_rules! stringy {
         impl From<String> for $name {
             #[inline]
             fn from(s: String) -> Self {
-                if s.len() > smartstring::MAX_INLINE {
-                    $name::RefCounted(<$rc>::new(s))
-                } else {
-                    $name::Inlined(s.into())
+                match s.try_into() {
+                    Ok(s) => $name::Inlined(s),
+                    Err(s) => $name::RefCounted(<$rc>::new(s)),
                 }
             }
         }
@@ -206,10 +324,9 @@ pub trait ToStringy {
 impl ToStringy for str {
     #[inline]
     fn to_stringy(&self) -> Stringy {
-        if self.len() > smartstring::MAX_INLINE {
-            Stringy::wrap(self.to_string())
-        } else {
-            Stringy::Inlined(self.into())
+        match self.try_into() {
+            Ok(s) => Stringy::Inlined(s),
+            Err(_) => Stringy::wrap(self.to_string()),
         }
     }
 }
@@ -246,10 +363,9 @@ pub trait ToAStringy {
 impl ToAStringy for str {
     #[inline]
     fn to_astringy(&self) -> AStringy {
-        if self.len() > smartstring::MAX_INLINE {
-            AStringy::wrap(self.to_string())
-        } else {
-            AStringy::Inlined(self.into())
+        match self.try_into() {
+            Ok(s) => AStringy::Inlined(s),
+            Err(_) => AStringy::wrap(self.to_string()),
         }
     }
 }
