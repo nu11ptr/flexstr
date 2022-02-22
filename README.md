@@ -8,21 +8,20 @@ Rust is awesome, but it's `String` type is not optimized for many typical use
 cases, but instead is optimized as a  mutable string buffer. Most string use 
 cases don't modify the string contents, often treat strings as if they were cheap 
 like primitives, typically concatenate instead of modify, and often end up 
-being cloned with identical contents. This crate attempts to create a new string 
-type that is optimized for typical string use cases, while retaining the 
-simplicity of `String`.
+being cloned with identical contents. Additionally, `String` isn't able wrap 
+string literal without additional allocation. This crate attempts to 
+create a new string type that is optimized for typical string use cases, while 
+retaining the simplicity of `String`.
 
-## Goals
+## Features
 
-Create a string type that:
-
-* Is optimized for immutability and cheap cloning
+* Optimized for immutability and cheap cloning
 * Allows for multiple ownership of the same string memory contents
 * Is very simple to use
-* For literals and short strings, allow for zero allocation
-* Provide easy access to `&str` via dereference
-* Allow for seamless coexistence with `String`
-* Serve as a single string type (unifying literals and `String`)
+* Serves as a single string type (unifying literals and allocated strings)
+* Zero allocation for literals and short strings (64-bit: up to 30 bytes)
+* Provides easy access to `&str` via dereference
+* Allows for easy wrapping/unwrapping of native `String` type
 * Isn't much more expensive than `String` in non-optimal use cases
 
 ## Negatives
@@ -31,8 +30,9 @@ There is no free lunch:
 
 * Due to being an enum wrapper + padding/alignment it ends up being 8 bytes
   larger than `String` on 64-bit platforms (24 vs 32 bytes)
+  * NOTE: The extra space is used, when possible, for inline string data
 * Due to usage of `Rc` (or `Arc`) it requires two allocations instead of one
-  when using the ref counted enum variant
+  when using the reference counted enum variant
 * Due to the enum wrapper, every string operation has the overhead of a
   branching operation
 
@@ -41,49 +41,20 @@ call them out in case these pose an issue to your workload.
 
 ## Open Issues / TODO
 
-* Find/create a new ref count type that inlines string contents (to avoid
+* Consider a new reference count type that inlines string contents (to avoid
   double allocation)
-* Reinvent common macros like `format!` for creating strings to avoid need to go 
-  back and forth to `String`
+  * This, however, prevents efficient unwrapping of `String` without another 
+    variant
+* Reinvent common macros like `format!` (and `aformat!`) for creating 
+  strings to avoid need to go back and forth to `String`
 
 ## Types
 
 * `Stringy`
-    * Primary type - however, since it might use `Rc` it is not `Send`/`Sync`
+    * Primary type
+    * Since it can use `Rc`, it is not `Send`/`Sync`
 * `AStringy`
     * Equivalent to `Stringy` but uses `Arc` instead of `Rc` (is therefore `Send`/`Sync`)
-
-## How to Use
-
-For the most part, you use it like any other string type. It works like you 
-would expect. You can dereference into `&str`, concatenate strings with `+`, 
-make an efficient copy with `.clone()`, etc.
-
-* Creation:
-    * From `String` or `&'static str` = `.into()`
-        * String itself will not ever cause an allocation
-            * Possible allocation from `Rc` or `Arc` for `String` (if not 
-              inlined)
-    * Wrap `String` = `.wrap_as_stringy()` or `wrap_as_astringy`
-        * Doesn't consider inlining which is useful if you wish to efficiently 
-          retrieve the original `String` later without allocation
-            * Allocates since it will use `Rc` or `Arc`
-    * From `&str` or `&String` = `.to_stringy()` or `.to_astringy()`
-        * Will allocate and copy borrowed string
-
-
-* Conversion back into a `String`:
-    * `to_string` = Creates a brand new `String` and copies contents into it
-        * Original `Stringy` preserved
-    * `into_string` = Attempts to return the original `String` if possible 
-    (`Rc`/`Arc` wrapped with single ownership) otherwise it works like 
-      `to_string` 
-        * Original `Stringy` is consumed 
-    * `try_into_string` = Attempts to return the original `String` if possible 
-      (`Rc`/`Arc` wrapped with single ownership) otherwise it returns a copy of 
-      the original `Stringy` 
-      `Stringy` as error
-        * Original `Stringy` is consumed  
 
 ## Usage
 
@@ -91,40 +62,51 @@ make an efficient copy with `.clone()`, etc.
 
 ```rust
 fn main() {
-    // Wrapped literal - no allocation
+    // Literal - no copying or allocation
     let literal: Stringy = "literal".into();
     
-    // Copied borrowed string - inlined
+    // Borrowed string - Copied into inline string
     let owned = "inlined".to_string();
     let str_to_inlined = (&*owned).to_stringy();
 
-    // Copied borrowed String - wrapped in Rc
+    // Borrowed String - copied into `String` wrapped in `Rc`
     let owned = "A bit too long to be inlined!!!".to_string();
     let str_to_wrapped = (&*owned).to_stringy();
     
-    // Inlined string - `String` allocation released
+    // String - copied into inline string (`String` storage released)
     let inlined: Stringy = "inlined".to_string().into();
-    
-    // Wrapped string - `String` wrapped in `Rc`
+
+    // String - original `String` wrapped in `Rc`
     let wrapped: Stringy = "A bit too long to be inlined!!!".to_string().into();
 
+    // String - original `String` wrapped in `Rc`
+    let force_wrapped = Stringy::wrap("not inlined".to_string());
+    
     // *** If you want a Send/Sync type you need `AStringy` instead ***
 
-    // Wrapped literal - no allocation
+    // Stringy wrapped literal - no copying or allocation
     let literal: AStringy = literal.into();
     
-    // Inlined string - no allocation
-    let inlined: Stringy = inlined.into();
+    // Stringy inlined string - no allocation
+    let inlined: AStringy = inlined.into();
     
-    // Thread-safe wrapped string - `String` wrapped in `Arc`
+    // Stringy `Rc` wrapped `String` - original `String` wrapped in `Arc`
     let wrapped: AStringy = wrapped.into();
+    
+    /// *** Round trip back to `Stringy` ***
+    
+    /// AStringy `Arc` wrapped `String` - copy of `String` wrapped in `Rc`
+    let wrapped = wrapped.clone();
+    let wrapped: Stringy = wrapped.into();
 }
 ```
 
 ### Borrowing
 
-Works just like `String`. There is no real benefit to passing as `&str` as 
-you can always deference inside the function. By passing in as `&Stringy` 
+Works just like `String`
+
+NOTE: There is no real benefit to passing as a `&str` as 
+you can always deference inside the function. By passing in as a `&Stringy` 
 you retain the option for cheap conditional ownership via `clone()`.
 
 ```rust
@@ -133,6 +115,7 @@ fn my_func(str: &Stringy) {
 }
 
 fn main() {
+    // Literal - no copy or allocation
     let str: Stringy = "my string".into();
     my_func(&str);
 }
@@ -150,10 +133,11 @@ struct MyStruct {
 
 impl MyStruct {
     fn to_own_or_not_to_own(s: &Stringy) -> Self {
-        let s = if &*s == "own_me" {
+        let s = if s == "own_me" {
+            // Since a wrapped literal, no copy or allocation
             s.clone()
         } else {
-            // Wrapped literal - no allocation
+            // Wrapped literal - no copy or allocation
             "own_me".into()
         };
 
@@ -162,18 +146,49 @@ impl MyStruct {
 }
 
 fn main() {
-    // Wrapped literal - no allocation
+    // Wrapped literals - no copy or allocation
     let s = "borrow me".into();
-    // Inlined string - `String` allocation released
-    let s2 = "own me".to_string().into();
+    let s2 = "own me".into();
 
-    let struct1 = MyStruct::to_own_or_not_to_own(s.clone());
-    let struct2 = MyStruct::to_own_or_not_to_own(s2.clone());
+    let struct1 = MyStruct::to_own_or_not_to_own(&s);
+    let struct2 = MyStruct::to_own_or_not_to_own(&s2);
 
     assert_eq!(s2, struct1.str);
     assert_eq!(s2, struct2.str);
 }
 ```
+
+## Performance Characteristics
+
+NOTE: No benchmarking has yet been done
+
+* Clones are cheap and never allocate
+    * At minimum, they are just a copy of the enum and at max an additional 
+      reference count increment
+* Literals are just wrapped when used with `into()` and never copied
+* Calling `into()` on a `String` will result in an inline string (if 
+  short, with dynamic storage released) otherwise wrapped in `Rc`/`Arc` 
+  (which will allocate)
+* Using `Stringy::wrap()` or `AStringy::wrap()` is recommended when there is 
+  a need to wrap and unwrap (`into_string()` or `try_into_string()`) the source 
+  `String` efficiently as it ensures the original `String` is preserved and not 
+  inlined.
+    * This will always allocate, however, as it creates a new `Rc` or `Arc`
+* `to_stringy()` and `to_a_stringy()` are meant for the on-boarding of borrowed 
+  strings and always copy into either an inline string (for short strings) or 
+  an `Rc`/`Arc` wrapped `String` (which will allocate)
+* `try_into_string` never allocates, but will only succeed in single 
+  ownership scenarios using reference counted storage (`wrap()` or non-inlined 
+  `into()`)
+* `into_string` works like `try_into_string`, but will fall back to 
+  copying into a new `String` instead of failing
+* `to_string` always copies into a new `String`
+* Conversions back and forth between `AStringy` and `Stringy` using `into()` 
+  are cheap when using wrapped literals or inlined strings
+    * Inlined strings and wrapped literals just create a new enum wrapper
+    * Reference counted wrapped strings will always require an allocation for 
+      the  new `Rc` or `Arc`
+        * The `String` will have to be cloned if not exclusively owned
 
 ## License
 
