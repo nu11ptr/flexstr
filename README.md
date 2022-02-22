@@ -24,30 +24,6 @@ retaining the simplicity of `String`.
 * Allows for easy wrapping/unwrapping of native `String` type
 * Isn't much more expensive than `String` in non-optimal use cases
 
-## Negatives
-
-There is no free lunch:
-
-* Due to being an enum wrapper + padding/alignment it ends up being 8 bytes
-  larger than `String` on 64-bit platforms (24 vs 32 bytes)
-  * NOTE: The extra space is used, when possible, for inline string data
-* Due to usage of `Rc` (or `Arc`) it requires two allocations instead of one
-  when using the reference counted enum variant
-* Due to the enum wrapper, every string operation has the overhead of a
-  branching operation
-
-I don't consider any of these terribly serious in most of my use cases, but
-call them out in case these pose an issue to your workload.
-
-## Open Issues / TODO
-
-* Consider a new reference count type that inlines string contents (to avoid
-  double allocation)
-  * This, however, prevents efficient unwrapping of `String` without another 
-    variant
-* Reinvent common macros like `format!` (and `aformat!`) for creating 
-  strings to avoid need to go back and forth to `String`
-
 ## Types
 
 * `Stringy`
@@ -201,6 +177,30 @@ NOTE: No benchmarking has yet been done
     * Reference counted wrapped strings will always require an allocation for 
       the  new `Rc` or `Arc`
         * The `String` will have to be cloned if not exclusively owned
+
+## Negatives
+
+There is no free lunch:
+
+* Due to being an enum wrapper + padding/alignment it ends up being 8 bytes
+  larger than `String` on 64-bit platforms (24 vs 32 bytes)
+  * NOTE: The extra space is used, when possible, for inline string data
+* Due to usage of `Rc` (or `Arc`) it requires two allocations instead of one
+  when using the reference counted enum variant
+* Due to the enum wrapper, every string operation has the overhead of a
+  branching operation
+
+I don't consider any of these terribly serious in most of my use cases, but
+call them out in case these pose an issue to your workload.
+
+## Open Issues / TODO
+
+* Consider a new reference count type that inlines string contents (to avoid
+  double allocation)
+  * This, however, prevents efficient unwrapping of `String` without another
+    variant
+* Reinvent common macros like `format!` (and `aformat!`) for creating
+  strings to avoid need to go back and forth to `String`
 
 ## License
 
