@@ -19,6 +19,8 @@ use core::{fmt, ptr};
 /// The max capacity of an inline string (in bytes)
 pub const MAX_INLINE: usize = mem::size_of::<String>() + mem::size_of::<usize>() - 2;
 
+/// This is the custom inline string type - it is not typically used directly, but instead is used
+/// transparently by `Stringy` and `AStringy`
 #[derive(Clone, Debug)]
 pub struct InlineStringy {
     len: u8,
@@ -26,6 +28,8 @@ pub struct InlineStringy {
 }
 
 impl InlineStringy {
+    /// Attempts to return a new `InlineStringy` if the source string is short enough to be copied.
+    /// If not, the source is returned as the error.
     #[inline]
     pub fn try_new<T: AsRef<str>>(s: T) -> Result<Self, T> {
         let s_ref = s.as_ref();
@@ -109,7 +113,8 @@ impl From<InlineStringy> for String {
 // *** Stringy macro ***
 
 macro_rules! stringy {
-    ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident) => {
+    ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident, $to_func2:ident) => {
+        /// The main string enum type that wraps a string literal, inline string, or ref counted `String`
         #[derive(Clone, Debug)]
         pub enum $name {
             Static(&'static str),
@@ -118,7 +123,19 @@ macro_rules! stringy {
         }
 
         impl $name {
-            /// Returns true if this is a wrapped &'static str (string literal)
+            #[doc = concat!("Returns the length of this `", stringify!($name),"` in bytes (not chars/graphemes)")]
+            #[inline]
+            pub fn len(&self) -> usize {
+                (&**self).len()
+            }
+
+            #[doc = concat!("Extracts a string slice containing the entire `", stringify!($name), "`")]
+            #[inline]
+            pub fn as_str(&self) -> &str {
+                &**self
+            }
+
+            /// Returns true if this is a wrapped string literal (`&'static str`)
             #[inline]
             pub fn is_static(&self) -> bool {
                 matches!(self, $name::Static(_))
@@ -130,29 +147,27 @@ macro_rules! stringy {
                 matches!(self, $name::Inlined(_))
             }
 
-            /// Returns true if this Stringy is a wrapped String using reference counting
+            /// Returns true if this is a wrapped `String` using reference counting
             #[inline]
             pub fn is_ref_counted(&self) -> bool {
                 matches!(self, $name::RefCounted(_))
             }
 
-            /// Returns true if we can unwrap a native Rust String without allocating else false
+            /// Returns true if we can unwrap a native `String` without any further allocations/copying
             #[inline]
-            pub fn can_unwrap_string(&self) -> bool {
-                match self {
-                    $name::RefCounted(rc) => <$rc>::strong_count(rc) == 1,
-                    _ => false,
-                }
+            pub fn unwrappable_string(&self) -> bool {
+                matches!(self, $name::RefCounted(rc) if <$rc>::strong_count(rc) == 1)
             }
 
-            /// Wrap string verbatim (without possibility of inlining). This can be useful in exclusive
-            /// ownership situations where you need to extract the original String later
+            /// Wrap `String` verbatim (without possibility of inlining). This can be useful in exclusive
+            /// ownership situations where the original `String` is needed later
+            #[inline]
             pub fn wrap(s: String) -> Self {
                 $name::RefCounted(<$rc>::new(s))
             }
 
             /// Try to retrieve the inner `String` if there is one and we have exclusive ownership. If not
-            /// or we don't, then create a new String and return it instead.
+            /// or we don't, then create a new `String` and return it instead.
             pub fn into_string(self) -> String {
                 match self {
                     $name::Static(str) => str.to_string(),
@@ -165,8 +180,8 @@ macro_rules! stringy {
             }
 
             /// Try to retrieve the inner `String` if there is one and we have exclusive ownership. If not
-            /// or we don't, then return our Stringy as the error in the result.
-            pub fn try_into_string(self) -> Result<String, $name> {
+            #[doc = concat!("or we don't, then return our `", stringify!($name), "` as the error in the result.")]
+            pub fn try_into_string(self) -> Result<String, Self> {
                 match self {
                     s @ $name::Static(_) => Err(s),
                     ss @ $name::Inlined(_) => Err(ss),
@@ -185,10 +200,10 @@ macro_rules! stringy {
         }
 
         /// ```
-        /// use stringy::Stringy;
+        #[doc = concat!("use stringy::", stringify!($name), ";")]
         ///
-        /// let s: Stringy = "inlined".into();
-        /// let s2: Stringy = s.clone();
+        #[doc = concat!("let s: ", stringify!($name), " = \"inlined\".into();")]
+        #[doc = concat!("let s2: ", stringify!($name), " = s.clone();")]
         /// assert_eq!(s, s2);
         /// ```
         impl PartialEq for $name {
@@ -199,10 +214,10 @@ macro_rules! stringy {
         }
 
         /// ```
-        /// use stringy::{AStringy, Stringy, ToAStringy};
+        #[doc = concat!("use stringy::{", stringify!($name2), ", ", stringify!($name), ", To", stringify!($name2) ,"};")]
         ///
-        /// let s: Stringy = "inlined".into();
-        /// let s2: AStringy = s.to_a_stringy();
+        #[doc = concat!("let s: ", stringify!($name), " = \"inlined\".into();")]
+        #[doc = concat!("let s2: ", stringify!($name2), " = s.", stringify!($to_func2), "();")]
         /// assert_eq!(s, s2);
         /// ```
         impl PartialEq<$name2> for $name {
@@ -212,10 +227,10 @@ macro_rules! stringy {
         }
 
         /// ```
-        /// use stringy::{Stringy, ToStringy};
+        #[doc = concat!("use stringy::{", stringify!($name), ", To", stringify!($name) ,"};")]
         ///
         /// let lit = "inlined";
-        /// let s = lit.to_stringy();
+        #[doc = concat!("let s: ", stringify!($name), " = lit.", stringify!($to_func), "();")]
         /// assert_eq!(s, lit);
         /// ```
         impl PartialEq<&str> for $name {
@@ -226,10 +241,10 @@ macro_rules! stringy {
         }
 
         /// ```
-        /// use stringy::{Stringy, ToStringy};
+        #[doc = concat!("use stringy::{", stringify!($name), ", To", stringify!($name) ,"};")]
         ///
         /// let lit = "inlined";
-        /// let s = lit.to_stringy();
+        #[doc = concat!("let s: ", stringify!($name), " = lit.", stringify!($to_func), "();")]
         /// assert_eq!(s, lit);
         /// ```
         impl PartialEq<str> for $name {
@@ -240,10 +255,10 @@ macro_rules! stringy {
         }
 
         /// ```
-        /// use stringy::Stringy;
+        #[doc = concat!("use stringy::", stringify!($name), ";")]
         ///
         /// let lit = "inlined";
-        /// let s: Stringy = lit.into();
+        #[doc = concat!("let s: ", stringify!($name), " = lit.into();")]
         /// assert_eq!(s, lit.to_string());
         /// ```
         impl PartialEq<String> for $name {
@@ -334,16 +349,17 @@ macro_rules! stringy {
             }
         }
 
+        #[doc = concat!("Converts a `String` into a `", stringify!($name), "`")]
         /// ```
-        /// use stringy::Stringy;
+        #[doc = concat!("use stringy::", stringify!($name), ";")]
         ///
         /// let lit = "inlined";
-        /// let s: Stringy = lit.to_string().into();
+        #[doc = concat!("let s: ", stringify!($name), " = lit.to_string().into();")]
         /// assert!(s.is_inlined());
         /// assert_eq!(&s, lit);
         ///
         /// let lit = "This is too long too be inlined!";
-        /// let s: Stringy = lit.to_string().into();
+        #[doc = concat!("let s: ", stringify!($name), " = lit.to_string().into();")]
         /// assert!(s.is_ref_counted());
         /// assert_eq!(&s, lit);
         /// ```
@@ -357,18 +373,19 @@ macro_rules! stringy {
             }
         }
 
+        #[doc = concat!("Converts a `&String` into a `", stringify!($name), "`")]
         /// ```
-        /// use stringy::Stringy;
+        #[doc = concat!("use stringy::", stringify!($name), ";")]
         ///
         /// let lit = "inlined";
-        /// let s: Stringy = (&lit.to_string()).into();
+        #[doc = concat!("let s: ", stringify!($name), " = (&lit.to_string()).into();")]
         /// assert!(s.is_inlined());
         /// assert_eq!(&s, lit);
         ///
         /// let lit = "This is too long too be inlined!";
-        /// let s: Stringy = (&lit.to_string()).into();
+        #[doc = concat!("let s: ", stringify!($name), " = (&lit.to_string()).into();")]
         /// assert!(s.is_ref_counted());
-        /// assert!(s.can_unwrap_string());
+        /// assert!(s.unwrappable_string());
         /// assert_eq!(&s, lit);
         /// ```
         impl From<&String> for $name {
@@ -378,11 +395,12 @@ macro_rules! stringy {
             }
         }
 
+        #[doc = concat!("Converts a string literal (`&static str`) into a `", stringify!($name), "`")]
         /// ```
-        /// use stringy::Stringy;
+        #[doc = concat!("use stringy::", stringify!($name), ";")]
         ///
         /// let lit = "static";
-        /// let s: Stringy = lit.into();
+        #[doc = concat!("let s: ", stringify!($name), " = lit.into();")]
         /// assert!(s.is_static());
         /// assert_eq!(&s, lit);
         /// ```
@@ -397,9 +415,18 @@ macro_rules! stringy {
 
 // *** Stringy ***
 
-stringy!(Stringy, AStringy, Rc<String>, Arc<String>, to_stringy);
+stringy!(
+    Stringy,
+    AStringy,
+    Rc<String>,
+    Arc<String>,
+    to_stringy,
+    to_a_stringy
+);
 
+/// A trait that converts the source to a `Stringy` without consuming it
 pub trait ToStringy {
+    /// Converts the source to a `Stringy` without consuming it
     fn to_stringy(&self) -> Stringy;
 }
 
@@ -415,9 +442,18 @@ impl ToStringy for str {
 
 // *** AStringy ***
 
-stringy!(AStringy, Stringy, Arc<String>, Rc<String>, to_a_stringy);
+stringy!(
+    AStringy,
+    Stringy,
+    Arc<String>,
+    Rc<String>,
+    to_a_stringy,
+    to_stringy
+);
 
+/// A trait that converts the source to an `AStringy` without consuming it
 pub trait ToAStringy {
+    /// Converts the source to an `AStringy` without consuming it
     fn to_a_stringy(&self) -> AStringy;
 }
 
