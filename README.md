@@ -58,7 +58,19 @@ call them out in case these pose an issue to your workload.
 
 ## Usage
 
-### Basic Usage
+### Hello World
+
+```rust
+use stringy::Stringy;
+
+fn main() {
+  let hello: Stringy = "world!".into();
+  
+  println!("Hello {world}");
+}
+```
+
+### Conversions
 
 ```rust
 fn main() {
@@ -93,9 +105,9 @@ fn main() {
     // Stringy `Rc` wrapped `String` - original `String` wrapped in `Arc`
     let wrapped: AStringy = wrapped.into();
     
-    /// *** Round trip back to `Stringy` ***
+    // *** Round trip back to `Stringy` ***
     
-    /// AStringy `Arc` wrapped `String` - copy of `String` wrapped in `Rc`
+    // AStringy `Arc` wrapped `String` - copy of `String` wrapped in `Rc`
     let wrapped = wrapped.clone();
     let wrapped: Stringy = wrapped.into();
 }
@@ -111,7 +123,7 @@ you retain the option for cheap conditional ownership via `clone()`.
 
 ```rust
 fn my_func(str: &Stringy) {
-    println!("Borrowed string: {}", str);
+    println!("Borrowed string: {str}");
 }
 
 fn main() {
