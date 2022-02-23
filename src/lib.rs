@@ -1,4 +1,7 @@
 #![no_std]
+#![warn(missing_docs)]
+
+//! A simple to use, immutable, clone-efficient `String` replacement for Rust
 
 extern crate alloc;
 
@@ -13,6 +16,11 @@ use core::mem;
 use core::ops::Deref;
 use core::str;
 use core::{fmt, ptr};
+
+#[cfg(feature = "serde")]
+use serde::de::{Error, Visitor};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 // *** Inline String ***
 
@@ -113,16 +121,25 @@ impl From<InlineStringy> for String {
 // *** Stringy macro ***
 
 macro_rules! stringy {
-    ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident, $to_func2:ident) => {
+    ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident, $to_func2:ident, $visitor_name: ident) => {
         /// The main string enum type that wraps a string literal, inline string, or ref counted `String`
         #[derive(Clone, Debug)]
         pub enum $name {
+            /// A wrapped string literal
             Static(&'static str),
+            /// An inlined string
             Inlined(InlineStringy),
+            /// A reference count wrapped `String`
             RefCounted($rc),
         }
 
         impl $name {
+            #[doc = concat!("Returns true if this `", stringify!($name),"` is empty")]
+            #[inline]
+            pub fn is_empty(&self) -> bool {
+                (&**self).is_empty()
+            }
+
             #[doc = concat!("Returns the length of this `", stringify!($name),"` in bytes (not chars/graphemes)")]
             #[inline]
             pub fn len(&self) -> usize {
@@ -410,6 +427,52 @@ macro_rules! stringy {
                 $name::Static(s)
             }
         }
+
+        #[cfg(feature = "serde")]
+        impl Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                serializer.serialize_str(self)
+            }
+        }
+
+        #[cfg(feature = "serde")]
+        struct $visitor_name;
+
+        #[cfg(feature = "serde")]
+        impl<'de> Visitor<'de> for $visitor_name {
+            type Value = $name;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("a string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                Ok(v.$to_func())
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                Ok(v.into())
+            }
+        }
+
+        #[cfg(feature = "serde")]
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_str($visitor_name)
+            }
+        }
     };
 }
 
@@ -421,7 +484,8 @@ stringy!(
     Rc<String>,
     Arc<String>,
     to_stringy,
-    to_a_stringy
+    to_a_stringy,
+    StringyVisitor
 );
 
 /// A trait that converts the source to a `Stringy` without consuming it
@@ -448,7 +512,8 @@ stringy!(
     Arc<String>,
     Rc<String>,
     to_a_stringy,
-    to_stringy
+    to_stringy,
+    AStringyVisitor
 );
 
 /// A trait that converts the source to an `AStringy` without consuming it

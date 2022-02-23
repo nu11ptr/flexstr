@@ -5,21 +5,28 @@ A simple to use, immutable, clone-efficient `String` replacement for Rust
 ## Overview
 
 Rust is awesome, but it's `String` type is not optimized for many typical use
-cases, but instead is optimized as a  mutable string buffer. Most string use 
-cases don't modify the string contents, often treat strings as if they were cheap 
-like primitives, typically concatenate instead of modify, and often end up 
-being cloned with identical contents. Additionally, `String` isn't able wrap 
-string literal without additional allocation. This crate attempts to 
-create a new string type that is optimized for typical string use cases, while 
-retaining the simplicity of `String`.
+cases, but instead is optimized as a mutable string buffer. Most string use 
+cases don't modify their string contents, often need to copy strings around 
+as if they were cheap like integers, typically concatenate instead of modify, 
+and often end up being cloned with identical contents. Additionally, 
+`String` isn't able wrap a string literal without additional allocation and 
+copying. Rust really needs a 3rd string type to unify usage in typical use 
+cases. This crate creates a new string type that is optimized for those use cases, while 
+retaining the usage simplicity of `String`.
+
+All that said, this type is not inherently "better" than `String`, but 
+different. It is a higher level type and in some cases actually wraps a 
+`String`, and that can at times mean higher overhead. It really depends on use case.
 
 ## Features
 
 * Optimized for immutability and cheap cloning
 * Allows for multiple ownership of the same string memory contents
 * Is very simple to use
-* Serves as a single string type (unifying literals and allocated strings)
-* Zero allocation for literals and short strings (64-bit: up to 30 bytes)
+* Optional serde serialization support (feature = "serde")
+* Allows for simple conditional ownership scenarios
+* Serves as a universal string type (unifying literals and allocated strings)
+* Doesn't allocate for literals and short strings (64-bit: up to 30 bytes)
 * Provides easy access to `&str` via dereference
 * Allows for easy wrapping/unwrapping of native `String` type
 * Isn't much more expensive than `String` in non-optimal use cases
@@ -27,10 +34,17 @@ retaining the simplicity of `String`.
 ## Types
 
 * `Stringy`
-    * Primary type
-    * Since it can use `Rc`, it is not `Send`/`Sync`
+    * Wrapper type for string literals (`&'static str`), inlined strings 
+      (`InlineStringy`), or an `Rc` wrapped `String` 
+    * NOT `Send`/`Sync` (due to usage of `Rc`)
 * `AStringy`
-    * Equivalent to `Stringy` but uses `Arc` instead of `Rc` (is therefore `Send`/`Sync`)
+    * Equivalent to `Stringy` but uses `Arc` instead of `Rc` for a wrapped 
+      `String`
+    * `Send`/`Sync`
+* `InlineStringy`
+    * Custom inline string type holding up to 30 bytes (on 64-bit platforms)
+    * Used automatically as needed by `Stringy` and `AStringy` - not typically 
+      used directly
 
 ## Usage
 
@@ -40,6 +54,7 @@ retaining the simplicity of `String`.
 use stringy::Stringy;
 
 fn main() {
+  // Literal - no copying or allocation
   let hello: Stringy = "world!".into();
   
   println!("Hello {world}");
@@ -93,9 +108,9 @@ fn main() {
 
 Works just like `String`
 
-NOTE: There is no real benefit to passing as a `&str` as 
-you can always deference inside the function. By passing in as a `&Stringy` 
-you retain the option for cheap conditional ownership via `clone()`.
+NOTE: The only benefit to passing as a `&str` is more flexibility in what is 
+passed. By passing as a `&Stringy` instead, we retain the possibility of cheap 
+multi ownership (see below).
 
 ```rust
 fn my_func(str: &Stringy) {
@@ -187,11 +202,10 @@ There is no free lunch:
   * NOTE: The extra space is used, when possible, for inline string data
 * Due to usage of `Rc` (or `Arc`) it requires two allocations instead of one
   when using the reference counted enum variant
-* Due to the enum wrapper, every string operation has the overhead of a
+* Due to the enum wrapper, every string operation has the overhead of an extra
   branching operation
-
-I don't consider any of these terribly serious in most of my use cases, but
-call them out in case these pose an issue to your workload.
+* Need to consider single-threaded (`Stringy`) and multi-threaded (`AStringy`) 
+  use cases and convert accordingly
 
 ## Open Issues / TODO
 
