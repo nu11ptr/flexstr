@@ -4,31 +4,33 @@ A simple to use, immutable, clone-efficient `String` replacement for Rust
 
 ## Overview
 
-Rust is awesome, but it's `String` type is not optimized for many typical use
-cases, but instead is optimized as a mutable string buffer. Most string use 
+Rust is great, but it's `String` type is not optimized for many typical use
+cases, but is instead optimized as a mutable string buffer. Most string use 
 cases don't modify their string contents, often need to copy strings around 
 as if they were cheap like integers, typically concatenate instead of modify, 
 and often end up being cloned with identical contents. Additionally, 
 `String` isn't able wrap a string literal without additional allocation and 
-copying. Rust really needs a 3rd string type to unify usage in typical use 
-cases. This crate creates a new string type that is optimized for those use cases, while 
-retaining the usage simplicity of `String`.
+copying. Rust really needs a 3rd string type to unify usage of both literals 
+and allocated strings in typical use cases. This crate creates a new string 
+type that is optimized for those use cases, while retaining the usage 
+simplicity of `String`.
 
-All that said, this type is not inherently "better" than `String`, but 
-different. It is a higher level type and in some cases actually wraps a 
-`String`, and that can at times mean higher overhead. It really depends on use case.
+This type is not inherently "better" than `String`, but different. It is a 
+higher level type, that can at times mean higher overhead. It really 
+depends on the use case.
 
 ## Features
 
 * Optimized for immutability and cheap cloning
 * Allows for multiple ownership of the same string memory contents
-* Is very simple to use
+* It is very simple to use
 * Optional serde serialization support (feature = "serde")
-* Allows for simple conditional ownership scenarios
+* Allows for simple conditional ownership scenarios (borrows can turn into 
+  ownership without allocation/copying)
 * Serves as a universal string type (unifying literals and allocated strings)
 * Doesn't allocate for literals and short strings (64-bit: up to 30 bytes)
 * Provides easy access to `&str` via dereference
-* Allows for easy wrapping/unwrapping of native `String` type
+* Allows for easy wrapping/unwrapping of the native `String` type, when needed
 * Isn't much more expensive than `String` in non-optimal use cases
 
 ## Types
@@ -36,11 +38,11 @@ different. It is a higher level type and in some cases actually wraps a
 * `Stringy`
     * Wrapper type for string literals (`&'static str`), inlined strings 
       (`InlineStringy`), or an `Rc` wrapped `String` 
-    * NOT `Send`/`Sync` (due to usage of `Rc`)
+    * NOT `Send` or `Sync` (due to usage of `Rc`)
 * `AStringy`
-    * Equivalent to `Stringy` but uses `Arc` instead of `Rc` for a wrapped 
+    * Equivalent to `Stringy` but uses `Arc` instead of `Rc` for the wrapped 
       `String`
-    * `Send`/`Sync`
+    * Both `Send` and `Sync`
 * `InlineStringy`
     * Custom inline string type holding up to 30 bytes (on 64-bit platforms)
     * Used automatically as needed by `Stringy` and `AStringy` - not typically 
@@ -65,40 +67,41 @@ fn main() {
 
 ```rust
 fn main() {
-    // Literal - no copying or allocation
+    // From literal - no copying or allocation
     let literal: Stringy = "literal".into();
     
-    // Borrowed string - Copied into inline string
+    // From borrowed string - Copied into inline string
     let owned = "inlined".to_string();
-    let str_to_inlined = (&*owned).to_stringy();
+    let str_to_inlined = (&owned).to_stringy();
 
-    // Borrowed String - copied into `String` wrapped in `Rc`
+    // From borrowed String - copied into `String` wrapped in `Rc`
     let owned = "A bit too long to be inlined!!!".to_string();
-    let str_to_wrapped = (&*owned).to_stringy();
+    let str_to_wrapped = (&owned).to_stringy();
     
-    // String - copied into inline string (`String` storage released)
+    // From String - copied into inline string (`String` storage released)
     let inlined: Stringy = "inlined".to_string().into();
 
-    // String - original `String` wrapped in `Rc`
+    // From String - original `String` wrapped in `Rc`
     let wrapped: Stringy = "A bit too long to be inlined!!!".to_string().into();
 
-    // String - original `String` wrapped in `Rc`
+    // From String - original `String` wrapped in `Rc`
     let force_wrapped = Stringy::wrap("not inlined".to_string());
     
     // *** If you want a Send/Sync type you need `AStringy` instead ***
 
-    // Stringy wrapped literal - no copying or allocation
+    // From Stringy wrapped literal - no copying or allocation
     let literal: AStringy = literal.into();
     
-    // Stringy inlined string - no allocation
+    // From Stringy inlined string - no allocation
     let inlined: AStringy = inlined.into();
     
-    // Stringy `Rc` wrapped `String` - original `String` wrapped in `Arc`
+    // From Stringy `Rc` wrapped `String` - original `String` wrapped in `Arc`
     let wrapped: AStringy = wrapped.into();
     
     // *** Round trip back to `Stringy` ***
     
-    // AStringy `Arc` wrapped `String` - copy of `String` wrapped in `Rc`
+    // From AStringy `Arc` wrapped `String` - copy of `String` wrapped in 
+    // `Rc` (since multi owned)
     let wrapped = wrapped.clone();
     let wrapped: Stringy = wrapped.into();
 }
