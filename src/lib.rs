@@ -5,7 +5,6 @@
 
 extern crate alloc;
 
-use alloc::borrow::ToOwned;
 use alloc::rc::Rc;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
@@ -25,7 +24,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 // *** Inline String ***
 
 /// The max capacity of an inline string (in bytes)
-pub const MAX_INLINE: usize = mem::size_of::<String>() + mem::size_of::<usize>() - 2;
+pub const MAX_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used
 /// transparently by `Stringy` and `AStringy`
@@ -100,7 +99,7 @@ impl InlineStringy {
 
 impl Display for InlineStringy {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&**self, f)
+        fmt::Display::fmt(self.deref(), f)
     }
 }
 
@@ -144,7 +143,7 @@ impl<'s> TryFrom<&'s str> for InlineStringy {
 impl From<InlineStringy> for String {
     #[inline]
     fn from(s: InlineStringy) -> Self {
-        (&*s).to_string()
+        s.to_string()
     }
 }
 
@@ -152,14 +151,14 @@ impl From<InlineStringy> for String {
 
 macro_rules! stringy {
     ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident, $to_func2:ident, $visitor_name: ident) => {
-        /// The main string enum type that wraps a string literal, inline string, or ref counted `String`
+        /// The main string enum type that wraps a string literal, inline string, or ref counted `str`
         #[derive(Clone, Debug)]
         pub enum $name {
             /// A wrapped string literal
             Static(&'static str),
             /// An inlined string
             Inlined(InlineStringy),
-            /// A reference count wrapped `String`
+            /// A reference count wrapped `str`
             RefCounted($rc),
         }
 
@@ -167,19 +166,19 @@ macro_rules! stringy {
             #[doc = concat!("Returns true if this `", stringify!($name),"` is empty")]
             #[inline]
             pub fn is_empty(&self) -> bool {
-                (&**self).is_empty()
+                self.deref().is_empty()
             }
 
             #[doc = concat!("Returns the length of this `", stringify!($name),"` in bytes (not chars/graphemes)")]
             #[inline]
             pub fn len(&self) -> usize {
-                (&**self).len()
+                self.deref().len()
             }
 
             #[doc = concat!("Extracts a string slice containing the entire `", stringify!($name), "`")]
             #[inline]
             pub fn as_str(&self) -> &str {
-                &**self
+                self.deref()
             }
 
             /// Returns true if this is a wrapped string literal (`&'static str`)
@@ -194,46 +193,10 @@ macro_rules! stringy {
                 matches!(self, $name::Inlined(_))
             }
 
-            /// Returns true if this is a wrapped `String` using reference counting
+            /// Returns true if this is a wrapped `str` using reference counting
             #[inline]
             pub fn is_ref_counted(&self) -> bool {
                 matches!(self, $name::RefCounted(_))
-            }
-
-            /// Returns true if we can unwrap a native `String` without any further allocations/copying
-            #[inline]
-            pub fn unwrappable_string(&self) -> bool {
-                matches!(self, $name::RefCounted(rc) if <$rc>::strong_count(rc) == 1)
-            }
-
-            /// Wrap `String` verbatim (without possibility of inlining). This can be useful in exclusive
-            /// ownership situations where the original `String` is needed later
-            #[inline]
-            pub fn wrap(s: String) -> Self {
-                $name::RefCounted(<$rc>::new(s))
-            }
-
-            /// Try to retrieve the inner `String` if there is one and we have exclusive ownership. If not
-            /// or we don't, then create a new `String` and return it instead.
-            pub fn into_string(self) -> String {
-                match self {
-                    $name::Static(str) => str.to_string(),
-                    $name::Inlined(ss) => ss.into(),
-                    $name::RefCounted(rc) => match <$rc>::try_unwrap(rc) {
-                        Ok(s) => s,
-                        Err(rc) => (&*rc).to_owned(),
-                    },
-                }
-            }
-
-            /// Try to retrieve the inner `String` if there is one and we have exclusive ownership. If not
-            #[doc = concat!("or we don't, then return our `", stringify!($name), "` as the error in the result.")]
-            pub fn try_into_string(self) -> Result<String, Self> {
-                match self {
-                    s @ $name::Static(_) => Err(s),
-                    ss @ $name::Inlined(_) => Err(ss),
-                    $name::RefCounted(rc) => <$rc>::try_unwrap(rc).map_err($name::RefCounted),
-                }
             }
         }
 
@@ -242,7 +205,7 @@ macro_rules! stringy {
         impl Hash for $name {
             #[inline]
             fn hash<H: Hasher>(&self, state: &mut H) {
-                Hash::hash(&**self, state)
+                Hash::hash(self.deref(), state)
             }
         }
 
@@ -386,11 +349,11 @@ macro_rules! stringy {
                     $name2::Static(s) => $name::Static(s),
                     $name2::Inlined(s) => $name::Inlined(s),
                     $name2::RefCounted(rc) => {
-                        let s = match <$rc2>::try_unwrap(rc) {
-                            Ok(s) => s,
-                            Err(rc) => (&*rc).to_owned(),
-                        };
-                        $name::RefCounted(<$rc>::new(s))
+                        // TODO: Any more efficient way to do this?
+                        // Would like to use `from_raw` and `into_raw`, but need to ensure
+                        // exclusive ownership for this to be safe. For `Rc` that might be possible,
+                        // but `Arc` could be multi-threaded so needs to be atomic
+                        $name::RefCounted(rc.deref().into())
                     }
                 }
             }
@@ -415,7 +378,7 @@ macro_rules! stringy {
             fn from(s: String) -> Self {
                 match s.try_into() {
                     Ok(s) => $name::Inlined(s),
-                    Err(s) => $name::RefCounted(<$rc>::new(s)),
+                    Err(s) => $name::RefCounted(s.into()),
                 }
             }
         }
@@ -432,7 +395,6 @@ macro_rules! stringy {
         /// let lit = "This is too long too be inlined!";
         #[doc = concat!("let s: ", stringify!($name), " = (&lit.to_string()).into();")]
         /// assert!(s.is_ref_counted());
-        /// assert!(s.unwrappable_string());
         /// assert_eq!(&s, lit);
         /// ```
         impl From<&String> for $name {
@@ -511,8 +473,8 @@ macro_rules! stringy {
 stringy!(
     Stringy,
     AStringy,
-    Rc<String>,
-    Arc<String>,
+    Rc<str>,
+    Arc<str>,
     to_stringy,
     to_a_stringy,
     StringyVisitor
@@ -529,8 +491,28 @@ impl ToStringy for str {
     fn to_stringy(&self) -> Stringy {
         match self.try_into() {
             Ok(s) => Stringy::Inlined(s),
-            Err(_) => Stringy::wrap(self.to_string()),
+            Err(_) => Stringy::RefCounted(self.into()),
         }
+    }
+}
+
+/// A trait that converts the source to a `Stringy` while consuming the original
+pub trait IntoStringy {
+    /// Converts the source to a `Stringy` while consuming the original
+    fn into_stringy(self) -> Stringy;
+}
+
+impl IntoStringy for &'static str {
+    #[inline]
+    fn into_stringy(self) -> Stringy {
+        self.into()
+    }
+}
+
+impl IntoStringy for String {
+    #[inline]
+    fn into_stringy(self) -> Stringy {
+        self.into()
     }
 }
 
@@ -539,8 +521,8 @@ impl ToStringy for str {
 stringy!(
     AStringy,
     Stringy,
-    Arc<String>,
-    Rc<String>,
+    Arc<str>,
+    Rc<str>,
     to_a_stringy,
     to_stringy,
     AStringyVisitor
@@ -557,8 +539,28 @@ impl ToAStringy for str {
     fn to_a_stringy(&self) -> AStringy {
         match self.try_into() {
             Ok(s) => AStringy::Inlined(s),
-            Err(_) => AStringy::wrap(self.to_string()),
+            Err(_) => AStringy::RefCounted(self.into()),
         }
+    }
+}
+
+/// A trait that converts the source to an `AStringy` while consuming the original
+pub trait IntoAStringy {
+    /// Converts the source to an `AStringy` while consuming the original
+    fn into_a_stringy(self) -> AStringy;
+}
+
+impl IntoAStringy for &'static str {
+    #[inline]
+    fn into_a_stringy(self) -> AStringy {
+        self.into()
+    }
+}
+
+impl IntoAStringy for String {
+    #[inline]
+    fn into_a_stringy(self) -> AStringy {
+        self.into()
     }
 }
 
