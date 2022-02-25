@@ -66,6 +66,36 @@ impl InlineStringy {
             data,
         }
     }
+
+    /// Returns the length of this `InlineStringy` in bytes
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.len as usize
+    }
+
+    /// Returns true if this `InlineStringy` is an empty string
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    fn try_concat(&mut self, s: &str) -> bool {
+        if self.len() + s.len() > MAX_INLINE {
+            false
+        } else {
+            // Point to the location directly after our string
+            let data = self.data[self.len as usize..].as_mut_ptr();
+
+            unsafe {
+                // Safety: We know the buffer is large enough and that the location is not overlapping
+                // this one (we know that because we have ownership of one of them)
+                // Copy contents of &str to our data buffer
+                ptr::copy_nonoverlapping(s.as_ptr(), data, s.len());
+            }
+            self.len += s.len() as u8;
+            true
+        }
+    }
 }
 
 impl Display for InlineStringy {
