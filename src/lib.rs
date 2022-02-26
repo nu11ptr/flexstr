@@ -11,11 +11,16 @@ mod inline;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::sync::Arc;
+use core::borrow::Borrow;
 use core::cmp::Ordering;
+use core::convert::Infallible;
+use core::fmt;
 use core::fmt::{Arguments, Debug, Display, Formatter, Write};
 use core::hash::{Hash, Hasher};
-use core::ops::{Add, Deref};
-use core::{fmt, str};
+use core::ops::{
+    Add, Deref, Index, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
+};
+use core::str::FromStr;
 
 use paste::paste;
 #[cfg(feature = "serde")]
@@ -296,6 +301,62 @@ macro_rules! flexstr {
                 }
             }
 
+            // *** Index ***
+
+            impl Index<Range<usize>> for $name {
+                type Output = str;
+
+                #[inline]
+                fn index(&self, index: Range<usize>) -> &Self::Output {
+                    &self.deref()[index]
+                }
+            }
+
+            impl Index<RangeTo<usize>> for $name {
+                type Output = str;
+
+                #[inline]
+                fn index(&self, index: RangeTo<usize>) -> &Self::Output {
+                    &self.deref()[index]
+                }
+            }
+
+            impl Index<RangeFrom<usize>> for $name {
+                type Output = str;
+
+                #[inline]
+                fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
+                    &self.deref()[index]
+                }
+            }
+
+            impl Index<RangeFull> for $name {
+                type Output = str;
+
+                #[inline]
+                fn index(&self, _index: RangeFull) -> &Self::Output {
+                    self.deref()
+                }
+            }
+
+            impl Index<RangeInclusive<usize>> for $name {
+                type Output = str;
+
+                #[inline]
+                fn index(&self, index: RangeInclusive<usize>) -> &Self::Output {
+                    &self.deref()[index]
+                }
+            }
+
+            impl Index<RangeToInclusive<usize>> for $name {
+                type Output = str;
+
+                #[inline]
+                fn index(&self, index: RangeToInclusive<usize>) -> &Self::Output {
+                    &self.deref()[index]
+                }
+            }
+
             // *** Add ***
 
             // TODO: Is there value in making this a public macro with varargs? Hmm...
@@ -325,6 +386,38 @@ macro_rules! flexstr {
                         }
                         [<$name Inner>]::RefCounted(s) => [<$lower_name _concat>](&s, rhs),
                     }
+                }
+            }
+
+            // *** Misc. standard traits ***
+
+            impl AsRef<str> for $name {
+                #[inline]
+                fn as_ref(&self) -> &str {
+                    self
+                }
+            }
+
+            impl Default for $name {
+                #[inline]
+                fn default() -> Self {
+                    $name([<$name Inner>]::Static(""))
+                }
+            }
+
+            impl Borrow<str> for $name {
+                #[inline]
+                fn borrow(&self) -> &str {
+                    self.deref()
+                }
+            }
+
+            impl FromStr for $name {
+                type Err = Infallible;
+
+                #[inline]
+                fn from_str(s: &str) -> Result<Self, Self::Err> {
+                    Ok(s.[<to_ $lower_name>]())
                 }
             }
 
