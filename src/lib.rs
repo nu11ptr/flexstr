@@ -26,7 +26,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 // *** FlexStr macro ***
 
 macro_rules! flexstr {
-    ($name:ident, $name2:ident, $rc:ty, $to_func:ident, $to_func2:ident) => {
+    ($name:ident, $name2:ident, $rc:ty, $lower_name:ident, $lower_name2:ident) => {
         paste! {
             #[derive(Clone, Debug)]
             enum [<$name Inner>] {
@@ -37,10 +37,6 @@ macro_rules! flexstr {
                 /// A reference count wrapped `str`
                 RefCounted($rc),
             }
-
-            /// String type that transparently wraps a string literal, inline string, or ref counted `str`
-            #[derive(Clone, Debug)]
-            pub struct $name([<$name Inner>]);
 
             impl $name {
                 #[doc = "Returns true if this `" $name "` is empty"]
@@ -107,7 +103,7 @@ macro_rules! flexstr {
             #[doc = "use flexstr::{" $name2 ", " $name ", To" $name2 "};"]
             ///
             #[doc = "let s: " $name " = \"inlined\".into();"]
-            #[doc = "let s2: " $name2 " = s." $to_func2 "();"]
+            #[doc = "let s2: " $name2 " = s.to_" $lower_name2 "();"]
             /// assert_eq!(s, s2);
             /// ```
             impl PartialEq<$name2> for $name {
@@ -120,7 +116,7 @@ macro_rules! flexstr {
             #[doc = "use flexstr::{" $name ", To" $name "};"]
             ///
             /// let lit = "inlined";
-            #[doc = "let s: " $name " = lit." $to_func "();"]
+            #[doc = "let s: " $name " = lit.to_" $lower_name "();"]
             /// assert_eq!(s, lit);
             /// ```
             impl PartialEq<&str> for $name {
@@ -134,7 +130,7 @@ macro_rules! flexstr {
             #[doc = "use flexstr::{" $name ", To" $name "};"]
             ///
             /// let lit = "inlined";
-            #[doc = "let s: " $name " = lit." $to_func "();"]
+            #[doc = "let s: " $name " = lit.to_" $lower_name "();"]
             /// assert_eq!(s, lit);
             /// ```
             impl PartialEq<str> for $name {
@@ -280,7 +276,7 @@ macro_rules! flexstr {
             impl From<&String> for $name {
                 #[inline]
                 fn from(s: &String) -> Self {
-                    s.$to_func()
+                    s.[<to_ $lower_name>]()
                 }
             }
 
@@ -299,6 +295,46 @@ macro_rules! flexstr {
                     $name([<$name Inner>]::Static(s))
                 }
             }
+
+            // *** To/Into Custom Traits ***
+
+            #[doc = "A trait that converts the source to a `" $name "` without consuming it"]
+            pub trait [<To $name>] {
+                #[doc = "Converts the source to a `" $name "` without consuming it"]
+                fn [<to_ $lower_name>](&self) -> $name;
+            }
+
+            impl [<To $name>] for str {
+                #[inline]
+                fn [<to_ $lower_name>](&self) -> $name {
+                    $name(match self.try_into() {
+                        Ok(s) => [<$name Inner>]::Inlined(s),
+                        Err(_) => [<$name Inner>]::RefCounted(self.into()),
+                    })
+                }
+            }
+
+            #[doc = "A trait that converts the source to a `" $name "` while consuming the original"]
+            pub trait [<Into $name>] {
+                #[doc = "Converts the source to a `" $name "` while consuming the original"]
+                fn [<into_ $lower_name>](self) -> $name;
+            }
+
+            impl [<Into $name>] for &'static str {
+                #[inline]
+                fn [<into_ $lower_name>](self) -> $name{
+                    self.into()
+                }
+            }
+
+            impl [<Into $name>] for String {
+                #[inline]
+                fn [<into_ $lower_name>](self) -> $name {
+                    self.into()
+                }
+            }
+
+            // *** Optional serialization support ***
 
             #[cfg(feature = "serde")]
             impl Serialize for $name {
@@ -328,7 +364,7 @@ macro_rules! flexstr {
                 where
                     E: Error,
                 {
-                    Ok(v.$to_func())
+                    Ok(v.[<to_ $lower_name>]())
                 }
 
                 #[inline]
@@ -356,46 +392,14 @@ macro_rules! flexstr {
 
 // *** FlexStr ***
 
-flexstr!(FlexStr, AFlexStr, Rc<str>, to_flexstr, to_a_flexstr);
+/// A Flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
+#[derive(Clone, Debug)]
+pub struct FlexStr(FlexStrInner);
 
-/// A trait that converts the source to a `FlexStr` without consuming it
-pub trait ToFlexStr {
-    /// Converts the source to a `FlexStr` without consuming it
-    fn to_flexstr(&self) -> FlexStr;
-}
-
-impl ToFlexStr for str {
-    #[inline]
-    fn to_flexstr(&self) -> FlexStr {
-        FlexStr(match self.try_into() {
-            Ok(s) => FlexStrInner::Inlined(s),
-            Err(_) => FlexStrInner::RefCounted(self.into()),
-        })
-    }
-}
-
-/// A trait that converts the source to a `FlexStr` while consuming the original
-pub trait IntoFlexStr {
-    /// Converts the source to a `FlexStr` while consuming the original
-    fn into_flexstr(self) -> FlexStr;
-}
-
-impl IntoFlexStr for &'static str {
-    #[inline]
-    fn into_flexstr(self) -> FlexStr {
-        self.into()
-    }
-}
-
-impl IntoFlexStr for String {
-    #[inline]
-    fn into_flexstr(self) -> FlexStr {
-        self.into()
-    }
-}
+flexstr!(FlexStr, AFlexStr, Rc<str>, flexstr, a_flexstr);
 
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
-pub fn format(args: Arguments<'_>) -> FlexStr {
+pub fn flex_fmt(args: Arguments<'_>) -> FlexStr {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
     // As such, start by assuming this might be inlined and then promote buffer sizes as needed
     let mut builder = build::FlexStrBuilder::Small(build::StringBuffer::new());
@@ -409,52 +413,20 @@ pub fn format(args: Arguments<'_>) -> FlexStr {
 #[macro_export]
 macro_rules! flex_fmt {
     ($($arg:tt)*) => {
-        format::format(format_args!($($arg)*))
+        flex_fmt(format_args!($($arg)*))
     };
 }
 
 // *** AFlexStr ***
 
-flexstr!(AFlexStr, FlexStr, Arc<str>, to_a_flexstr, to_flexstr);
+/// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
+#[derive(Clone, Debug)]
+pub struct AFlexStr(AFlexStrInner);
 
-/// A trait that converts the source to an `AFlexStr` without consuming it
-pub trait ToAFlexStr {
-    /// Converts the source to an `AFlexStr` without consuming it
-    fn to_a_flexstr(&self) -> AFlexStr;
-}
-
-impl ToAFlexStr for str {
-    #[inline]
-    fn to_a_flexstr(&self) -> AFlexStr {
-        AFlexStr(match self.try_into() {
-            Ok(s) => AFlexStrInner::Inlined(s),
-            Err(_) => AFlexStrInner::RefCounted(self.into()),
-        })
-    }
-}
-
-/// A trait that converts the source to an `AFlexStr` while consuming the original
-pub trait IntoAFlexStr {
-    /// Converts the source to an `AFlexStr` while consuming the original
-    fn into_a_flexstr(self) -> AFlexStr;
-}
-
-impl IntoAFlexStr for &'static str {
-    #[inline]
-    fn into_a_flexstr(self) -> AFlexStr {
-        self.into()
-    }
-}
-
-impl IntoAFlexStr for String {
-    #[inline]
-    fn into_a_flexstr(self) -> AFlexStr {
-        self.into()
-    }
-}
+flexstr!(AFlexStr, FlexStr, Arc<str>, a_flexstr, flexstr);
 
 /// `AFlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `AFlexStr`
-pub fn a_format(args: Arguments<'_>) -> AFlexStr {
+pub fn a_flex_fmt(args: Arguments<'_>) -> AFlexStr {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
     // As such, start by assuming this might be inlined and then promote buffer sizes as needed
     let mut builder = build::FlexStrBuilder::Small(build::StringBuffer::new());
@@ -468,7 +440,7 @@ pub fn a_format(args: Arguments<'_>) -> AFlexStr {
 #[macro_export]
 macro_rules! a_flex_fmt {
     ($($arg:tt)*) => {
-        format::a_format(format_args!($($arg)*))
+        a_flex_fmt(format_args!($($arg)*))
     };
 }
 

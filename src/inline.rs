@@ -4,7 +4,7 @@ use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
 /// The max capacity of an inline string (in bytes)
-pub const MAX_INLINE: usize = mem::size_of::<String>() - 2;
+pub(crate) const MAX_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used
 /// transparently by `FlexStr` and `AFlexStr`
