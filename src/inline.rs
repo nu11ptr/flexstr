@@ -56,7 +56,7 @@ impl InlineFlexStr {
         self.len == 0
     }
 
-    fn try_concat(&mut self, s: &str) -> bool {
+    pub fn try_concat(&mut self, s: &str) -> bool {
         if self.len() + s.len() > MAX_INLINE {
             false
         } else {

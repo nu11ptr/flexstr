@@ -14,7 +14,7 @@ use alloc::sync::Arc;
 use core::cmp::Ordering;
 use core::fmt::{Arguments, Debug, Display, Formatter, Write};
 use core::hash::{Hash, Hasher};
-use core::ops::Deref;
+use core::ops::{Add, Deref};
 use core::{fmt, str};
 
 use paste::paste;
@@ -293,6 +293,38 @@ macro_rules! flexstr {
                 #[inline]
                 fn from(s: &'static str) -> Self {
                     $name([<$name Inner>]::Static(s))
+                }
+            }
+
+            // *** Add ***
+
+            // TODO: Is there value in making this a public macro with varargs? Hmm...
+            fn [<$lower_name _concat>](s1: &str, s2: &str) -> $name {
+                let mut builder = build::FlexStrBuilder::with_capacity(s1.len() + s2.len());
+                unsafe {
+                    // Safety: write_str always succeeds
+                    builder.write_str(s1).unwrap_unchecked();
+                    builder.write_str(s2).unwrap_unchecked();
+                }
+                builder.[<into_ $lower_name>]()
+            }
+
+            impl Add<&str> for $name {
+                type Output = $name;
+
+                #[inline]
+                fn add(self, rhs: &str) -> Self::Output {
+                    match self.0 {
+                        [<$name Inner>]::Static(s) => [<$lower_name _concat>](s, rhs),
+                        [<$name Inner>]::Inlined(mut s) => {
+                            if s.try_concat(rhs) {
+                                $name([<$name Inner>]::Inlined(s))
+                            } else {
+                                [<$lower_name _concat>](&s, rhs)
+                            }
+                        }
+                        [<$name Inner>]::RefCounted(s) => [<$lower_name _concat>](&s, rhs),
+                    }
                 }
             }
 

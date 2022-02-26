@@ -133,14 +133,26 @@ pub(crate) enum FlexStrBuilder {
 }
 
 impl FlexStrBuilder {
+    pub fn with_capacity(cap: usize) -> Self {
+        if cap <= MAX_INLINE {
+            FlexStrBuilder::Small(StringBuffer::new())
+        } else if cap <= BUFFER_SIZE {
+            FlexStrBuilder::Regular(StringBuffer::new())
+        } else {
+            FlexStrBuilder::Large(String::with_capacity(cap))
+        }
+    }
+
     fn create_string_and_write<const N: usize>(
         buffer: &mut StringBuffer<N>,
         s: &str,
     ) -> FlexStrBuilder {
         let required_cap = buffer.len() + s.len();
         let mut buffer = buffer.to_string_buffer(required_cap * 2);
-        // NOTE: This always succeeds for String anyway
-        buffer.write_str(s).unwrap();
+        // Safety: This always succeeds for String
+        unsafe {
+            buffer.write_str(s).unwrap_unchecked();
+        }
         FlexStrBuilder::Large(buffer)
     }
 }
