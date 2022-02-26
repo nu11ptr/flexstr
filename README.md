@@ -6,33 +6,32 @@ Rust
 ## Overview
 
 Rust is great, but it's `String` type is not optimized for typical string 
-use cases, but instead as a mutable string buffer. Most string use cases 
-don't modify their string contents, often need to copy strings around as if 
+use cases, but as a mutable string buffer. Most string use cases don't 
+modify their string contents, often need to copy strings around as if 
 they were cheap like integers, typically concatenate instead of modify, and 
 often end up being cloned with identical contents. Additionally, `String` 
-isn't able wrap a string literal without additional allocation and copying. 
-Rust really needs a 3rd string type to unify usage of both literals and 
+isn't able to wrap a string literal without additional allocation and copying. 
+Rust needs a new string type to unify usage of both literals and 
 allocated strings in typical use cases. This crate creates a new string type 
 that is optimized for those use cases, while retaining the usage simplicity of
 `String`.
 
-This type is not inherently "better" than `String`, but different. It is a 
-higher level type, that can at times mean higher overhead. It really 
+This type is not inherently "better" than `String`, however, but different. It 
+is a higher level type, that can at times mean higher overhead. It really 
 depends on the use case.
 
 ## Features
 
 * Optimized for immutability and cheap cloning
 * Allows for multiple ownership of the same string memory contents
-* It is very simple to use
-* The same size as a `String` (24 bytes on 64-bit, 12 bytes on 32-bit)
-* Optional serde serialization support (feature = "serde")
-* Allows for simple conditional ownership scenarios (borrows can turn into 
-  ownership without allocation/copying)
 * Serves as a universal string type (unifying literals and allocated strings)
 * Doesn't allocate for literals and short strings (64-bit: up to 22 bytes)
-* Provides easy access to `&str` via dereference
-* Isn't much more expensive than `String` in non-optimal use cases
+* The same size as a `String` (64-bit: 24 bytes)
+* Optional serde serialization support (feature = "serde")
+* Compatible with embedded systems (doesn't use `std`)
+* Allows for simple conditional ownership scenarios (borrows can turn into 
+  ownership without allocation/copying)
+* It is simple to use!
 
 ## Types
 
@@ -190,18 +189,13 @@ NOTE: No benchmarking has yet been done
 
 There is no free lunch:
 
-* Due to usage of `Rc` (or `Arc`), when onboading `String` it will need to 
+* Due to usage of `Rc` (or `Arc`), when on-boarding `String` it will need to 
   reallocate and copy
 * Due to the enum wrapper, every string operation has the overhead of an extra
   branching operation
-* Since `FlexStr is not `Send` or `Sync`, thre is a need to consider 
+* Since `FlexStr` is not `Send` or `Sync`, there is a need to consider 
   single-threaded   (`FlexStr`) and multi-threaded (`AFlexStr`) use cases and 
   convert accordingly
-
-## Open Issues / TODO
-
-* Reinvent common macros like `format!` (and `aformat!`) for creating
-  strings to avoid need to go back and forth to `String`
 
 ## Status
 
