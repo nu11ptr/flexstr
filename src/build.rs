@@ -1,10 +1,10 @@
-use crate::inline::MAX_INLINE;
-use crate::{AFlexStr, FlexStr, IntoAFlexStr, IntoFlexStr, ToAFlexStr, ToFlexStr};
-
 use alloc::string::String;
-use core::fmt::{Arguments, Write};
+use core::fmt::Write;
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
+
+use crate::inline::MAX_INLINE;
+use crate::{AFlexStr, FlexStr, IntoAFlexStr, IntoFlexStr, ToAFlexStr, ToFlexStr};
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
 const BUFFER_SIZE: usize = 1024;
@@ -12,7 +12,7 @@ const BUFFER_SIZE: usize = 1024;
 // *** String Buffer ***
 
 // Used to buffer formatting writes before turning into inline string or ref counter string
-struct StringBuffer<const N: usize> {
+pub(crate) struct StringBuffer<const N: usize> {
     buffer: [mem::MaybeUninit<u8>; N],
     len: usize,
 }
@@ -126,10 +126,23 @@ impl<const N: usize> Deref for StringBuffer<N> {
 // *** FlexStr Builder ***
 
 #[allow(clippy::large_enum_variant)]
-enum FlexStrBuilder {
+pub(crate) enum FlexStrBuilder {
     Small(StringBuffer<MAX_INLINE>),
     Regular(StringBuffer<BUFFER_SIZE>),
     Large(String),
+}
+
+impl FlexStrBuilder {
+    fn create_string_and_write<const N: usize>(
+        buffer: &mut StringBuffer<N>,
+        s: &str,
+    ) -> FlexStrBuilder {
+        let required_cap = buffer.len() + s.len();
+        let mut buffer = buffer.to_string_buffer(required_cap * 2);
+        // NOTE: This always succeeds for String anyway
+        buffer.write_str(s).unwrap();
+        FlexStrBuilder::Large(buffer)
+    }
 }
 
 impl Write for FlexStrBuilder {
@@ -145,11 +158,7 @@ impl Write for FlexStrBuilder {
                     *self = FlexStrBuilder::Regular(buffer);
                     Ok(())
                 } else {
-                    let required_cap = buffer.len() + s.len();
-                    let mut buffer = buffer.to_string_buffer(required_cap * 2);
-                    // NOTE: This always succeeds for String anyway
-                    buffer.write_str(s).unwrap();
-                    *self = FlexStrBuilder::Large(buffer);
+                    *self = Self::create_string_and_write(buffer, s);
                     Ok(())
                 }
             }
@@ -157,11 +166,7 @@ impl Write for FlexStrBuilder {
                 if buffer.write(s) {
                     Ok(())
                 } else {
-                    let required_cap = buffer.len() + s.len();
-                    let mut buffer = buffer.to_string_buffer(required_cap * 2);
-                    // NOTE: This always succeeds for String anyway
-                    buffer.write_str(s).unwrap();
-                    *self = FlexStrBuilder::Large(buffer);
+                    *self = Self::create_string_and_write(buffer, s);
                     Ok(())
                 }
             }
@@ -192,26 +197,4 @@ impl IntoAFlexStr for FlexStrBuilder {
             FlexStrBuilder::Large(s) => s.into(),
         }
     }
-}
-
-// *** format / a_format ***
-
-pub(crate) fn format(args: Arguments<'_>) -> FlexStr {
-    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
-    // As such, start by assuming this might be inlined and then promote buffer sizes as needed
-    let mut builder = FlexStrBuilder::Small(StringBuffer::new());
-    builder
-        .write_fmt(args)
-        .expect("a formatting trait implementation returned an error");
-    builder.into_flexstr()
-}
-
-pub(crate) fn a_format(args: Arguments<'_>) -> AFlexStr {
-    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
-    // As such, start by assuming this might be inlined and then promote buffer sizes as needed
-    let mut builder = FlexStrBuilder::Small(StringBuffer::new());
-    builder
-        .write_fmt(args)
-        .expect("a formatting trait implementation returned an error");
-    builder.into_a_flexstr()
 }

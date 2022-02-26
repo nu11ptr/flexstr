@@ -5,14 +5,14 @@
 
 extern crate alloc;
 
-mod format;
+mod build;
 mod inline;
 
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::sync::Arc;
 use core::cmp::Ordering;
-use core::fmt::{Debug, Display, Formatter};
+use core::fmt::{Arguments, Debug, Display, Formatter, Write};
 use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 use core::{fmt, str};
@@ -393,6 +393,17 @@ impl IntoFlexStr for String {
     }
 }
 
+/// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
+pub fn format(args: Arguments<'_>) -> FlexStr {
+    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
+    // As such, start by assuming this might be inlined and then promote buffer sizes as needed
+    let mut builder = build::FlexStrBuilder::Small(build::StringBuffer::new());
+    builder
+        .write_fmt(args)
+        .expect("a formatting trait implementation returned an error");
+    builder.into_flexstr()
+}
+
 /// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`
 #[macro_export]
 macro_rules! flex_fmt {
@@ -447,6 +458,17 @@ impl IntoAFlexStr for String {
     fn into_a_flexstr(self) -> AFlexStr {
         self.into()
     }
+}
+
+/// `AFlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `AFlexStr`
+pub fn a_format(args: Arguments<'_>) -> AFlexStr {
+    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
+    // As such, start by assuming this might be inlined and then promote buffer sizes as needed
+    let mut builder = build::FlexStrBuilder::Small(build::StringBuffer::new());
+    builder
+        .write_fmt(args)
+        .expect("a formatting trait implementation returned an error");
+    builder.into_a_flexstr()
 }
 
 /// `AFlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `AFlexStr`
