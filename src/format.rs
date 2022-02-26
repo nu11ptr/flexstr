@@ -1,4 +1,5 @@
-use crate::{AFlexStr, FlexStr, IntoAFlexStr, IntoFlexStr, ToAFlexStr, ToFlexStr, MAX_INLINE};
+use crate::inline::MAX_INLINE;
+use crate::{AFlexStr, FlexStr, IntoAFlexStr, IntoFlexStr, ToAFlexStr, ToFlexStr};
 
 use alloc::string::String;
 use core::fmt::{Arguments, Write};
