@@ -27,10 +27,10 @@ depends on the use case.
 * Serves as a universal string type (unifying literals and allocated strings)
 * Doesn't allocate for literals and short strings (64-bit: up to 22 bytes)
 * The same size as a `String` (64-bit: 24 bytes)
-* Optional serde serialization support (feature = "serde")
+* Optional `serde` serialization support (feature = "serde")
 * Compatible with embedded systems (doesn't use `std`)
-* Allows for simple conditional ownership scenarios (borrows can turn into 
-  ownership without allocation/copying)
+* Efficient conditional ownership (borrows can take ownership without 
+  allocation/copying)
 * It is simple to use!
 
 ## Types
@@ -57,7 +57,7 @@ use flexstr::IntoFlexStr;
 
 fn main() {
   // Literal - no copying or allocation
-  let hello = "world!".into_flexstr();
+  let hello = "world!".into_flex_str();
   
   println!("Hello {world}");
 }
@@ -70,33 +70,33 @@ use flexstr::{IntoAFlexStr, IntoFlexStr, ToFlexStr};
 
 fn main() {
     // From literal - no copying or allocation
-    // NOTE: `to_flexstr` will copy, so use `into_flexstr` for literals
-    let literal = "literal".into_flexstr();
+    // NOTE: `to_flex_str` will copy, so use `into_flex_str` for literals
+    let literal = "literal".into_flex_str();
     
     // From borrowed string - Copied into inline string
     let owned = "inlined".to_string();
-    let str_to_inlined = (&owned).to_flexstr();
+    let str_to_inlined = (&owned).to_flex_str();
 
     // From borrowed String - copied into `str` wrapped in `Rc`
     let owned = "A bit too long to be inlined!!!".to_string();
-    let str_to_wrapped = (&owned).to_flexstr();
+    let str_to_wrapped = (&owned).to_flex_str();
     
     // From String - copied into inline string (`String` storage released)
-    let inlined = "inlined".to_string().into_flexstr();
+    let inlined = "inlined".to_string().into_flex_str();
 
     // From String - `str` wrapped in `Rc` (`String` storage released)
-    let counted = "A bit too long to be inlined!!!".to_string().into_flexstr();
+    let counted = "A bit too long to be inlined!!!".to_string().into_flex_str();
    
     // *** If you want a Send/Sync type you need `AFlexStr` instead ***
 
     // From FlexStr wrapped literal - no copying or allocation
-    let literal = literal.into_a_flexstr();
+    let literal = literal.into_a_flex_str();
     
     // From FlexStr inlined string - no allocation
-    let inlined = inlined.into_a_flexstr();
+    let inlined = inlined.into_a_flex_str();
     
     // From FlexStr `Rc` wrapped `str` - copies into `str` wrapped in `Arc`
-    let counted = counted.into_a_flexstr();
+    let counted = counted.into_a_flex_str();
 }
 ```
 
@@ -150,8 +150,8 @@ impl MyStruct {
 
 fn main() {
     // Wrapped literals - no copy or allocation
-    let s = "borrow me".into_flexstr();
-    let s2 = "own me".into_flexstr();
+    let s = "borrow me".into_flex_str();
+    let s2 = "own me".into_flex_str();
 
     let struct1 = MyStruct::to_own_or_not_to_own(&s);
     let struct2 = MyStruct::to_own_or_not_to_own(&s2);
@@ -172,10 +172,10 @@ NOTE: No benchmarking has yet been done
 * Calling `into()` on a `String` will result in an inline string (if 
   short) otherwise copied into a `str` wrapped in `Rc`/`Arc` 
   (which will allocate, copy, and then release original `String` storage)
-* `into_string()` and `into_a_string()` are equivalent to calling `into()` 
+* `into_flex_str()` and `into_a_flex_str()` are equivalent to calling `into()` 
   on both literals and `String` (they are present primarily for `let` 
-  bindings without needing to declare type)
-* `to_flexstr()` and `to_a_flexstr()` are meant for the on-boarding of borrowed 
+  bindings so there is no need to declare a type)
+* `to_flex_str()` and `to_a_flex_str()` are meant for the on-boarding of borrowed 
   strings and always copy into either an inline string (for short strings) or 
   an `Rc`/`Arc` wrapped `str` (which will allocate)
 * `to_string` always copies into a new `String`

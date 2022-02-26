@@ -177,11 +177,11 @@ impl Write for FlexStrBuilder {
 
 impl IntoFlexStr for FlexStrBuilder {
     #[inline]
-    fn into_flexstr(self) -> FlexStr {
+    fn into_flex_str(self) -> FlexStr {
         match self {
             // TODO: If we keep small this can be optimized
-            FlexStrBuilder::Small(buffer) => buffer.to_flexstr(),
-            FlexStrBuilder::Regular(buffer) => buffer.to_flexstr(),
+            FlexStrBuilder::Small(buffer) => buffer.to_flex_str(),
+            FlexStrBuilder::Regular(buffer) => buffer.to_flex_str(),
             FlexStrBuilder::Large(s) => s.into(),
         }
     }
@@ -189,11 +189,11 @@ impl IntoFlexStr for FlexStrBuilder {
 
 impl IntoAFlexStr for FlexStrBuilder {
     #[inline]
-    fn into_a_flexstr(self) -> AFlexStr {
+    fn into_a_flex_str(self) -> AFlexStr {
         match self {
             // TODO: If we keep small this can be optimized
-            FlexStrBuilder::Small(buffer) => buffer.to_a_flexstr(),
-            FlexStrBuilder::Regular(buffer) => buffer.to_a_flexstr(),
+            FlexStrBuilder::Small(buffer) => buffer.to_a_flex_str(),
+            FlexStrBuilder::Regular(buffer) => buffer.to_a_flex_str(),
             FlexStrBuilder::Large(s) => s.into(),
         }
     }

@@ -1,7 +1,7 @@
 #![no_std]
 #![warn(missing_docs)]
 
-//! A simple to use, immutable, clone-efficient `String` replacement for Rust
+//! A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust
 
 extern crate alloc;
 
@@ -396,7 +396,8 @@ macro_rules! flexstr {
 #[derive(Clone, Debug)]
 pub struct FlexStr(FlexStrInner);
 
-flexstr!(FlexStr, AFlexStr, Rc<str>, flexstr, a_flexstr);
+// TODO: If we stick with these lower names, we can use paste's :lower feature instead
+flexstr!(FlexStr, AFlexStr, Rc<str>, flex_str, a_flex_str);
 
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
 pub fn flex_fmt(args: Arguments<'_>) -> FlexStr {
@@ -406,7 +407,7 @@ pub fn flex_fmt(args: Arguments<'_>) -> FlexStr {
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder.into_flexstr()
+    builder.into_flex_str()
 }
 
 /// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`
@@ -423,7 +424,8 @@ macro_rules! flex_fmt {
 #[derive(Clone, Debug)]
 pub struct AFlexStr(AFlexStrInner);
 
-flexstr!(AFlexStr, FlexStr, Arc<str>, a_flexstr, flexstr);
+// TODO: If we stick with these lower names, we can use paste's :lower feature instead
+flexstr!(AFlexStr, FlexStr, Arc<str>, a_flex_str, flex_str);
 
 /// `AFlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `AFlexStr`
 pub fn a_flex_fmt(args: Arguments<'_>) -> AFlexStr {
@@ -433,7 +435,7 @@ pub fn a_flex_fmt(args: Arguments<'_>) -> AFlexStr {
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder.into_a_flexstr()
+    builder.into_a_flex_str()
 }
 
 /// `AFlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `AFlexStr`
