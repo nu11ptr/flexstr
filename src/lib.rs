@@ -33,7 +33,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 macro_rules! flexstr {
     ($name:ident, $name2:ident, $rc:ty, $lower_name:ident, $lower_name2:ident) => {
         paste! {
-            #[derive(Clone, Debug)]
+            #[derive(Clone)]
             enum [<$name Inner>] {
                 /// A wrapped string literal
                 Static(&'static str),
@@ -189,7 +189,7 @@ macro_rules! flexstr {
                 }
             }
 
-            // *** Deref / Display ***
+            // *** Deref / Debug / Display ***
 
             impl Deref for $name {
                 type Target = str;
@@ -204,14 +204,17 @@ macro_rules! flexstr {
                 }
             }
 
+            impl Debug for $name {
+                #[inline]
+                fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                    Debug::fmt(self.deref(), f)
+                }
+            }
+
             impl Display for $name {
                 #[inline]
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                    match &self.0 {
-                        [<$name Inner>]::Static(str) => Display::fmt(str, f),
-                        [<$name Inner>]::Inlined(ss) => Display::fmt(ss, f),
-                        [<$name Inner>]::RefCounted(s) => Display::fmt(s, f),
-                    }
+                    Display::fmt(self.deref(), f)
                 }
             }
 
@@ -518,7 +521,7 @@ macro_rules! flexstr {
 // *** FlexStr ***
 
 /// A Flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct FlexStr(FlexStrInner);
 
 // TODO: If we stick with these lower names, we can use paste's :lower feature instead
@@ -546,7 +549,7 @@ macro_rules! flex_fmt {
 // *** AFlexStr ***
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AFlexStr(AFlexStrInner);
 
 // TODO: If we stick with these lower names, we can use paste's :lower feature instead
