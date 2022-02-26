@@ -3,8 +3,11 @@ use core::fmt::Write;
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
-use crate::inline::MAX_INLINE;
-use crate::{AFlexStr, FlexStr, IntoAFlexStr, IntoFlexStr, ToAFlexStr, ToFlexStr};
+use crate::inline::{InlineFlexStr, MAX_INLINE};
+use crate::{
+    AFlexStr, AFlexStrInner, FlexStr, FlexStrInner, IntoAFlexStr, IntoFlexStr, ToAFlexStr,
+    ToFlexStr,
+};
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
 const BUFFER_SIZE: usize = 1024;
@@ -45,8 +48,13 @@ impl<const N: usize> StringBuffer<N> {
         self.len == 0
     }
 
+    #[inline]
+    pub fn into_inner(self) -> [mem::MaybeUninit<u8>; N] {
+        self.buffer
+    }
+
     /// Create a new large string buffer copying the existing content
-    pub fn to_larger_buffer<const N2: usize>(&self) -> StringBuffer<N2> {
+    pub fn to_large_buffer<const N2: usize>(&self) -> StringBuffer<N2> {
         let mut buffer = StringBuffer::new();
 
         if !self.is_empty() {
@@ -148,6 +156,7 @@ impl FlexStrBuilder {
         s: &str,
     ) -> FlexStrBuilder {
         let required_cap = buffer.len() + s.len();
+        // Start with a capacity twice the size of what is needed (to try and avoid future heap allocations)
         let mut buffer = buffer.to_string_buffer(required_cap * 2);
         // Safety: This always succeeds for String
         unsafe {
@@ -160,12 +169,11 @@ impl FlexStrBuilder {
 impl Write for FlexStrBuilder {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         match self {
-            // TODO: Small probably isn't worth it. Probably makes sense to just keep Regular/Large
             FlexStrBuilder::Small(buffer) => {
                 if buffer.write(s) {
                     Ok(())
                 } else if s.len() <= BUFFER_SIZE {
-                    let mut buffer = buffer.to_larger_buffer();
+                    let mut buffer = buffer.to_large_buffer();
                     buffer.write(s);
                     *self = FlexStrBuilder::Regular(buffer);
                     Ok(())
@@ -191,8 +199,13 @@ impl IntoFlexStr for FlexStrBuilder {
     #[inline]
     fn into_flex_str(self) -> FlexStr {
         match self {
-            // TODO: If we keep small this can be optimized
-            FlexStrBuilder::Small(buffer) => buffer.to_flex_str(),
+            FlexStrBuilder::Small(buffer) => {
+                let len: u8 = buffer.len() as u8;
+                FlexStr(FlexStrInner::Inlined(InlineFlexStr::from_array(
+                    buffer.into_inner(),
+                    len,
+                )))
+            }
             FlexStrBuilder::Regular(buffer) => buffer.to_flex_str(),
             FlexStrBuilder::Large(s) => s.into(),
         }
@@ -203,8 +216,13 @@ impl IntoAFlexStr for FlexStrBuilder {
     #[inline]
     fn into_a_flex_str(self) -> AFlexStr {
         match self {
-            // TODO: If we keep small this can be optimized
-            FlexStrBuilder::Small(buffer) => buffer.to_a_flex_str(),
+            FlexStrBuilder::Small(buffer) => {
+                let len: u8 = buffer.len() as u8;
+                AFlexStr(AFlexStrInner::Inlined(InlineFlexStr::from_array(
+                    buffer.into_inner(),
+                    len,
+                )))
+            }
             FlexStrBuilder::Regular(buffer) => buffer.to_a_flex_str(),
             FlexStrBuilder::Large(s) => s.into(),
         }

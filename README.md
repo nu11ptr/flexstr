@@ -1,9 +1,7 @@
 # flexstr
 
-[![Crate](https://img.shields.io/crates/v/flexstr?style=for-the-badge)]
-(https://crates.io/crates/flexstr)
-[![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)]
-(https://docs.rs/flexstr)
+[![Crate](https://img.shields.io/crates/v/flexstr?style=for-the-badge)](https://crates.io/crates/flexstr)
+[![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)](https://docs.rs/flexstr)
 
 A flexible, simple to use, immutable, clone-efficient `String` replacement for 
 Rust
