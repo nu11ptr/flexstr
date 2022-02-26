@@ -9,7 +9,7 @@ pub const MAX_INLINE: usize = mem::size_of::<String>() - 2;
 /// This is the custom inline string type - it is not typically used directly, but instead is used
 /// transparently by `FlexStr` and `AFlexStr`
 #[derive(Clone, Copy, Debug)]
-pub struct InlineFlexStr {
+pub(crate) struct InlineFlexStr {
     data: [mem::MaybeUninit<u8>; MAX_INLINE],
     len: u8,
 }

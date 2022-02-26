@@ -17,329 +17,338 @@ use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 use core::{fmt, str};
 
+use paste::paste;
 #[cfg(feature = "serde")]
 use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-// *** Inline String ***
-
 // *** FlexStr macro ***
 
 macro_rules! flexstr {
-    ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident, $to_func2:ident, $visitor_name: ident) => {
-        /// The main string enum type that wraps a string literal, inline string, or ref counted `str`
-        #[derive(Clone, Debug)]
-        pub enum $name {
-            /// A wrapped string literal
-            Static(&'static str),
-            /// An inlined string
-            Inlined(inline::InlineFlexStr),
-            /// A reference count wrapped `str`
-            RefCounted($rc),
-        }
-
-        impl $name {
-            #[doc = concat!("Returns true if this `", stringify!($name),"` is empty")]
-            #[inline]
-            pub fn is_empty(&self) -> bool {
-                self.deref().is_empty()
+    ($name:ident, $name2:ident, $rc:ty, $to_func:ident, $to_func2:ident) => {
+        paste! {
+            #[derive(Clone, Debug)]
+            enum [<$name Inner>] {
+                /// A wrapped string literal
+                Static(&'static str),
+                /// An inlined string
+                Inlined(inline::InlineFlexStr),
+                /// A reference count wrapped `str`
+                RefCounted($rc),
             }
 
-            #[doc = concat!("Returns the length of this `", stringify!($name),"` in bytes (not chars/graphemes)")]
-            #[inline]
-            pub fn len(&self) -> usize {
-                self.deref().len()
-            }
+            /// String type that transparently wraps a string literal, inline string, or ref counted `str`
+            #[derive(Clone, Debug)]
+            pub struct $name([<$name Inner>]);
 
-            #[doc = concat!("Extracts a string slice containing the entire `", stringify!($name), "`")]
-            #[inline]
-            pub fn as_str(&self) -> &str {
-                self.deref()
-            }
+            impl $name {
+                #[doc = "Returns true if this `" $name "` is empty"]
+                #[inline]
+                pub fn is_empty(&self) -> bool {
+                    self.deref().is_empty()
+                }
 
-            /// Returns true if this is a wrapped string literal (`&'static str`)
-            #[inline]
-            pub fn is_static(&self) -> bool {
-                matches!(self, $name::Static(_))
-            }
+                #[doc = "Returns the length of this `" $name "` in bytes (not chars/graphemes)"]
+                #[inline]
+                pub fn len(&self) -> usize {
+                    self.deref().len()
+                }
 
-            /// Returns true if this is an inlined string
-            #[inline]
-            pub fn is_inlined(&self) -> bool {
-                matches!(self, $name::Inlined(_))
-            }
+                #[doc = "Extracts a string slice containing the entire `" $name "`"]
+                #[inline]
+                pub fn as_str(&self) -> &str {
+                    self.deref()
+                }
 
-            /// Returns true if this is a wrapped `str` using reference counting
-            #[inline]
-            pub fn is_ref_counted(&self) -> bool {
-                matches!(self, $name::RefCounted(_))
-            }
-        }
+                /// Returns true if this is a wrapped string literal (`&'static str`)
+                #[inline]
+                pub fn is_static(&self) -> bool {
+                    matches!(self.0, [<$name Inner>]::Static(_))
+                }
 
-        // *** Hash, PartialEq, Eq, PartialOrd, Ord ***
+                /// Returns true if this is an inlined string
+                #[inline]
+                pub fn is_inlined(&self) -> bool {
+                    matches!(self.0, [<$name Inner>]::Inlined(_))
+                }
 
-        impl Hash for $name {
-            #[inline]
-            fn hash<H: Hasher>(&self, state: &mut H) {
-                Hash::hash(self.deref(), state)
-            }
-        }
-
-        /// ```
-        #[doc = concat!("use flexstr::", stringify!($name), ";")]
-        ///
-        #[doc = concat!("let s: ", stringify!($name), " = \"inlined\".into();")]
-        #[doc = concat!("let s2: ", stringify!($name), " = s.clone();")]
-        /// assert_eq!(s, s2);
-        /// ```
-        impl PartialEq for $name {
-            #[inline]
-            fn eq(&self, other: &Self) -> bool {
-                <&str as PartialEq>::eq(&self.deref(), &other.deref())
-            }
-        }
-
-        /// ```
-        #[doc = concat!("use flexstr::{", stringify!($name2), ", ", stringify!($name), ", To", stringify!($name2) ,"};")]
-        ///
-        #[doc = concat!("let s: ", stringify!($name), " = \"inlined\".into();")]
-        #[doc = concat!("let s2: ", stringify!($name2), " = s.", stringify!($to_func2), "();")]
-        /// assert_eq!(s, s2);
-        /// ```
-        impl PartialEq<$name2> for $name {
-            fn eq(&self, other: &$name2) -> bool {
-                <&str as PartialEq>::eq(&self.deref(), &other.deref())
-            }
-        }
-
-        /// ```
-        #[doc = concat!("use flexstr::{", stringify!($name), ", To", stringify!($name) ,"};")]
-        ///
-        /// let lit = "inlined";
-        #[doc = concat!("let s: ", stringify!($name), " = lit.", stringify!($to_func), "();")]
-        /// assert_eq!(s, lit);
-        /// ```
-        impl PartialEq<&str> for $name {
-            #[inline]
-            fn eq(&self, other: &&str) -> bool {
-                <&str as PartialEq>::eq(&self.deref(), &other.deref())
-            }
-        }
-
-        /// ```
-        #[doc = concat!("use flexstr::{", stringify!($name), ", To", stringify!($name) ,"};")]
-        ///
-        /// let lit = "inlined";
-        #[doc = concat!("let s: ", stringify!($name), " = lit.", stringify!($to_func), "();")]
-        /// assert_eq!(s, lit);
-        /// ```
-        impl PartialEq<str> for $name {
-            #[inline]
-            fn eq(&self, other: &str) -> bool {
-                <&str as PartialEq>::eq(&self.deref(), &other.deref())
-            }
-        }
-
-        /// ```
-        #[doc = concat!("use flexstr::", stringify!($name), ";")]
-        ///
-        /// let lit = "inlined";
-        #[doc = concat!("let s: ", stringify!($name), " = lit.into();")]
-        /// assert_eq!(s, lit.to_string());
-        /// ```
-        impl PartialEq<String> for $name {
-            #[inline]
-            fn eq(&self, other: &String) -> bool {
-                <&str as PartialEq>::eq(&self.deref(), &other.deref())
-            }
-        }
-
-        impl Eq for $name {}
-
-        impl PartialOrd for $name {
-            #[inline]
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
-            }
-        }
-
-        impl PartialOrd<str> for $name {
-            #[inline]
-            fn partial_cmp(&self, other: &str) -> Option<Ordering> {
-                <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
-            }
-        }
-
-        impl PartialOrd<String> for $name {
-            #[inline]
-            fn partial_cmp(&self, other: &String) -> Option<Ordering> {
-                <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
-            }
-        }
-
-        impl Ord for $name {
-            #[inline]
-            fn cmp(&self, other: &Self) -> Ordering {
-                <&str as Ord>::cmp(&self.deref(), &other.deref())
-            }
-        }
-
-        // *** Deref / Display ***
-
-        impl Deref for $name {
-            type Target = str;
-
-            #[inline]
-            fn deref(&self) -> &Self::Target {
-                match self {
-                    $name::Static(str) => str,
-                    $name::Inlined(ss) => ss,
-                    $name::RefCounted(rc) => rc,
+                /// Returns true if this is a wrapped `str` using reference counting
+                #[inline]
+                pub fn is_ref_counted(&self) -> bool {
+                    matches!(self.0, [<$name Inner>]::RefCounted(_))
                 }
             }
-        }
 
-        impl Display for $name {
-            #[inline]
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                match self {
-                    $name::Static(str) => Display::fmt(str, f),
-                    $name::Inlined(ss) => Display::fmt(ss, f),
-                    $name::RefCounted(s) => Display::fmt(s, f),
+            // *** Hash, PartialEq, Eq, PartialOrd, Ord ***
+
+            impl Hash for $name {
+                #[inline]
+                fn hash<H: Hasher>(&self, state: &mut H) {
+                    Hash::hash(self.deref(), state)
                 }
             }
-        }
 
-        // *** From ***
-
-        impl From<&$name2> for $name {
-            #[inline]
-            fn from(s: &$name2) -> Self {
-                s.clone().into()
+            /// ```
+            #[doc = "use flexstr::" $name ";"]
+            ///
+            #[doc = "let s: " $name " = \"inlined\".into();"]
+            #[doc = "let s2: " $name " = s.clone();"]
+            /// assert_eq!(s, s2);
+            /// ```
+            impl PartialEq for $name {
+                #[inline]
+                fn eq(&self, other: &Self) -> bool {
+                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
+                }
             }
-        }
 
-        impl From<$name2> for $name {
-            fn from(s: $name2) -> Self {
-                match s {
-                    $name2::Static(s) => $name::Static(s),
-                    $name2::Inlined(s) => $name::Inlined(s),
-                    $name2::RefCounted(rc) => {
-                        // TODO: Any more efficient way to do this?
-                        // Would like to use `from_raw` and `into_raw`, but need to ensure
-                        // exclusive ownership for this to be safe. For `Rc` that might be possible,
-                        // but `Arc` could be multi-threaded so needs to be atomic
-                        $name::RefCounted(rc.deref().into())
+            /// ```
+            #[doc = "use flexstr::{" $name2 ", " $name ", To" $name2 "};"]
+            ///
+            #[doc = "let s: " $name " = \"inlined\".into();"]
+            #[doc = "let s2: " $name2 " = s." $to_func2 "();"]
+            /// assert_eq!(s, s2);
+            /// ```
+            impl PartialEq<$name2> for $name {
+                fn eq(&self, other: &$name2) -> bool {
+                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
+                }
+            }
+
+            /// ```
+            #[doc = "use flexstr::{" $name ", To" $name "};"]
+            ///
+            /// let lit = "inlined";
+            #[doc = "let s: " $name " = lit." $to_func "();"]
+            /// assert_eq!(s, lit);
+            /// ```
+            impl PartialEq<&str> for $name {
+                #[inline]
+                fn eq(&self, other: &&str) -> bool {
+                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
+                }
+            }
+
+            /// ```
+            #[doc = "use flexstr::{" $name ", To" $name "};"]
+            ///
+            /// let lit = "inlined";
+            #[doc = "let s: " $name " = lit." $to_func "();"]
+            /// assert_eq!(s, lit);
+            /// ```
+            impl PartialEq<str> for $name {
+                #[inline]
+                fn eq(&self, other: &str) -> bool {
+                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
+                }
+            }
+
+            /// ```
+            #[doc = "use flexstr::" $name ";"]
+            ///
+            /// let lit = "inlined";
+            #[doc = "let s: " $name " = lit.into();"]
+            /// assert_eq!(s, lit.to_string());
+            /// ```
+            impl PartialEq<String> for $name {
+                #[inline]
+                fn eq(&self, other: &String) -> bool {
+                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
+                }
+            }
+
+            impl Eq for $name {}
+
+            impl PartialOrd for $name {
+                #[inline]
+                fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                    <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+                }
+            }
+
+            impl PartialOrd<str> for $name {
+                #[inline]
+                fn partial_cmp(&self, other: &str) -> Option<Ordering> {
+                    <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+                }
+            }
+
+            impl PartialOrd<String> for $name {
+                #[inline]
+                fn partial_cmp(&self, other: &String) -> Option<Ordering> {
+                    <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+                }
+            }
+
+            impl Ord for $name {
+                #[inline]
+                fn cmp(&self, other: &Self) -> Ordering {
+                    <&str as Ord>::cmp(&self.deref(), &other.deref())
+                }
+            }
+
+            // *** Deref / Display ***
+
+            impl Deref for $name {
+                type Target = str;
+
+                #[inline]
+                fn deref(&self) -> &Self::Target {
+                    match &self.0 {
+                        [<$name Inner>]::Static(str) => str,
+                        [<$name Inner>]::Inlined(ss) => ss,
+                        [<$name Inner>]::RefCounted(rc) => rc,
                     }
                 }
             }
-        }
 
-        #[doc = concat!("Converts a `String` into a `", stringify!($name), "`")]
-        /// ```
-        #[doc = concat!("use flexstr::", stringify!($name), ";")]
-        ///
-        /// let lit = "inlined";
-        #[doc = concat!("let s: ", stringify!($name), " = lit.to_string().into();")]
-        /// assert!(s.is_inlined());
-        /// assert_eq!(&s, lit);
-        ///
-        /// let lit = "This is too long too be inlined!";
-        #[doc = concat!("let s: ", stringify!($name), " = lit.to_string().into();")]
-        /// assert!(s.is_ref_counted());
-        /// assert_eq!(&s, lit);
-        /// ```
-        impl From<String> for $name {
-            #[inline]
-            fn from(s: String) -> Self {
-                match s.try_into() {
-                    Ok(s) => $name::Inlined(s),
-                    Err(s) => $name::RefCounted(s.into()),
+            impl Display for $name {
+                #[inline]
+                fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                    match &self.0 {
+                        [<$name Inner>]::Static(str) => Display::fmt(str, f),
+                        [<$name Inner>]::Inlined(ss) => Display::fmt(ss, f),
+                        [<$name Inner>]::RefCounted(s) => Display::fmt(s, f),
+                    }
                 }
             }
-        }
 
-        #[doc = concat!("Converts a `&String` into a `", stringify!($name), "`")]
-        /// ```
-        #[doc = concat!("use flexstr::", stringify!($name), ";")]
-        ///
-        /// let lit = "inlined";
-        #[doc = concat!("let s: ", stringify!($name), " = (&lit.to_string()).into();")]
-        /// assert!(s.is_inlined());
-        /// assert_eq!(&s, lit);
-        ///
-        /// let lit = "This is too long too be inlined!";
-        #[doc = concat!("let s: ", stringify!($name), " = (&lit.to_string()).into();")]
-        /// assert!(s.is_ref_counted());
-        /// assert_eq!(&s, lit);
-        /// ```
-        impl From<&String> for $name {
-            #[inline]
-            fn from(s: &String) -> Self {
-                s.$to_func()
-            }
-        }
+            // *** From ***
 
-        #[doc = concat!("Converts a string literal (`&static str`) into a `", stringify!($name), "`")]
-        /// ```
-        #[doc = concat!("use flexstr::", stringify!($name), ";")]
-        ///
-        /// let lit = "static";
-        #[doc = concat!("let s: ", stringify!($name), " = lit.into();")]
-        /// assert!(s.is_static());
-        /// assert_eq!(&s, lit);
-        /// ```
-        impl From<&'static str> for $name {
-            #[inline]
-            fn from(s: &'static str) -> Self {
-                $name::Static(s)
-            }
-        }
-
-        #[cfg(feature = "serde")]
-        impl Serialize for $name {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: Serializer,
-            {
-                serializer.serialize_str(self)
-            }
-        }
-
-        #[cfg(feature = "serde")]
-        struct $visitor_name;
-
-        #[cfg(feature = "serde")]
-        impl<'de> Visitor<'de> for $visitor_name {
-            type Value = $name;
-
-            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-                formatter.write_str("a string")
+            impl From<&$name2> for $name {
+                #[inline]
+                fn from(s: &$name2) -> Self {
+                    s.clone().into()
+                }
             }
 
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                Ok(v.$to_func())
+            impl From<$name2> for $name {
+                fn from(s: $name2) -> Self {
+                    $name(match s.0 {
+                        [<$name2 Inner>]::Static(s) => [<$name Inner>]::Static(s),
+                        [<$name2 Inner>]::Inlined(s) => [<$name Inner>]::Inlined(s),
+                        [<$name2 Inner>]::RefCounted(rc) => {
+                            // TODO: Any more efficient way to do this?
+                            // Would like to use `from_raw` and `into_raw`, but need to ensure
+                            // exclusive ownership for this to be safe. For `Rc` that might be possible,
+                            // but `Arc` could be multi-threaded so needs to be atomic
+                            [<$name Inner>]::RefCounted(rc.deref().into())
+                        }
+                    })
+                }
             }
 
-            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                Ok(v.into())
+            #[doc = "Converts a `String` into a `" $name "`"]
+            /// ```
+            #[doc = "use flexstr::" $name ";"]
+            ///
+            /// let lit = "inlined";
+            #[doc = "let s: " $name " = lit.to_string().into();"]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(&s, lit);
+            ///
+            /// let lit = "This is too long too be inlined!";
+            #[doc = "let s: " $name " = lit.to_string().into();"]
+            /// assert!(s.is_ref_counted());
+            /// assert_eq!(&s, lit);
+            /// ```
+            impl From<String> for $name {
+                #[inline]
+                fn from(s: String) -> Self {
+                    $name(match s.try_into() {
+                        Ok(s) => [<$name Inner>]::Inlined(s),
+                        Err(s) => [<$name Inner>]::RefCounted(s.into()),
+                    })
+                }
             }
-        }
 
-        #[cfg(feature = "serde")]
-        impl<'de> Deserialize<'de> for $name {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: Deserializer<'de>,
-            {
-                deserializer.deserialize_str($visitor_name)
+            #[doc = "Converts a `&String` into a `" $name "`"]
+            /// ```
+            #[doc = "use flexstr::" $name ";"]
+            ///
+            /// let lit = "inlined";
+            #[doc = "let s: " $name " = (&lit.to_string()).into();"]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(&s, lit);
+            ///
+            /// let lit = "This is too long too be inlined!";
+            #[doc = "let s: " $name " = (&lit.to_string()).into();"]
+            /// assert!(s.is_ref_counted());
+            /// assert_eq!(&s, lit);
+            /// ```
+            impl From<&String> for $name {
+                #[inline]
+                fn from(s: &String) -> Self {
+                    s.$to_func()
+                }
+            }
+
+            #[doc = "Converts a string literal (`&static str`) into a `" $name "`"]
+            /// ```
+            #[doc = "use flexstr::" $name ";"]
+            ///
+            /// let lit = "static";
+            #[doc = "let s: " $name " = lit.into();"]
+            /// assert!(s.is_static());
+            /// assert_eq!(&s, lit);
+            /// ```
+            impl From<&'static str> for $name {
+                #[inline]
+                fn from(s: &'static str) -> Self {
+                    $name([<$name Inner>]::Static(s))
+                }
+            }
+
+            #[cfg(feature = "serde")]
+            impl Serialize for $name {
+                #[inline]
+                fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+                where
+                    S: Serializer,
+                {
+                    serializer.serialize_str(self)
+                }
+            }
+
+            #[cfg(feature = "serde")]
+            struct [<$name Visitor>];
+
+            #[cfg(feature = "serde")]
+            impl<'de> Visitor<'de> for [<$name Visitor>] {
+                type Value = $name;
+
+                #[inline]
+                fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                    formatter.write_str("a string")
+                }
+
+                #[inline]
+                fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+                where
+                    E: Error,
+                {
+                    Ok(v.$to_func())
+                }
+
+                #[inline]
+                fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+                where
+                    E: Error,
+                {
+                    Ok(v.into())
+                }
+            }
+
+            #[cfg(feature = "serde")]
+            impl<'de> Deserialize<'de> for $name {
+                #[inline]
+                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+                where
+                    D: Deserializer<'de>,
+                {
+                    deserializer.deserialize_str([<$name Visitor>])
+                }
             }
         }
     };
@@ -347,15 +356,7 @@ macro_rules! flexstr {
 
 // *** FlexStr ***
 
-flexstr!(
-    FlexStr,
-    AFlexStr,
-    Rc<str>,
-    Arc<str>,
-    to_flexstr,
-    to_a_flexstr,
-    FlexStrVisitor
-);
+flexstr!(FlexStr, AFlexStr, Rc<str>, to_flexstr, to_a_flexstr);
 
 /// A trait that converts the source to a `FlexStr` without consuming it
 pub trait ToFlexStr {
@@ -366,10 +367,10 @@ pub trait ToFlexStr {
 impl ToFlexStr for str {
     #[inline]
     fn to_flexstr(&self) -> FlexStr {
-        match self.try_into() {
-            Ok(s) => FlexStr::Inlined(s),
-            Err(_) => FlexStr::RefCounted(self.into()),
-        }
+        FlexStr(match self.try_into() {
+            Ok(s) => FlexStrInner::Inlined(s),
+            Err(_) => FlexStrInner::RefCounted(self.into()),
+        })
     }
 }
 
@@ -414,15 +415,7 @@ macro_rules! flex_fmt {
 
 // *** AFlexStr ***
 
-flexstr!(
-    AFlexStr,
-    FlexStr,
-    Arc<str>,
-    Rc<str>,
-    to_a_flexstr,
-    to_flexstr,
-    AFlexStrVisitor
-);
+flexstr!(AFlexStr, FlexStr, Arc<str>, to_a_flexstr, to_flexstr);
 
 /// A trait that converts the source to an `AFlexStr` without consuming it
 pub trait ToAFlexStr {
@@ -433,10 +426,10 @@ pub trait ToAFlexStr {
 impl ToAFlexStr for str {
     #[inline]
     fn to_a_flexstr(&self) -> AFlexStr {
-        match self.try_into() {
-            Ok(s) => AFlexStr::Inlined(s),
-            Err(_) => AFlexStr::RefCounted(self.into()),
-        }
+        AFlexStr(match self.try_into() {
+            Ok(s) => AFlexStrInner::Inlined(s),
+            Err(_) => AFlexStrInner::RefCounted(self.into()),
+        })
     }
 }
 
