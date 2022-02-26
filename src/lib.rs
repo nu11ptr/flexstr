@@ -5,16 +5,16 @@
 
 extern crate alloc;
 
+mod format;
+
 use alloc::rc::Rc;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use core::cmp::Ordering;
 use core::fmt::{Debug, Display, Formatter};
 use core::hash::{Hash, Hasher};
-use core::mem;
 use core::ops::Deref;
-use core::str;
-use core::{fmt, ptr};
+use core::{fmt, mem, ptr, str};
 
 #[cfg(feature = "serde")]
 use serde::de::{Error, Visitor};
@@ -28,10 +28,10 @@ pub const MAX_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used
 /// transparently by `Stringy` and `AStringy`
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct InlineStringy {
+    data: [mem::MaybeUninit<u8>; MAX_INLINE],
     len: u8,
-    data: [u8; MAX_INLINE],
 }
 
 impl InlineStringy {
@@ -54,11 +54,9 @@ impl InlineStringy {
         // function directly. The copy is restrained to the length of the str.
 
         // Declare array, but keep uninitialized (we will overwrite momentarily)
-        let data: [mem::MaybeUninit<u8>; MAX_INLINE] = mem::MaybeUninit::uninit().assume_init();
-        let mut data = mem::transmute::<_, [u8; MAX_INLINE]>(data);
-
+        let mut data: [mem::MaybeUninit<u8>; MAX_INLINE] = mem::MaybeUninit::uninit().assume_init();
         // Copy contents of &str to our data buffer
-        ptr::copy_nonoverlapping(s.as_ptr(), &mut data as *mut u8, s.len());
+        ptr::copy_nonoverlapping(s.as_ptr(), data.as_mut_ptr().cast::<u8>(), s.len());
 
         Self {
             len: s.len() as u8,
@@ -83,7 +81,7 @@ impl InlineStringy {
             false
         } else {
             // Point to the location directly after our string
-            let data = self.data[self.len as usize..].as_mut_ptr();
+            let data = self.data[self.len as usize..].as_mut_ptr().cast::<u8>();
 
             unsafe {
                 // Safety: We know the buffer is large enough and that the location is not overlapping
@@ -107,9 +105,14 @@ impl Deref for InlineStringy {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
-        // Safety: The contents are always obtained from a valid UTF8 str, so they must be valid
-        // Additionally, we clamp the size of the slice passed to be no longer than our str length
-        unsafe { str::from_utf8_unchecked(&self.data[..(self.len as usize)]) }
+        let data = &self.data[..self.len()];
+
+        unsafe {
+            // Safety: The contents are always obtained from a valid UTF8 str, so they must be valid
+            // Additionally, we clamp the size of the slice passed to be no longer than our str length
+            let data = &*(data as *const [mem::MaybeUninit<u8>] as *const [u8]);
+            str::from_utf8_unchecked(data)
+        }
     }
 }
 
@@ -516,6 +519,14 @@ impl IntoStringy for String {
     }
 }
 
+/// `Stringy` equivalent to `format!` macro from stdlib. Efficiently creates a native `Stringy`
+#[macro_export]
+macro_rules! flex_fmt {
+    ($($arg:tt)*) => {
+        format::format(format_args!($($arg)*))
+    };
+}
+
 // *** AStringy ***
 
 stringy!(
@@ -562,6 +573,14 @@ impl IntoAStringy for String {
     fn into_a_stringy(self) -> AStringy {
         self.into()
     }
+}
+
+/// `AStringy` equivalent to `format!` macro from stdlib. Efficiently creates a native `AStringy`
+#[macro_export]
+macro_rules! a_flex_fmt {
+    ($($arg:tt)*) => {
+        format::a_format(format_args!($($arg)*))
+    };
 }
 
 #[cfg(test)]
