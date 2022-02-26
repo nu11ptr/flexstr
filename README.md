@@ -1,19 +1,20 @@
-# stringy
+# flexstr
 
-A simple to use, immutable, clone-efficient `String` replacement for Rust
+A flexible, simple to use, immutable, clone-efficient `String` replacement for 
+Rust
 
 ## Overview
 
-Rust is great, but it's `String` type is not optimized for many typical use
-cases, but is instead optimized as a mutable string buffer. Most string use 
-cases don't modify their string contents, often need to copy strings around 
-as if they were cheap like integers, typically concatenate instead of modify, 
-and often end up being cloned with identical contents. Additionally, 
-`String` isn't able wrap a string literal without additional allocation and 
-copying. Rust really needs a 3rd string type to unify usage of both literals 
-and allocated strings in typical use cases. This crate creates a new string 
-type that is optimized for those use cases, while retaining the usage 
-simplicity of `String`.
+Rust is great, but it's `String` type is not optimized for typical string 
+use cases, but instead as a mutable string buffer. Most string use cases 
+don't modify their string contents, often need to copy strings around as if 
+they were cheap like integers, typically concatenate instead of modify, and 
+often end up being cloned with identical contents. Additionally, `String` 
+isn't able wrap a string literal without additional allocation and copying. 
+Rust really needs a 3rd string type to unify usage of both literals and 
+allocated strings in typical use cases. This crate creates a new string type 
+that is optimized for those use cases, while retaining the usage simplicity of
+`String`.
 
 This type is not inherently "better" than `String`, but different. It is a 
 higher level type, that can at times mean higher overhead. It really 
@@ -35,17 +36,17 @@ depends on the use case.
 
 ## Types
 
-* `Stringy`
+* `FlexStr`
     * Wrapper type for string literals (`&'static str`), inlined strings 
-      (`InlineStringy`), or an `Rc` wrapped `str` 
+      (`InlineFlexStr`), or an `Rc` wrapped `str` 
     * NOT `Send` or `Sync` (due to usage of `Rc`)
-* `AStringy`
-    * Equivalent to `Stringy` but uses `Arc` instead of `Rc` for the wrapped 
+* `AFlexStr`
+    * Equivalent to `FlexStr` but uses `Arc` instead of `Rc` for the wrapped 
       `str`
     * Both `Send` and `Sync`
-* `InlineStringy`
+* `InlineFlexStr`
     * Custom inline string type holding up to 22 bytes (on 64-bit platforms)
-    * Used automatically as needed by `Stringy` and `AStringy` - not typically 
+    * Used automatically as needed by `FlexStr` and `AFlexStr` - not typically 
       used directly
 
 ## Usage
@@ -53,11 +54,11 @@ depends on the use case.
 ### Hello World
 
 ```rust
-use stringy::IntoStringy;
+use flexstr::IntoFlexStr;
 
 fn main() {
   // Literal - no copying or allocation
-  let hello = "world!".into_stringy();
+  let hello = "world!".into_flexstr();
   
   println!("Hello {world}");
 }
@@ -66,37 +67,37 @@ fn main() {
 ### Conversions
 
 ```rust
-use stringy::{IntoAStringy, IntoStringy, ToStringy};
+use flexstr::{IntoAFlexStr, IntoFlexStr, ToFlexStr};
 
 fn main() {
     // From literal - no copying or allocation
-    // NOTE: `to_stringy` will copy, so use `into_stringy` for literals
-    let literal = "literal".into_stringy();
+    // NOTE: `to_flexstr` will copy, so use `into_flexstr` for literals
+    let literal = "literal".into_flexstr();
     
     // From borrowed string - Copied into inline string
     let owned = "inlined".to_string();
-    let str_to_inlined = (&owned).to_stringy();
+    let str_to_inlined = (&owned).to_flexstr();
 
     // From borrowed String - copied into `str` wrapped in `Rc`
     let owned = "A bit too long to be inlined!!!".to_string();
-    let str_to_wrapped = (&owned).to_stringy();
+    let str_to_wrapped = (&owned).to_flexstr();
     
     // From String - copied into inline string (`String` storage released)
-    let inlined = "inlined".to_string().into_stringy();
+    let inlined = "inlined".to_string().into_flexstr();
 
     // From String - `str` wrapped in `Rc` (`String` storage released)
-    let counted = "A bit too long to be inlined!!!".to_string().into_stringy();
+    let counted = "A bit too long to be inlined!!!".to_string().into_flexstr();
    
-    // *** If you want a Send/Sync type you need `AStringy` instead ***
+    // *** If you want a Send/Sync type you need `AFlexStr` instead ***
 
-    // From Stringy wrapped literal - no copying or allocation
-    let literal = literal.into_a_stringy();
+    // From FlexStr wrapped literal - no copying or allocation
+    let literal = literal.into_a_flexstr();
     
-    // From Stringy inlined string - no allocation
-    let inlined = inlined.into_a_stringy();
+    // From FlexStr inlined string - no allocation
+    let inlined = inlined.into_a_flexstr();
     
-    // From Stringy `Rc` wrapped `str` - copies into `str` wrapped in `Arc`
-    let counted = counted.into_a_stringy();
+    // From FlexStr `Rc` wrapped `str` - copies into `str` wrapped in `Arc`
+    let counted = counted.into_a_flexstr();
 }
 ```
 
@@ -105,37 +106,37 @@ fn main() {
 Works just like `String`
 
 NOTE: The only benefit to passing as a `&str` is more compatibility with 
-existing code. By passing as a `&Stringy` instead, we retain the possibility 
+existing code. By passing as a `&FlexStr` instead, we retain the possibility 
 of cheap multi ownership (see below).
 
 ```rust
-use stringy::Stringy;
+use flexstr::FlexStr;
 
-fn my_func(str: &Stringy) {
+fn my_func(str: &FlexStr) {
     println!("Borrowed string: {str}");
 }
 
 fn main() {
     // Literal - no copy or allocation
-    let str: Stringy = "my string".into();
+    let str: FlexStr = "my string".into();
     my_func(&str);
 }
 ```
 
-### Passing Stringy to Conditional Ownership Functions
+### Passing FlexStr to Conditional Ownership Functions
 
 This has always been a confusing situation in Rust, but it is easy with 
-`Stringy` since multi ownership is cheap.
+`FlexStr` since multi ownership is cheap.
 
 ```rust
-use stringy::{IntoStringy, Stringy};
+use flexstr::{IntoFlexStr, FlexStr};
 
 struct MyStruct {
-    s: Stringy
+    s: FlexStr
 }
 
 impl MyStruct {
-    fn to_own_or_not_to_own(s: &Stringy) -> Self {
+    fn to_own_or_not_to_own(s: &FlexStr) -> Self {
         let s = if s == "own_me" {
             // Since a wrapped literal, no copy or allocation
             s.clone()
@@ -150,8 +151,8 @@ impl MyStruct {
 
 fn main() {
     // Wrapped literals - no copy or allocation
-    let s = "borrow me".into_stringy();
-    let s2 = "own me".into_stringy();
+    let s = "borrow me".into_flexstr();
+    let s2 = "own me".into_flexstr();
 
     let struct1 = MyStruct::to_own_or_not_to_own(&s);
     let struct2 = MyStruct::to_own_or_not_to_own(&s2);
@@ -175,11 +176,11 @@ NOTE: No benchmarking has yet been done
 * `into_string()` and `into_a_string()` are equivalent to calling `into()` 
   on both literals and `String` (they are present primarily for `let` 
   bindings without needing to declare type)
-* `to_stringy()` and `to_a_stringy()` are meant for the on-boarding of borrowed 
+* `to_flexstr()` and `to_a_flexstr()` are meant for the on-boarding of borrowed 
   strings and always copy into either an inline string (for short strings) or 
   an `Rc`/`Arc` wrapped `str` (which will allocate)
 * `to_string` always copies into a new `String`
-* Conversions back and forth between `AStringy` and `Stringy` using `into()` 
+* Conversions back and forth between `AFlexStr` and `FlexStr` using `into()` 
   are cheap when using wrapped literals or inlined strings
     * Inlined strings and wrapped literals just create a new enum wrapper
     * Reference counted wrapped strings will always require an allocation 
@@ -193,8 +194,8 @@ There is no free lunch:
   reallocate and copy
 * Due to the enum wrapper, every string operation has the overhead of an extra
   branching operation
-* Since `Stringy is not `Send` or `Sync`, thre is a need to consider 
-  single-threaded   (`Stringy`) and multi-threaded (`AStringy`) use cases and 
+* Since `FlexStr is not `Send` or `Sync`, thre is a need to consider 
+  single-threaded   (`FlexStr`) and multi-threaded (`AFlexStr`) use cases and 
   convert accordingly
 
 ## Open Issues / TODO

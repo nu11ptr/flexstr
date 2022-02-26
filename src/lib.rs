@@ -27,15 +27,15 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub const MAX_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used
-/// transparently by `Stringy` and `AStringy`
+/// transparently by `FlexStr` and `AFlexStr`
 #[derive(Clone, Copy, Debug)]
-pub struct InlineStringy {
+pub struct InlineFlexStr {
     data: [mem::MaybeUninit<u8>; MAX_INLINE],
     len: u8,
 }
 
-impl InlineStringy {
-    /// Attempts to return a new `InlineStringy` if the source string is short enough to be copied.
+impl InlineFlexStr {
+    /// Attempts to return a new `InlineFlexStr` if the source string is short enough to be copied.
     /// If not, the source is returned as the error.
     #[inline]
     pub fn try_new<T: AsRef<str>>(s: T) -> Result<Self, T> {
@@ -64,13 +64,13 @@ impl InlineStringy {
         }
     }
 
-    /// Returns the length of this `InlineStringy` in bytes
+    /// Returns the length of this `InlineFlexStr` in bytes
     #[inline]
     pub fn len(&self) -> usize {
         self.len as usize
     }
 
-    /// Returns true if this `InlineStringy` is an empty string
+    /// Returns true if this `InlineFlexStr` is an empty string
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len == 0
@@ -95,13 +95,13 @@ impl InlineStringy {
     }
 }
 
-impl Display for InlineStringy {
+impl Display for InlineFlexStr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self.deref(), f)
     }
 }
 
-impl Deref for InlineStringy {
+impl Deref for InlineFlexStr {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
@@ -116,7 +116,7 @@ impl Deref for InlineStringy {
     }
 }
 
-impl TryFrom<String> for InlineStringy {
+impl TryFrom<String> for InlineFlexStr {
     type Error = String;
 
     #[inline]
@@ -125,7 +125,7 @@ impl TryFrom<String> for InlineStringy {
     }
 }
 
-impl<'s> TryFrom<&'s String> for InlineStringy {
+impl<'s> TryFrom<&'s String> for InlineFlexStr {
     type Error = &'s String;
 
     #[inline]
@@ -134,7 +134,7 @@ impl<'s> TryFrom<&'s String> for InlineStringy {
     }
 }
 
-impl<'s> TryFrom<&'s str> for InlineStringy {
+impl<'s> TryFrom<&'s str> for InlineFlexStr {
     type Error = &'s str;
 
     #[inline]
@@ -143,16 +143,16 @@ impl<'s> TryFrom<&'s str> for InlineStringy {
     }
 }
 
-impl From<InlineStringy> for String {
+impl From<InlineFlexStr> for String {
     #[inline]
-    fn from(s: InlineStringy) -> Self {
+    fn from(s: InlineFlexStr) -> Self {
         s.to_string()
     }
 }
 
-// *** Stringy macro ***
+// *** FlexStr macro ***
 
-macro_rules! stringy {
+macro_rules! flexstr {
     ($name:ident, $name2:ident, $rc:ty, $rc2:ty, $to_func:ident, $to_func2:ident, $visitor_name: ident) => {
         /// The main string enum type that wraps a string literal, inline string, or ref counted `str`
         #[derive(Clone, Debug)]
@@ -160,7 +160,7 @@ macro_rules! stringy {
             /// A wrapped string literal
             Static(&'static str),
             /// An inlined string
-            Inlined(InlineStringy),
+            Inlined(InlineFlexStr),
             /// A reference count wrapped `str`
             RefCounted($rc),
         }
@@ -213,7 +213,7 @@ macro_rules! stringy {
         }
 
         /// ```
-        #[doc = concat!("use stringy::", stringify!($name), ";")]
+        #[doc = concat!("use flexstr::", stringify!($name), ";")]
         ///
         #[doc = concat!("let s: ", stringify!($name), " = \"inlined\".into();")]
         #[doc = concat!("let s2: ", stringify!($name), " = s.clone();")]
@@ -227,7 +227,7 @@ macro_rules! stringy {
         }
 
         /// ```
-        #[doc = concat!("use stringy::{", stringify!($name2), ", ", stringify!($name), ", To", stringify!($name2) ,"};")]
+        #[doc = concat!("use flexstr::{", stringify!($name2), ", ", stringify!($name), ", To", stringify!($name2) ,"};")]
         ///
         #[doc = concat!("let s: ", stringify!($name), " = \"inlined\".into();")]
         #[doc = concat!("let s2: ", stringify!($name2), " = s.", stringify!($to_func2), "();")]
@@ -240,7 +240,7 @@ macro_rules! stringy {
         }
 
         /// ```
-        #[doc = concat!("use stringy::{", stringify!($name), ", To", stringify!($name) ,"};")]
+        #[doc = concat!("use flexstr::{", stringify!($name), ", To", stringify!($name) ,"};")]
         ///
         /// let lit = "inlined";
         #[doc = concat!("let s: ", stringify!($name), " = lit.", stringify!($to_func), "();")]
@@ -254,7 +254,7 @@ macro_rules! stringy {
         }
 
         /// ```
-        #[doc = concat!("use stringy::{", stringify!($name), ", To", stringify!($name) ,"};")]
+        #[doc = concat!("use flexstr::{", stringify!($name), ", To", stringify!($name) ,"};")]
         ///
         /// let lit = "inlined";
         #[doc = concat!("let s: ", stringify!($name), " = lit.", stringify!($to_func), "();")]
@@ -268,7 +268,7 @@ macro_rules! stringy {
         }
 
         /// ```
-        #[doc = concat!("use stringy::", stringify!($name), ";")]
+        #[doc = concat!("use flexstr::", stringify!($name), ";")]
         ///
         /// let lit = "inlined";
         #[doc = concat!("let s: ", stringify!($name), " = lit.into();")]
@@ -364,7 +364,7 @@ macro_rules! stringy {
 
         #[doc = concat!("Converts a `String` into a `", stringify!($name), "`")]
         /// ```
-        #[doc = concat!("use stringy::", stringify!($name), ";")]
+        #[doc = concat!("use flexstr::", stringify!($name), ";")]
         ///
         /// let lit = "inlined";
         #[doc = concat!("let s: ", stringify!($name), " = lit.to_string().into();")]
@@ -388,7 +388,7 @@ macro_rules! stringy {
 
         #[doc = concat!("Converts a `&String` into a `", stringify!($name), "`")]
         /// ```
-        #[doc = concat!("use stringy::", stringify!($name), ";")]
+        #[doc = concat!("use flexstr::", stringify!($name), ";")]
         ///
         /// let lit = "inlined";
         #[doc = concat!("let s: ", stringify!($name), " = (&lit.to_string()).into();")]
@@ -409,7 +409,7 @@ macro_rules! stringy {
 
         #[doc = concat!("Converts a string literal (`&static str`) into a `", stringify!($name), "`")]
         /// ```
-        #[doc = concat!("use stringy::", stringify!($name), ";")]
+        #[doc = concat!("use flexstr::", stringify!($name), ";")]
         ///
         /// let lit = "static";
         #[doc = concat!("let s: ", stringify!($name), " = lit.into();")]
@@ -471,55 +471,55 @@ macro_rules! stringy {
     };
 }
 
-// *** Stringy ***
+// *** FlexStr ***
 
-stringy!(
-    Stringy,
-    AStringy,
+flexstr!(
+    FlexStr,
+    AFlexStr,
     Rc<str>,
     Arc<str>,
-    to_stringy,
-    to_a_stringy,
-    StringyVisitor
+    to_flexstr,
+    to_a_flexstr,
+    FlexStrVisitor
 );
 
-/// A trait that converts the source to a `Stringy` without consuming it
-pub trait ToStringy {
-    /// Converts the source to a `Stringy` without consuming it
-    fn to_stringy(&self) -> Stringy;
+/// A trait that converts the source to a `FlexStr` without consuming it
+pub trait ToFlexStr {
+    /// Converts the source to a `FlexStr` without consuming it
+    fn to_flexstr(&self) -> FlexStr;
 }
 
-impl ToStringy for str {
+impl ToFlexStr for str {
     #[inline]
-    fn to_stringy(&self) -> Stringy {
+    fn to_flexstr(&self) -> FlexStr {
         match self.try_into() {
-            Ok(s) => Stringy::Inlined(s),
-            Err(_) => Stringy::RefCounted(self.into()),
+            Ok(s) => FlexStr::Inlined(s),
+            Err(_) => FlexStr::RefCounted(self.into()),
         }
     }
 }
 
-/// A trait that converts the source to a `Stringy` while consuming the original
-pub trait IntoStringy {
-    /// Converts the source to a `Stringy` while consuming the original
-    fn into_stringy(self) -> Stringy;
+/// A trait that converts the source to a `FlexStr` while consuming the original
+pub trait IntoFlexStr {
+    /// Converts the source to a `FlexStr` while consuming the original
+    fn into_flexstr(self) -> FlexStr;
 }
 
-impl IntoStringy for &'static str {
+impl IntoFlexStr for &'static str {
     #[inline]
-    fn into_stringy(self) -> Stringy {
+    fn into_flexstr(self) -> FlexStr {
         self.into()
     }
 }
 
-impl IntoStringy for String {
+impl IntoFlexStr for String {
     #[inline]
-    fn into_stringy(self) -> Stringy {
+    fn into_flexstr(self) -> FlexStr {
         self.into()
     }
 }
 
-/// `Stringy` equivalent to `format!` macro from stdlib. Efficiently creates a native `Stringy`
+/// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`
 #[macro_export]
 macro_rules! flex_fmt {
     ($($arg:tt)*) => {
@@ -527,55 +527,55 @@ macro_rules! flex_fmt {
     };
 }
 
-// *** AStringy ***
+// *** AFlexStr ***
 
-stringy!(
-    AStringy,
-    Stringy,
+flexstr!(
+    AFlexStr,
+    FlexStr,
     Arc<str>,
     Rc<str>,
-    to_a_stringy,
-    to_stringy,
-    AStringyVisitor
+    to_a_flexstr,
+    to_flexstr,
+    AFlexStrVisitor
 );
 
-/// A trait that converts the source to an `AStringy` without consuming it
-pub trait ToAStringy {
-    /// Converts the source to an `AStringy` without consuming it
-    fn to_a_stringy(&self) -> AStringy;
+/// A trait that converts the source to an `AFlexStr` without consuming it
+pub trait ToAFlexStr {
+    /// Converts the source to an `AFlexStr` without consuming it
+    fn to_a_flexstr(&self) -> AFlexStr;
 }
 
-impl ToAStringy for str {
+impl ToAFlexStr for str {
     #[inline]
-    fn to_a_stringy(&self) -> AStringy {
+    fn to_a_flexstr(&self) -> AFlexStr {
         match self.try_into() {
-            Ok(s) => AStringy::Inlined(s),
-            Err(_) => AStringy::RefCounted(self.into()),
+            Ok(s) => AFlexStr::Inlined(s),
+            Err(_) => AFlexStr::RefCounted(self.into()),
         }
     }
 }
 
-/// A trait that converts the source to an `AStringy` while consuming the original
-pub trait IntoAStringy {
-    /// Converts the source to an `AStringy` while consuming the original
-    fn into_a_stringy(self) -> AStringy;
+/// A trait that converts the source to an `AFlexStr` while consuming the original
+pub trait IntoAFlexStr {
+    /// Converts the source to an `AFlexStr` while consuming the original
+    fn into_a_flexstr(self) -> AFlexStr;
 }
 
-impl IntoAStringy for &'static str {
+impl IntoAFlexStr for &'static str {
     #[inline]
-    fn into_a_stringy(self) -> AStringy {
+    fn into_a_flexstr(self) -> AFlexStr {
         self.into()
     }
 }
 
-impl IntoAStringy for String {
+impl IntoAFlexStr for String {
     #[inline]
-    fn into_a_stringy(self) -> AStringy {
+    fn into_a_flexstr(self) -> AFlexStr {
         self.into()
     }
 }
 
-/// `AStringy` equivalent to `format!` macro from stdlib. Efficiently creates a native `AStringy`
+/// `AFlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `AFlexStr`
 #[macro_export]
 macro_rules! a_flex_fmt {
     ($($arg:tt)*) => {

@@ -1,4 +1,4 @@
-use crate::{AStringy, IntoAStringy, IntoStringy, Stringy, ToAStringy, ToStringy, MAX_INLINE};
+use crate::{AFlexStr, FlexStr, IntoAFlexStr, IntoFlexStr, ToAFlexStr, ToFlexStr, MAX_INLINE};
 
 use alloc::string::String;
 use core::fmt::{Arguments, Write};
@@ -122,37 +122,37 @@ impl<const N: usize> Deref for StringBuffer<N> {
     }
 }
 
-// *** Stringy Builder ***
+// *** FlexStr Builder ***
 
 #[allow(clippy::large_enum_variant)]
-enum StringyBuilder {
+enum FlexStrBuilder {
     Small(StringBuffer<MAX_INLINE>),
     Regular(StringBuffer<BUFFER_SIZE>),
     Large(String),
 }
 
-impl Write for StringyBuilder {
+impl Write for FlexStrBuilder {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         match self {
             // TODO: Small probably isn't worth it. Probably makes sense to just keep Regular/Large
-            StringyBuilder::Small(buffer) => {
+            FlexStrBuilder::Small(buffer) => {
                 if buffer.write(s) {
                     Ok(())
                 } else if s.len() <= BUFFER_SIZE {
                     let mut buffer = buffer.to_larger_buffer();
                     buffer.write(s);
-                    *self = StringyBuilder::Regular(buffer);
+                    *self = FlexStrBuilder::Regular(buffer);
                     Ok(())
                 } else {
                     let required_cap = buffer.len() + s.len();
                     let mut buffer = buffer.to_string_buffer(required_cap * 2);
                     // NOTE: This always succeeds for String anyway
                     buffer.write_str(s).unwrap();
-                    *self = StringyBuilder::Large(buffer);
+                    *self = FlexStrBuilder::Large(buffer);
                     Ok(())
                 }
             }
-            StringyBuilder::Regular(buffer) => {
+            FlexStrBuilder::Regular(buffer) => {
                 if buffer.write(s) {
                     Ok(())
                 } else {
@@ -160,57 +160,57 @@ impl Write for StringyBuilder {
                     let mut buffer = buffer.to_string_buffer(required_cap * 2);
                     // NOTE: This always succeeds for String anyway
                     buffer.write_str(s).unwrap();
-                    *self = StringyBuilder::Large(buffer);
+                    *self = FlexStrBuilder::Large(buffer);
                     Ok(())
                 }
             }
-            StringyBuilder::Large(buffer) => buffer.write_str(s),
+            FlexStrBuilder::Large(buffer) => buffer.write_str(s),
         }
     }
 }
 
-impl IntoStringy for StringyBuilder {
+impl IntoFlexStr for FlexStrBuilder {
     #[inline]
-    fn into_stringy(self) -> Stringy {
+    fn into_flexstr(self) -> FlexStr {
         match self {
             // TODO: If we keep small this can be optimized
-            StringyBuilder::Small(buffer) => buffer.to_stringy(),
-            StringyBuilder::Regular(buffer) => buffer.to_stringy(),
-            StringyBuilder::Large(s) => s.into(),
+            FlexStrBuilder::Small(buffer) => buffer.to_flexstr(),
+            FlexStrBuilder::Regular(buffer) => buffer.to_flexstr(),
+            FlexStrBuilder::Large(s) => s.into(),
         }
     }
 }
 
-impl IntoAStringy for StringyBuilder {
+impl IntoAFlexStr for FlexStrBuilder {
     #[inline]
-    fn into_a_stringy(self) -> AStringy {
+    fn into_a_flexstr(self) -> AFlexStr {
         match self {
             // TODO: If we keep small this can be optimized
-            StringyBuilder::Small(buffer) => buffer.to_a_stringy(),
-            StringyBuilder::Regular(buffer) => buffer.to_a_stringy(),
-            StringyBuilder::Large(s) => s.into(),
+            FlexStrBuilder::Small(buffer) => buffer.to_a_flexstr(),
+            FlexStrBuilder::Regular(buffer) => buffer.to_a_flexstr(),
+            FlexStrBuilder::Large(s) => s.into(),
         }
     }
 }
 
 // *** format / a_format ***
 
-pub(crate) fn format(args: Arguments<'_>) -> Stringy {
+pub(crate) fn format(args: Arguments<'_>) -> FlexStr {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
     // As such, start by assuming this might be inlined and then promote buffer sizes as needed
-    let mut builder = StringyBuilder::Small(StringBuffer::new());
+    let mut builder = FlexStrBuilder::Small(StringBuffer::new());
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder.into_stringy()
+    builder.into_flexstr()
 }
 
-pub(crate) fn a_format(args: Arguments<'_>) -> AStringy {
+pub(crate) fn a_format(args: Arguments<'_>) -> AFlexStr {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
     // As such, start by assuming this might be inlined and then promote buffer sizes as needed
-    let mut builder = StringyBuilder::Small(StringBuffer::new());
+    let mut builder = FlexStrBuilder::Small(StringBuffer::new());
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder.into_a_stringy()
+    builder.into_a_flexstr()
 }
