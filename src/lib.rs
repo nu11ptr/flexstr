@@ -486,6 +486,79 @@ macro_rules! flexstr {
                 }
             }
 
+            // *** ToCase custom trait ***
+
+            #[doc = "Trait that provides uppercase/lowercase conversion functions for `" $name "`"]
+            pub trait [<ToCase $name>] {
+                #[doc = "Converts string to uppercase and returns a `" $name "`"]
+                fn to_uppercase(&self) -> $name;
+
+                #[doc = "Converts string to lowercase and returns a `" $name "`"]
+                fn to_lowercase(&self) -> $name;
+
+                #[doc = "Converts string to ASCII uppercase and returns a `" $name "`"]
+                fn to_ascii_uppercase(&self) -> $name;
+
+                #[doc = "Converts string to ASCII lowercase and returns a `" $name "`"]
+                fn to_ascii_lowercase(&self) -> $name;
+            }
+
+            impl [<ToCase $name>] for str {
+                fn to_uppercase(&self) -> $name {
+                    // We estimate capacity based on previous string, but if not ASCII this might be wrong
+                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+                    for ch in self.chars() {
+                        let upper_chars = ch.to_uppercase();
+                        for ch in upper_chars {
+                            // Safety: Wraps `write_str` which always succeeds
+                            unsafe { builder.write_char(ch).unwrap_unchecked() }
+                        }
+                    }
+
+                    builder.into()
+                }
+
+                fn to_lowercase(&self) -> $name {
+                    // We estimate capacity based on previous string, but if not ASCII this might be wrong
+                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+                    for ch in self.chars() {
+                        let lower_chars = ch.to_lowercase();
+                        for ch in lower_chars {
+                            // Safety: Wraps `write_str` which always succeeds
+                            unsafe { builder.write_char(ch).unwrap_unchecked() }
+                        }
+                    }
+
+                    builder.into()
+                }
+
+                fn to_ascii_uppercase(&self) -> $name {
+                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+                    for mut ch in self.chars() {
+                        char::make_ascii_uppercase(&mut ch);
+                        // Safety: Wraps `write_str` which always succeeds
+                        unsafe { builder.write_char(ch).unwrap_unchecked() }
+                    }
+
+                    builder.into()
+                }
+
+                fn to_ascii_lowercase(&self) -> $name {
+                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+                    for mut ch in self.chars() {
+                        char::make_ascii_lowercase(&mut ch);
+                        // Safety: Wraps `write_str` which always succeeds
+                        unsafe { builder.write_char(ch).unwrap_unchecked() }
+                    }
+
+                    builder.into()
+                }
+            }
+
             // *** Optional serialization support ***
 
             #[cfg(feature = "serde")]
