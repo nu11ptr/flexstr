@@ -10,7 +10,7 @@ use crate::{
 };
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
-const BUFFER_SIZE: usize = 1024;
+pub(crate) const BUFFER_SIZE: usize = 1024;
 
 // *** String Buffer ***
 
@@ -70,6 +70,8 @@ impl<const N: usize> StringBuffer<N> {
                     self.len(),
                 );
             }
+
+            buffer.len = self.len;
         }
 
         buffer
@@ -80,18 +82,7 @@ impl<const N: usize> StringBuffer<N> {
         let mut buffer = String::with_capacity(cap);
 
         if !self.is_empty() {
-            unsafe {
-                // Safety: This should be ok because we only copy what we've already written into
-                // a brand new buffer. No way for it to overlap.
-                // *** WE DO NEED TO BE CAREFUL TO ENSURE cap >= self.len ALWAYS ***
-
-                // Copy contents of &str to our data buffer
-                ptr::copy_nonoverlapping(
-                    self.buffer.as_ptr().cast(),
-                    buffer.as_mut_ptr(),
-                    self.len(),
-                );
-            }
+            buffer.push_str(&self);
         }
 
         buffer
@@ -141,6 +132,13 @@ pub(crate) enum FlexStrBuilder {
 }
 
 impl FlexStrBuilder {
+    #[inline]
+    pub fn new() -> Self {
+        // TODO: Is it worth assuming inline size if we don't know the capacity needed???
+        FlexStrBuilder::Small(StringBuffer::new())
+    }
+
+    #[inline]
     pub fn with_capacity(cap: usize) -> Self {
         if cap <= MAX_INLINE {
             FlexStrBuilder::Small(StringBuffer::new())
@@ -226,5 +224,87 @@ impl IntoAFlexStr for FlexStrBuilder {
             FlexStrBuilder::Regular(buffer) => buffer.to_a_flex_str(),
             FlexStrBuilder::Large(s) => s.into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::build::{FlexStrBuilder, StringBuffer, BUFFER_SIZE};
+    use crate::inline::MAX_INLINE;
+    use crate::IntoFlexStr;
+    use alloc::string::{String, ToString};
+    use core::fmt::Write;
+
+    #[test]
+    fn string_buffer() {
+        // Write 1
+        let write1 = "test";
+        let mut buffer: StringBuffer<MAX_INLINE> = StringBuffer::new();
+        assert!(buffer.is_empty());
+        assert!(buffer.write(write1));
+        assert_eq!(buffer.len(), write1.len());
+        assert_eq!(&*buffer, write1);
+
+        // Try write 2 - not large enough
+        let write2 = "This is far too long for the inline buffer!!!!!!!!!";
+        assert!(!buffer.write(write2));
+        assert_eq!(buffer.len(), write1.len());
+        assert_eq!(&*buffer, write1);
+
+        // Promote to larger buffer and ensure contents copied
+        let mut buffer: StringBuffer<BUFFER_SIZE> = buffer.to_large_buffer();
+        assert_eq!(buffer.len(), write1.len());
+        assert_eq!(&*buffer, write1);
+
+        // Retry write 2
+        assert!(buffer.write(write2));
+        assert_eq!(buffer.len(), write1.len() + write2.len());
+        assert_eq!(&*buffer, write1.to_string() + write2);
+
+        // Try write 3 - not large enough
+        let mut write3 = String::with_capacity(BUFFER_SIZE);
+        for _ in 0..BUFFER_SIZE {
+            write3.push('x');
+        }
+        assert!(!buffer.write(&write3));
+        assert_eq!(buffer.len(), write1.len() + write2.len());
+        assert_eq!(&*buffer, write1.to_string() + write2);
+
+        // Promote to string buffer and ensure contents are copied
+        let mut buffer = buffer.to_string_buffer(write1.len() + write2.len() + write3.len());
+        assert_eq!(buffer.len(), write1.len() + write2.len());
+        assert_eq!(&*buffer, write1.to_string() + write2);
+
+        // Retry write 3
+        assert!(buffer.write_str(&write3).is_ok());
+        assert_eq!(buffer.len(), write1.len() + write2.len() + write3.len());
+        assert_eq!(&*buffer, write1.to_string() + write2 + &write3);
+    }
+
+    #[test]
+    fn flex_str_builder_promotion() {
+        // Write 1 - verify inline buffer size
+        let write1 = "test";
+        let mut builder = FlexStrBuilder::new();
+        assert!(matches!(builder, FlexStrBuilder::Small(_)));
+        assert!(builder.write_str(write1).is_ok());
+        assert!(matches!(builder, FlexStrBuilder::Small(_)));
+
+        // Write 2
+        let write2 = "This is far too long for the inline buffer!!!!!!!!!";
+        assert!(builder.write_str(write2).is_ok());
+        assert!(matches!(builder, FlexStrBuilder::Regular(_)));
+
+        // Write 3
+        let mut write3 = String::with_capacity(BUFFER_SIZE);
+        for _ in 0..BUFFER_SIZE {
+            write3.push('x');
+        }
+        assert!(builder.write_str(&write3).is_ok());
+        assert!(matches!(builder, FlexStrBuilder::Large(_)));
+        assert_eq!(
+            &*builder.into_flex_str(),
+            write1.to_string() + write2 + &write3
+        );
     }
 }

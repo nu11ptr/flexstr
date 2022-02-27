@@ -529,9 +529,10 @@ flexstr!(FlexStr, AFlexStr, Rc<str>, flex_str, a_flex_str);
 
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
 pub fn flex_fmt(args: Arguments<'_>) -> FlexStr {
-    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
-    // As such, start by assuming this might be inlined and then promote buffer sizes as needed
-    let mut builder = build::FlexStrBuilder::Small(build::StringBuffer::new());
+    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
+    // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
+    // and only promote to a heap buffer if a write won't fit
+    let mut builder = build::FlexStrBuilder::new();
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
@@ -557,9 +558,10 @@ flexstr!(AFlexStr, FlexStr, Arc<str>, a_flex_str, flex_str);
 
 /// `AFlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `AFlexStr`
 pub fn a_flex_fmt(args: Arguments<'_>) -> AFlexStr {
-    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()`
-    // As such, start by assuming this might be inlined and then promote buffer sizes as needed
-    let mut builder = build::FlexStrBuilder::Small(build::StringBuffer::new());
+    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
+    // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
+    // and only promote to a heap buffer if a write won't fit
+    let mut builder = build::FlexStrBuilder::new();
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");

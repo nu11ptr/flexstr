@@ -8,8 +8,8 @@ Rust
 
 ## Overview
 
-Rust is great, but it's `String` type is not optimized for typical string 
-use cases, but as a mutable string buffer. Most string use cases don't 
+Rust is great, but it's `String` type is optimized as a mutable string 
+buffer, not for typical string use cases. Most string use cases don't 
 modify their string contents, often need to copy strings around as if 
 they were cheap like integers, typically concatenate instead of modify, and 
 often end up being cloned with identical contents. Additionally, `String` 
@@ -19,7 +19,7 @@ allocated strings in typical use cases. This crate creates a new string type
 that is optimized for those use cases, while retaining the usage simplicity of
 `String`.
 
-This type is not inherently "better" than `String`, however, but different. It 
+This type is not inherently "better" than `String`, but different. It 
 is a higher level type, that can at times mean higher overhead. It really 
 depends on the use case.
 
@@ -46,10 +46,6 @@ depends on the use case.
     * Equivalent to `FlexStr` but uses `Arc` instead of `Rc` for the wrapped 
       `str`
     * Both `Send` and `Sync`
-* `InlineFlexStr`
-    * Custom inline string type holding up to 22 bytes (on 64-bit platforms)
-    * Used automatically as needed by `FlexStr` and `AFlexStr` - not typically 
-      used directly
 
 ## Usage
 
