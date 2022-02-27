@@ -229,7 +229,7 @@ impl IntoAFlexStr for FlexStrBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::build::{FlexStrBuilder, StringBuffer, BUFFER_SIZE};
+    use crate::builder::{FlexStrBuilder, StringBuffer, BUFFER_SIZE};
     use crate::inline::MAX_INLINE;
     use crate::IntoFlexStr;
     use alloc::string::{String, ToString};

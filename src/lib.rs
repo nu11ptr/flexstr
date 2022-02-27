@@ -5,7 +5,7 @@
 
 extern crate alloc;
 
-mod build;
+mod builder;
 mod inline;
 
 use alloc::rc::Rc;
@@ -364,7 +364,7 @@ macro_rules! flexstr {
 
             // TODO: Is there value in making this a public macro with varargs? Hmm...
             fn [<$lower_name _concat>](s1: &str, s2: &str) -> $name {
-                let mut builder = build::FlexStrBuilder::with_capacity(s1.len() + s2.len());
+                let mut builder = builder::FlexStrBuilder::with_capacity(s1.len() + s2.len());
                 unsafe {
                     // Safety: write_str always succeeds
                     builder.write_str(s1).unwrap_unchecked();
@@ -532,7 +532,7 @@ pub fn flex_fmt(args: Arguments<'_>) -> FlexStr {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
-    let mut builder = build::FlexStrBuilder::new();
+    let mut builder = builder::FlexStrBuilder::new();
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
@@ -561,7 +561,7 @@ pub fn a_flex_fmt(args: Arguments<'_>) -> AFlexStr {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
-    let mut builder = build::FlexStrBuilder::new();
+    let mut builder = builder::FlexStrBuilder::new();
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
