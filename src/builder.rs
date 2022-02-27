@@ -3,11 +3,7 @@ use core::fmt::Write;
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
-use crate::inline::{InlineFlexStr, MAX_INLINE};
-use crate::{
-    AFlexStr, AFlexStrInner, FlexStr, FlexStrInner, IntoAFlexStr, IntoFlexStr, ToAFlexStr,
-    ToFlexStr,
-};
+use crate::inline::MAX_INLINE;
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
 pub(crate) const BUFFER_SIZE: usize = 1024;
@@ -82,7 +78,7 @@ impl<const N: usize> StringBuffer<N> {
         let mut buffer = String::with_capacity(cap);
 
         if !self.is_empty() {
-            buffer.push_str(&self);
+            buffer.push_str(self);
         }
 
         buffer
@@ -193,40 +189,6 @@ impl Write for FlexStrBuilder {
     }
 }
 
-impl IntoFlexStr for FlexStrBuilder {
-    #[inline]
-    fn into_flex_str(self) -> FlexStr {
-        match self {
-            FlexStrBuilder::Small(buffer) => {
-                let len: u8 = buffer.len() as u8;
-                FlexStr(FlexStrInner::Inlined(InlineFlexStr::from_array(
-                    buffer.into_inner(),
-                    len,
-                )))
-            }
-            FlexStrBuilder::Regular(buffer) => buffer.to_flex_str(),
-            FlexStrBuilder::Large(s) => s.into(),
-        }
-    }
-}
-
-impl IntoAFlexStr for FlexStrBuilder {
-    #[inline]
-    fn into_a_flex_str(self) -> AFlexStr {
-        match self {
-            FlexStrBuilder::Small(buffer) => {
-                let len: u8 = buffer.len() as u8;
-                AFlexStr(AFlexStrInner::Inlined(InlineFlexStr::from_array(
-                    buffer.into_inner(),
-                    len,
-                )))
-            }
-            FlexStrBuilder::Regular(buffer) => buffer.to_a_flex_str(),
-            FlexStrBuilder::Large(s) => s.into(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::builder::{FlexStrBuilder, StringBuffer, BUFFER_SIZE};
@@ -262,10 +224,7 @@ mod tests {
         assert_eq!(&*buffer, write1.to_string() + write2);
 
         // Try write 3 - not large enough
-        let mut write3 = String::with_capacity(BUFFER_SIZE);
-        for _ in 0..BUFFER_SIZE {
-            write3.push('x');
-        }
+        let write3 = "x".repeat(BUFFER_SIZE);
         assert!(!buffer.write(&write3));
         assert_eq!(buffer.len(), write1.len() + write2.len());
         assert_eq!(&*buffer, write1.to_string() + write2);
@@ -296,10 +255,7 @@ mod tests {
         assert!(matches!(builder, FlexStrBuilder::Regular(_)));
 
         // Write 3
-        let mut write3 = String::with_capacity(BUFFER_SIZE);
-        for _ in 0..BUFFER_SIZE {
-            write3.push('x');
-        }
+        let write3 = "x".repeat(BUFFER_SIZE);
         assert!(builder.write_str(&write3).is_ok());
         assert!(matches!(builder, FlexStrBuilder::Large(_)));
         assert_eq!(

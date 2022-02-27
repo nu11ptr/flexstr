@@ -243,6 +243,23 @@ macro_rules! flexstr {
                 }
             }
 
+            impl From<builder::FlexStrBuilder> for $name {
+                #[inline]
+                fn from(builder: builder::FlexStrBuilder) -> Self {
+                    match builder {
+                        builder::FlexStrBuilder::Small(buffer) => {
+                            let len: u8 = buffer.len() as u8;
+                            $name([<$name Inner>]::Inlined(inline::InlineFlexStr::from_array(
+                                buffer.into_inner(),
+                                len,
+                            )))
+                        }
+                        builder::FlexStrBuilder::Regular(buffer) => buffer.[<to_ $lower_name>](),
+                        builder::FlexStrBuilder::Large(s) => s.into(),
+                    }
+                }
+            }
+
             #[doc = "Converts a `String` into a `" $name "`"]
             /// ```
             #[doc = "use flexstr::" $name ";"]
@@ -456,6 +473,13 @@ macro_rules! flexstr {
             }
 
             impl [<Into $name>] for String {
+                #[inline]
+                fn [<into_ $lower_name>](self) -> $name {
+                    self.into()
+                }
+            }
+
+            impl [<Into $name>] for builder::FlexStrBuilder {
                 #[inline]
                 fn [<into_ $lower_name>](self) -> $name {
                     self.into()
