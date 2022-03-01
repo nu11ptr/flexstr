@@ -17,615 +17,711 @@ use core::convert::Infallible;
 use core::fmt;
 use core::fmt::{Arguments, Debug, Display, Formatter, Write};
 use core::hash::{Hash, Hasher};
+#[cfg(feature = "serde")]
+use core::marker::PhantomData;
 use core::ops::{
     Add, Deref, Index, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
 };
 use core::str::FromStr;
 
-use paste::paste;
 #[cfg(feature = "serde")]
 use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-// *** FlexStr macro ***
-
-macro_rules! flexstr {
-    ($name:ident, $name2:ident, $rc:ty, $lower_name:ident, $lower_name2:ident) => {
-        paste! {
-            #[derive(Clone)]
-            enum [<$name Inner>] {
-                /// A wrapped string literal
-                Static(&'static str),
-                /// An inlined string
-                Inlined(inline::InlineFlexStr),
-                /// A reference count wrapped `str`
-                RefCounted($rc),
-            }
-
-            impl $name {
-                #[doc = "Returns true if this `" $name "` is empty"]
-                #[inline]
-                pub fn is_empty(&self) -> bool {
-                    self.deref().is_empty()
-                }
-
-                #[doc = "Returns the length of this `" $name "` in bytes (not chars/graphemes)"]
-                #[inline]
-                pub fn len(&self) -> usize {
-                    self.deref().len()
-                }
-
-                #[doc = "Extracts a string slice containing the entire `" $name "`"]
-                #[inline]
-                pub fn as_str(&self) -> &str {
-                    self.deref()
-                }
-
-                /// Returns true if this is a wrapped string literal (`&'static str`)
-                #[inline]
-                pub fn is_static(&self) -> bool {
-                    matches!(self.0, [<$name Inner>]::Static(_))
-                }
-
-                /// Returns true if this is an inlined string
-                #[inline]
-                pub fn is_inlined(&self) -> bool {
-                    matches!(self.0, [<$name Inner>]::Inlined(_))
-                }
-
-                /// Returns true if this is a wrapped `str` using reference counting
-                #[inline]
-                pub fn is_ref_counted(&self) -> bool {
-                    matches!(self.0, [<$name Inner>]::RefCounted(_))
-                }
-            }
-
-            // *** Hash, PartialEq, Eq, PartialOrd, Ord ***
-
-            impl Hash for $name {
-                #[inline]
-                fn hash<H: Hasher>(&self, state: &mut H) {
-                    Hash::hash(self.deref(), state)
-                }
-            }
-
-            /// ```
-            #[doc = "use flexstr::" $name ";"]
-            ///
-            #[doc = "let s: " $name " = \"inlined\".into();"]
-            #[doc = "let s2: " $name " = s.clone();"]
-            /// assert_eq!(s, s2);
-            /// ```
-            impl PartialEq for $name {
-                #[inline]
-                fn eq(&self, other: &Self) -> bool {
-                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
-                }
-            }
-
-            /// ```
-            #[doc = "use flexstr::{" $name2 ", " $name ", To" $name2 "};"]
-            ///
-            #[doc = "let s: " $name " = \"inlined\".into();"]
-            #[doc = "let s2: " $name2 " = s.to_" $lower_name2 "();"]
-            /// assert_eq!(s, s2);
-            /// ```
-            impl PartialEq<$name2> for $name {
-                fn eq(&self, other: &$name2) -> bool {
-                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
-                }
-            }
-
-            /// ```
-            #[doc = "use flexstr::{" $name ", To" $name "};"]
-            ///
-            /// let lit = "inlined";
-            #[doc = "let s: " $name " = lit.to_" $lower_name "();"]
-            /// assert_eq!(s, lit);
-            /// ```
-            impl PartialEq<&str> for $name {
-                #[inline]
-                fn eq(&self, other: &&str) -> bool {
-                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
-                }
-            }
-
-            /// ```
-            #[doc = "use flexstr::{" $name ", To" $name "};"]
-            ///
-            /// let lit = "inlined";
-            #[doc = "let s: " $name " = lit.to_" $lower_name "();"]
-            /// assert_eq!(s, lit);
-            /// ```
-            impl PartialEq<str> for $name {
-                #[inline]
-                fn eq(&self, other: &str) -> bool {
-                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
-                }
-            }
-
-            /// ```
-            #[doc = "use flexstr::" $name ";"]
-            ///
-            /// let lit = "inlined";
-            #[doc = "let s: " $name " = lit.into();"]
-            /// assert_eq!(s, lit.to_string());
-            /// ```
-            impl PartialEq<String> for $name {
-                #[inline]
-                fn eq(&self, other: &String) -> bool {
-                    <&str as PartialEq>::eq(&self.deref(), &other.deref())
-                }
-            }
-
-            impl Eq for $name {}
-
-            impl PartialOrd for $name {
-                #[inline]
-                fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                    <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
-                }
-            }
-
-            impl PartialOrd<str> for $name {
-                #[inline]
-                fn partial_cmp(&self, other: &str) -> Option<Ordering> {
-                    <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
-                }
-            }
-
-            impl PartialOrd<String> for $name {
-                #[inline]
-                fn partial_cmp(&self, other: &String) -> Option<Ordering> {
-                    <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
-                }
-            }
-
-            impl Ord for $name {
-                #[inline]
-                fn cmp(&self, other: &Self) -> Ordering {
-                    <&str as Ord>::cmp(&self.deref(), &other.deref())
-                }
-            }
-
-            // *** Deref / Debug / Display ***
-
-            impl Deref for $name {
-                type Target = str;
-
-                #[inline]
-                fn deref(&self) -> &Self::Target {
-                    match &self.0 {
-                        [<$name Inner>]::Static(str) => str,
-                        [<$name Inner>]::Inlined(ss) => ss,
-                        [<$name Inner>]::RefCounted(rc) => rc,
-                    }
-                }
-            }
-
-            impl Debug for $name {
-                #[inline]
-                fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                    Debug::fmt(self.deref(), f)
-                }
-            }
-
-            impl Display for $name {
-                #[inline]
-                fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                    Display::fmt(self.deref(), f)
-                }
-            }
-
-            // *** From ***
-
-            impl From<&$name2> for $name {
-                #[inline]
-                fn from(s: &$name2) -> Self {
-                    s.clone().into()
-                }
-            }
-
-            impl From<$name2> for $name {
-                fn from(s: $name2) -> Self {
-                    $name(match s.0 {
-                        [<$name2 Inner>]::Static(s) => [<$name Inner>]::Static(s),
-                        [<$name2 Inner>]::Inlined(s) => [<$name Inner>]::Inlined(s),
-                        [<$name2 Inner>]::RefCounted(rc) => {
-                            // TODO: Any more efficient way to do this?
-                            // Would like to use `from_raw` and `into_raw`, but need to ensure
-                            // exclusive ownership for this to be safe. For `Rc` that might be possible,
-                            // but `Arc` could be multi-threaded so needs to be atomic
-                            [<$name Inner>]::RefCounted(rc.deref().into())
-                        }
-                    })
-                }
-            }
-
-            impl From<builder::FlexStrBuilder> for $name {
-                #[inline]
-                fn from(builder: builder::FlexStrBuilder) -> Self {
-                    match builder {
-                        builder::FlexStrBuilder::Small(buffer) => {
-                            let len: u8 = buffer.len() as u8;
-                            $name([<$name Inner>]::Inlined(inline::InlineFlexStr::from_array(
-                                buffer.into_inner(),
-                                len,
-                            )))
-                        }
-                        builder::FlexStrBuilder::Regular(buffer) => buffer.[<to_ $lower_name>](),
-                        builder::FlexStrBuilder::Large(s) => s.into(),
-                    }
-                }
-            }
-
-            #[doc = "Converts a `String` into a `" $name "`"]
-            /// ```
-            #[doc = "use flexstr::" $name ";"]
-            ///
-            /// let lit = "inlined";
-            #[doc = "let s: " $name " = lit.to_string().into();"]
-            /// assert!(s.is_inlined());
-            /// assert_eq!(&s, lit);
-            ///
-            /// let lit = "This is too long too be inlined!";
-            #[doc = "let s: " $name " = lit.to_string().into();"]
-            /// assert!(s.is_ref_counted());
-            /// assert_eq!(&s, lit);
-            /// ```
-            impl From<String> for $name {
-                #[inline]
-                fn from(s: String) -> Self {
-                    $name(match s.try_into() {
-                        Ok(s) => [<$name Inner>]::Inlined(s),
-                        Err(s) => [<$name Inner>]::RefCounted(s.into()),
-                    })
-                }
-            }
-
-            #[doc = "Converts a `&String` into a `" $name "`"]
-            /// ```
-            #[doc = "use flexstr::" $name ";"]
-            ///
-            /// let lit = "inlined";
-            #[doc = "let s: " $name " = (&lit.to_string()).into();"]
-            /// assert!(s.is_inlined());
-            /// assert_eq!(&s, lit);
-            ///
-            /// let lit = "This is too long too be inlined!";
-            #[doc = "let s: " $name " = (&lit.to_string()).into();"]
-            /// assert!(s.is_ref_counted());
-            /// assert_eq!(&s, lit);
-            /// ```
-            impl From<&String> for $name {
-                #[inline]
-                fn from(s: &String) -> Self {
-                    s.[<to_ $lower_name>]()
-                }
-            }
-
-            #[doc = "Converts a string literal (`&static str`) into a `" $name "`"]
-            /// ```
-            #[doc = "use flexstr::" $name ";"]
-            ///
-            /// let lit = "static";
-            #[doc = "let s: " $name " = lit.into();"]
-            /// assert!(s.is_static());
-            /// assert_eq!(&s, lit);
-            /// ```
-            impl From<&'static str> for $name {
-                #[inline]
-                fn from(s: &'static str) -> Self {
-                    $name([<$name Inner>]::Static(s))
-                }
-            }
-
-            // *** Index ***
-
-            impl Index<Range<usize>> for $name {
-                type Output = str;
-
-                #[inline]
-                fn index(&self, index: Range<usize>) -> &Self::Output {
-                    &self.deref()[index]
-                }
-            }
-
-            impl Index<RangeTo<usize>> for $name {
-                type Output = str;
-
-                #[inline]
-                fn index(&self, index: RangeTo<usize>) -> &Self::Output {
-                    &self.deref()[index]
-                }
-            }
-
-            impl Index<RangeFrom<usize>> for $name {
-                type Output = str;
-
-                #[inline]
-                fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
-                    &self.deref()[index]
-                }
-            }
-
-            impl Index<RangeFull> for $name {
-                type Output = str;
-
-                #[inline]
-                fn index(&self, _index: RangeFull) -> &Self::Output {
-                    self.deref()
-                }
-            }
-
-            impl Index<RangeInclusive<usize>> for $name {
-                type Output = str;
-
-                #[inline]
-                fn index(&self, index: RangeInclusive<usize>) -> &Self::Output {
-                    &self.deref()[index]
-                }
-            }
-
-            impl Index<RangeToInclusive<usize>> for $name {
-                type Output = str;
-
-                #[inline]
-                fn index(&self, index: RangeToInclusive<usize>) -> &Self::Output {
-                    &self.deref()[index]
-                }
-            }
-
-            // *** Add ***
-
-            // TODO: Is there value in making this a public macro with varargs? Hmm...
-            fn [<$lower_name _concat>](s1: &str, s2: &str) -> $name {
-                let mut builder = builder::FlexStrBuilder::with_capacity(s1.len() + s2.len());
-                unsafe {
-                    // Safety: write_str always succeeds
-                    builder.write_str(s1).unwrap_unchecked();
-                    builder.write_str(s2).unwrap_unchecked();
-                }
-                builder.[<into_ $lower_name>]()
-            }
-
-            impl Add<&str> for $name {
-                type Output = $name;
-
-                #[inline]
-                fn add(self, rhs: &str) -> Self::Output {
-                    match self.0 {
-                        [<$name Inner>]::Static(s) => [<$lower_name _concat>](s, rhs),
-                        [<$name Inner>]::Inlined(mut s) => {
-                            if s.try_concat(rhs) {
-                                $name([<$name Inner>]::Inlined(s))
-                            } else {
-                                [<$lower_name _concat>](&s, rhs)
-                            }
-                        }
-                        [<$name Inner>]::RefCounted(s) => [<$lower_name _concat>](&s, rhs),
-                    }
-                }
-            }
-
-            // *** Misc. standard traits ***
-
-            impl AsRef<str> for $name {
-                #[inline]
-                fn as_ref(&self) -> &str {
-                    self
-                }
-            }
-
-            impl Default for $name {
-                #[inline]
-                fn default() -> Self {
-                    $name([<$name Inner>]::Static(""))
-                }
-            }
-
-            impl Borrow<str> for $name {
-                #[inline]
-                fn borrow(&self) -> &str {
-                    self.deref()
-                }
-            }
-
-            impl FromStr for $name {
-                type Err = Infallible;
-
-                #[inline]
-                fn from_str(s: &str) -> Result<Self, Self::Err> {
-                    Ok(s.[<to_ $lower_name>]())
-                }
-            }
-
-            // *** To/Into Custom Traits ***
-
-            #[doc = "A trait that converts the source to a `" $name "` without consuming it"]
-            pub trait [<To $name>] {
-                #[doc = "Converts the source to a `" $name "` without consuming it"]
-                fn [<to_ $lower_name>](&self) -> $name;
-            }
-
-            impl [<To $name>] for str {
-                #[inline]
-                fn [<to_ $lower_name>](&self) -> $name {
-                    $name(match self.try_into() {
-                        Ok(s) => [<$name Inner>]::Inlined(s),
-                        Err(_) => [<$name Inner>]::RefCounted(self.into()),
-                    })
-                }
-            }
-
-            #[doc = "A trait that converts the source to a `" $name "` while consuming the original"]
-            pub trait [<Into $name>] {
-                #[doc = "Converts the source to a `" $name "` while consuming the original"]
-                fn [<into_ $lower_name>](self) -> $name;
-            }
-
-            impl [<Into $name>] for &'static str {
-                #[inline]
-                fn [<into_ $lower_name>](self) -> $name{
-                    self.into()
-                }
-            }
-
-            impl [<Into $name>] for String {
-                #[inline]
-                fn [<into_ $lower_name>](self) -> $name {
-                    self.into()
-                }
-            }
-
-            impl [<Into $name>] for builder::FlexStrBuilder {
-                #[inline]
-                fn [<into_ $lower_name>](self) -> $name {
-                    self.into()
-                }
-            }
-
-            // *** ToCase custom trait ***
-
-            #[doc = "Trait that provides uppercase/lowercase conversion functions for `" $name "`"]
-            pub trait [<ToCase $name>] {
-                #[doc = "Converts string to uppercase and returns a `" $name "`"]
-                fn to_uppercase(&self) -> $name;
-
-                #[doc = "Converts string to lowercase and returns a `" $name "`"]
-                fn to_lowercase(&self) -> $name;
-
-                #[doc = "Converts string to ASCII uppercase and returns a `" $name "`"]
-                fn to_ascii_uppercase(&self) -> $name;
-
-                #[doc = "Converts string to ASCII lowercase and returns a `" $name "`"]
-                fn to_ascii_lowercase(&self) -> $name;
-            }
-
-            impl [<ToCase $name>] for str {
-                fn to_uppercase(&self) -> $name {
-                    // We estimate capacity based on previous string, but if not ASCII this might be wrong
-                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
-
-                    for ch in self.chars() {
-                        let upper_chars = ch.to_uppercase();
-                        for ch in upper_chars {
-                            // Safety: Wraps `write_str` which always succeeds
-                            unsafe { builder.write_char(ch).unwrap_unchecked() }
-                        }
-                    }
-
-                    builder.into()
-                }
-
-                fn to_lowercase(&self) -> $name {
-                    // We estimate capacity based on previous string, but if not ASCII this might be wrong
-                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
-
-                    for ch in self.chars() {
-                        let lower_chars = ch.to_lowercase();
-                        for ch in lower_chars {
-                            // Safety: Wraps `write_str` which always succeeds
-                            unsafe { builder.write_char(ch).unwrap_unchecked() }
-                        }
-                    }
-
-                    builder.into()
-                }
-
-                fn to_ascii_uppercase(&self) -> $name {
-                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
-
-                    for mut ch in self.chars() {
-                        char::make_ascii_uppercase(&mut ch);
-                        // Safety: Wraps `write_str` which always succeeds
-                        unsafe { builder.write_char(ch).unwrap_unchecked() }
-                    }
-
-                    builder.into()
-                }
-
-                fn to_ascii_lowercase(&self) -> $name {
-                    let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
-
-                    for mut ch in self.chars() {
-                        char::make_ascii_lowercase(&mut ch);
-                        // Safety: Wraps `write_str` which always succeeds
-                        unsafe { builder.write_char(ch).unwrap_unchecked() }
-                    }
-
-                    builder.into()
-                }
-            }
-
-            // *** Optional serialization support ***
-
-            #[cfg(feature = "serde")]
-            impl Serialize for $name {
-                #[inline]
-                fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-                where
-                    S: Serializer,
-                {
-                    serializer.serialize_str(self)
-                }
-            }
-
-            #[cfg(feature = "serde")]
-            struct [<$name Visitor>];
-
-            #[cfg(feature = "serde")]
-            impl<'de> Visitor<'de> for [<$name Visitor>] {
-                type Value = $name;
-
-                #[inline]
-                fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-                    formatter.write_str("a string")
-                }
-
-                #[inline]
-                fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-                where
-                    E: Error,
-                {
-                    Ok(v.[<to_ $lower_name>]())
-                }
-
-                #[inline]
-                fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-                where
-                    E: Error,
-                {
-                    Ok(v.into())
-                }
-            }
-
-            #[cfg(feature = "serde")]
-            impl<'de> Deserialize<'de> for $name {
-                #[inline]
-                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-                where
-                    D: Deserializer<'de>,
-                {
-                    deserializer.deserialize_str([<$name Visitor>])
-                }
-            }
-        }
-    };
+#[derive(Clone)]
+enum FlexStrInner<T> {
+    /// A wrapped string literal
+    Static(&'static str),
+    /// An inlined string
+    Inlined(inline::InlineFlexStr),
+    /// A reference count wrapped `str`
+    Heap(T),
 }
 
-// *** FlexStr ***
-
-/// A Flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
+/// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
 #[derive(Clone)]
-pub struct FlexStr(FlexStrInner);
+pub struct FlexStr<T = Rc<str>>(FlexStrInner<T>);
 
-// TODO: If we stick with these lower names, we can use paste's :lower feature instead
-flexstr!(FlexStr, AFlexStr, Rc<str>, flex_str, a_flex_str);
+/// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
+pub type AFlexStr = FlexStr<Arc<str>>;
+
+/// A flexible string type that transparently wraps a string literal, inline string, or a `String`
+pub type WFlexStr = FlexStr<String>;
+
+impl<T> FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    /// Returns true if this `FlexStr` is empty
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.deref().is_empty()
+    }
+
+    /// Returns the length of this `FlexStr` in bytes (not chars/graphemes)
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.deref().len()
+    }
+
+    /// Extracts a string slice containing the entire `FlexStr`
+    #[inline]
+    pub fn as_str(&self) -> &str {
+        self.deref()
+    }
+
+    /// Returns true if this is a wrapped string literal (`&'static str`)
+    #[inline]
+    pub fn is_static(&self) -> bool {
+        matches!(self.0, FlexStrInner::Static(_))
+    }
+
+    /// Returns true if this is an inlined string
+    #[inline]
+    pub fn is_inlined(&self) -> bool {
+        matches!(self.0, FlexStrInner::Inlined(_))
+    }
+
+    /// Returns true if this is a wrapped string using heap storage
+    #[inline]
+    pub fn is_heap(&self) -> bool {
+        matches!(self.0, FlexStrInner::Heap(_))
+    }
+}
+
+// *** Deref / Debug / Display ***
+
+impl<T> Deref for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        match &self.0 {
+            FlexStrInner::Static(str) => str,
+            FlexStrInner::Inlined(ss) => ss,
+            FlexStrInner::Heap(rc) => rc,
+        }
+    }
+}
+
+impl<T> Debug for FlexStr<T> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self.deref(), f)
+    }
+}
+
+impl<T> Display for FlexStr<T> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(self.deref(), f)
+    }
+}
+
+// *** Hash, PartialEq, Eq ***
+
+impl<T> Hash for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Hash::hash(self.deref(), state)
+    }
+}
+
+/// ```
+/// use flexstr::FlexStr;
+///
+/// let s: FlexStr = "inlined".into();
+/// let s2: FlexStr = s.clone();
+/// assert_eq!(s, s2);
+/// ```
+impl<T> PartialEq for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+    }
+}
+
+// /// ```
+// /// use flexstr::{FlexStr, ToFlexStr};
+// ///
+// /// let s: FlexStr = "inlined".into();
+// /// let s2: FlexStr = s.to_flex_str();
+// /// assert_eq!(s, s2);
+// /// ```
+// impl PartialEq<FlexStr> for FlexStr {
+//     fn eq(&self, other: &FlexStr) -> bool {
+//         <&str as PartialEq>::eq(&self.deref(), &other.deref())
+//     }
+// }
+
+/// ```
+/// use flexstr::{FlexStr, ToFlexStr};
+///
+/// let lit = "inlined";
+/// let s: FlexStr = lit.to_flex();
+/// assert_eq!(s, lit);
+/// ```
+impl<T> PartialEq<&str> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+    }
+}
+
+/// ```
+/// use flexstr::{FlexStr, ToFlexStr};
+///
+/// let lit = "inlined";
+/// let s: FlexStr = lit.to_flex();
+/// assert_eq!(s, lit);
+/// ```
+impl<T> PartialEq<str> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn eq(&self, other: &str) -> bool {
+        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+    }
+}
+
+/// ```
+/// use flexstr::FlexStr;
+///
+/// let lit = "inlined";
+/// let s: FlexStr = lit.into();
+/// assert_eq!(s, lit.to_string());
+/// ```
+impl<T> PartialEq<String> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn eq(&self, other: &String) -> bool {
+        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+    }
+}
+
+impl<T> Eq for FlexStr<T> where T: Deref<Target = str> {}
+
+// *** PartialOrd / Ord ***
+
+impl<T> PartialOrd for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+    }
+}
+
+impl<T> PartialOrd<str> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn partial_cmp(&self, other: &str) -> Option<Ordering> {
+        <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+    }
+}
+
+impl<T> PartialOrd<String> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn partial_cmp(&self, other: &String) -> Option<Ordering> {
+        <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+    }
+}
+
+impl<T> Ord for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        <&str as Ord>::cmp(&self.deref(), &other.deref())
+    }
+}
+
+// *** Index ***
+
+impl<T> Index<Range<usize>> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    type Output = str;
+
+    #[inline]
+    fn index(&self, index: Range<usize>) -> &Self::Output {
+        &self.deref()[index]
+    }
+}
+
+impl<T> Index<RangeTo<usize>> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    type Output = str;
+
+    #[inline]
+    fn index(&self, index: RangeTo<usize>) -> &Self::Output {
+        &self.deref()[index]
+    }
+}
+
+impl<T> Index<RangeFrom<usize>> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    type Output = str;
+
+    #[inline]
+    fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
+        &self.deref()[index]
+    }
+}
+
+impl<T> Index<RangeFull> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    type Output = str;
+
+    #[inline]
+    fn index(&self, _index: RangeFull) -> &Self::Output {
+        self.deref()
+    }
+}
+
+impl<T> Index<RangeInclusive<usize>> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    type Output = str;
+
+    #[inline]
+    fn index(&self, index: RangeInclusive<usize>) -> &Self::Output {
+        &self.deref()[index]
+    }
+}
+
+impl<T> Index<RangeToInclusive<usize>> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    type Output = str;
+
+    #[inline]
+    fn index(&self, index: RangeToInclusive<usize>) -> &Self::Output {
+        &self.deref()[index]
+    }
+}
+
+// *** Add ***
+
+// TODO: Is there value in making this a public macro with varargs? Hmm...
+fn concat<T>(s1: &str, s2: &str) -> FlexStr<T>
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    let mut builder = builder::FlexStrBuilder::with_capacity(s1.len() + s2.len());
+    unsafe {
+        // Safety: write_str always succeeds
+        builder.write_str(s1).unwrap_unchecked();
+        builder.write_str(s2).unwrap_unchecked();
+    }
+    builder.into()
+}
+
+impl<T> Add<&str> for FlexStr<T>
+where
+    T: From<String> + for<'a> From<&'a str> + Deref<Target = str>,
+{
+    type Output = FlexStr<T>;
+
+    #[inline]
+    fn add(self, rhs: &str) -> Self::Output {
+        match self.0 {
+            FlexStrInner::Static(s) => concat(s, rhs),
+            FlexStrInner::Inlined(mut s) => {
+                if s.try_concat(rhs) {
+                    FlexStr(FlexStrInner::Inlined(s))
+                } else {
+                    concat(&s, rhs)
+                }
+            }
+            FlexStrInner::Heap(s) => concat(&s, rhs),
+        }
+    }
+}
+
+// *** Misc. standard traits ***
+
+impl<T> AsRef<str> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn as_ref(&self) -> &str {
+        self
+    }
+}
+
+impl<T> Default for FlexStr<T> {
+    #[inline]
+    fn default() -> Self {
+        FlexStr(FlexStrInner::Static(""))
+    }
+}
+
+impl<T> Borrow<str> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn borrow(&self) -> &str {
+        self.deref()
+    }
+}
+
+impl<T> FromStr for FlexStr<T>
+where
+    T: for<'a> From<&'a str>,
+{
+    type Err = Infallible;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.to_flex())
+    }
+}
+
+// *** From ***
+
+// impl From<&FlexStr2> for FlexStr {
+// #[inline]
+// fn from(s: &FlexStr2) -> Self {
+//     s.clone().into()
+// }
+// }
+//
+// impl From<FlexStr2> for FlexStr {
+// fn from(s: FlexStr2) -> Self {
+//     FlexStr(match s.0 {
+//         [<FlexStr2 Inner>]::Static(s) => [<FlexStr Inner>]::Static(s),
+//         [<FlexStr2 Inner>]::Inlined(s) => [<FlexStr Inner>]::Inlined(s),
+//         [<FlexStr2 Inner>]::RefCounted(rc) => {
+//         // TODO: Any more efficient way to do this?
+//         // Would like to use `from_raw` and `into_raw`, but need to ensure
+//         // exclusive ownership for this to be safe. For `Rc` that might be possible,
+//         // but `Arc` could be multi-threaded so needs to be atomic
+//         [<FlexStr Inner>]::RefCounted(rc.deref().into())
+//         }
+//     })
+// }
+// }
+
+impl<T> From<builder::FlexStrBuilder> for FlexStr<T>
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    #[inline]
+    fn from(builder: builder::FlexStrBuilder) -> Self {
+        match builder {
+            builder::FlexStrBuilder::Small(buffer) => {
+                let len: u8 = buffer.len() as u8;
+                FlexStr(FlexStrInner::Inlined(inline::InlineFlexStr::from_array(
+                    buffer.into_inner(),
+                    len,
+                )))
+            }
+            builder::FlexStrBuilder::Regular(buffer) => buffer.to_flex(),
+            builder::FlexStrBuilder::Large(s) => s.into(),
+        }
+    }
+}
+
+/// Converts a `String` into a `FlexStr`
+/// ```
+/// use flexstr::FlexStr;
+///
+/// let lit = "inlined";
+/// let s: FlexStr = lit.to_string().into();
+/// assert!(s.is_inlined());
+/// assert_eq!(&s, lit);
+///
+/// let lit = "This is too long too be inlined!";
+/// let s: FlexStr = lit.to_string().into();
+/// assert!(s.is_heap());
+/// assert_eq!(&s, lit);
+/// ```
+impl<T> From<String> for FlexStr<T>
+where
+    T: From<String>,
+{
+    #[inline]
+    fn from(s: String) -> Self {
+        FlexStr(match s.try_into() {
+            Ok(s) => FlexStrInner::Inlined(s),
+            Err(s) => FlexStrInner::Heap(s.into()),
+        })
+    }
+}
+
+/// Converts a `&String` into a `FlexStr`
+/// ```
+/// use flexstr::FlexStr;
+///
+/// let lit = "inlined";
+/// let s: FlexStr = (&lit.to_string()).into();
+/// assert!(s.is_inlined());
+/// assert_eq!(&s, lit);
+///
+/// let lit = "This is too long too be inlined!";
+/// let s: FlexStr = (&lit.to_string()).into();
+/// assert!(s.is_heap());
+/// assert_eq!(&s, lit);
+/// ```
+impl<T> From<&String> for FlexStr<T>
+where
+    T: for<'a> From<&'a str>,
+{
+    #[inline]
+    fn from(s: &String) -> Self {
+        s.to_flex()
+    }
+}
+
+/// Converts a string literal (`&static str`) into a `FlexStr`
+/// ```
+/// use flexstr::FlexStr;
+///
+/// let lit = "static";
+/// let s: FlexStr  = lit.into();
+/// assert!(s.is_static());
+/// assert_eq!(&s, lit);
+/// ```
+impl<T> From<&'static str> for FlexStr<T> {
+    #[inline]
+    fn from(s: &'static str) -> Self {
+        FlexStr(FlexStrInner::Static(s))
+    }
+}
+
+// *** To/Into Custom Traits ***
+
+/// A trait that converts the source to a `FlexStr` without consuming it
+pub trait ToFlexStr<T> {
+    /// Converts the source to a `FlexStr` without consuming it
+    fn to_flex(&self) -> FlexStr<T>;
+}
+
+impl<T> ToFlexStr<T> for str
+where
+    T: for<'a> From<&'a str>,
+{
+    #[inline]
+    fn to_flex(&self) -> FlexStr<T> {
+        FlexStr(match self.try_into() {
+            Ok(s) => FlexStrInner::Inlined(s),
+            Err(_) => FlexStrInner::Heap(T::from(self)),
+        })
+    }
+}
+
+/// A trait that converts the source to a `FlexStr` while consuming the original
+pub trait IntoFlexStr<T> {
+    /// Converts the source to a `FlexStr` while consuming the original
+    fn into_flex(self) -> FlexStr<T>;
+}
+
+impl<T> IntoFlexStr<T> for &'static str {
+    #[inline]
+    fn into_flex(self) -> FlexStr<T> {
+        self.into()
+    }
+}
+
+impl<T> IntoFlexStr<T> for String
+where
+    Self: Into<FlexStr<T>>,
+{
+    #[inline]
+    fn into_flex(self) -> FlexStr<T> {
+        self.into()
+    }
+}
+
+impl<T> IntoFlexStr<T> for builder::FlexStrBuilder
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    #[inline]
+    fn into_flex(self) -> FlexStr<T> {
+        self.into()
+    }
+}
+
+// *** ToCase custom trait ***
+
+/// Trait that provides uppercase/lowercase conversion functions for `FlexStr`
+pub trait ToCase<T> {
+    /// Converts string to uppercase and returns a `FlexStr`
+    fn to_uppercase(&self) -> FlexStr<T>;
+
+    /// Converts string to lowercase and returns a `FlexStr`
+    fn to_lowercase(&self) -> FlexStr<T>;
+
+    /// Converts string to ASCII uppercase and returns a `FlexStr`
+    fn to_ascii_uppercase(&self) -> FlexStr<T>;
+
+    /// Converts string to ASCII lowercase and returns a `FlexStr`
+    fn to_ascii_lowercase(&self) -> FlexStr<T>;
+}
+
+impl<T> ToCase<T> for str
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    fn to_uppercase(&self) -> FlexStr<T> {
+        // We estimate capacity based on previous string, but if not ASCII this might be wrong
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for ch in self.chars() {
+            let upper_chars = ch.to_uppercase();
+            for ch in upper_chars {
+                // Safety: Wraps `write_str` which always succeeds
+                unsafe { builder.write_char(ch).unwrap_unchecked() }
+            }
+        }
+
+        builder.into()
+    }
+
+    fn to_lowercase(&self) -> FlexStr<T> {
+        // We estimate capacity based on previous string, but if not ASCII this might be wrong
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for ch in self.chars() {
+            let lower_chars = ch.to_lowercase();
+            for ch in lower_chars {
+                // Safety: Wraps `write_str` which always succeeds
+                unsafe { builder.write_char(ch).unwrap_unchecked() }
+            }
+        }
+
+        builder.into()
+    }
+
+    fn to_ascii_uppercase(&self) -> FlexStr<T> {
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for mut ch in self.chars() {
+            char::make_ascii_uppercase(&mut ch);
+            // Safety: Wraps `write_str` which always succeeds
+            unsafe { builder.write_char(ch).unwrap_unchecked() }
+        }
+
+        builder.into()
+    }
+
+    fn to_ascii_lowercase(&self) -> FlexStr<T> {
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for mut ch in self.chars() {
+            char::make_ascii_lowercase(&mut ch);
+            // Safety: Wraps `write_str` which always succeeds
+            unsafe { builder.write_char(ch).unwrap_unchecked() }
+        }
+
+        builder.into()
+    }
+}
+
+// *** Optional serialization support ***
+
+#[cfg(feature = "serde")]
+impl<T> Serialize for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self)
+    }
+}
+
+// Uses *const T because we don't want it to actually own a `T`
+#[cfg(feature = "serde")]
+struct FlexStrVisitor<T>(PhantomData<*const T>);
+
+#[cfg(feature = "serde")]
+impl<'de, T> Visitor<'de> for FlexStrVisitor<T>
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    type Value = FlexStr<T>;
+
+    #[inline]
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        formatter.write_str("a string")
+    }
+
+    #[inline]
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(v.to_flex())
+    }
+
+    #[inline]
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(v.into())
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T> Deserialize<'de> for FlexStr<T>
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    #[inline]
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(FlexStrVisitor(PhantomData))
+    }
+}
 
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
-pub fn flex_fmt(args: Arguments<'_>) -> FlexStr {
+pub fn flex_fmt<T>(args: Arguments<'_>) -> FlexStr<T>
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
@@ -633,43 +729,22 @@ pub fn flex_fmt(args: Arguments<'_>) -> FlexStr {
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder.into_flex_str()
+    builder.into_flex()
 }
 
 /// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`
 #[macro_export]
 macro_rules! flex_fmt {
     ($($arg:tt)*) => {
-        flex_fmt(format_args!($($arg)*))
+        flex_fmt::<FlexStr>(format_args!($($arg)*))
     };
-}
-
-// *** AFlexStr ***
-
-/// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
-#[derive(Clone)]
-pub struct AFlexStr(AFlexStrInner);
-
-// TODO: If we stick with these lower names, we can use paste's :lower feature instead
-flexstr!(AFlexStr, FlexStr, Arc<str>, a_flex_str, flex_str);
-
-/// `AFlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `AFlexStr`
-pub fn a_flex_fmt(args: Arguments<'_>) -> AFlexStr {
-    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
-    // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
-    // and only promote to a heap buffer if a write won't fit
-    let mut builder = builder::FlexStrBuilder::new();
-    builder
-        .write_fmt(args)
-        .expect("a formatting trait implementation returned an error");
-    builder.into_a_flex_str()
 }
 
 /// `AFlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `AFlexStr`
 #[macro_export]
 macro_rules! a_flex_fmt {
     ($($arg:tt)*) => {
-        a_flex_fmt(format_args!($($arg)*))
+        flex_fmt::<AFlexStr>(format_args!($($arg)*))
     };
 }
 

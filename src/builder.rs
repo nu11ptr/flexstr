@@ -191,11 +191,12 @@ impl Write for FlexStrBuilder {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+    use core::fmt::Write;
+
     use crate::builder::{FlexStrBuilder, StringBuffer, BUFFER_SIZE};
     use crate::inline::MAX_INLINE;
-    use crate::IntoFlexStr;
-    use alloc::string::{String, ToString};
-    use core::fmt::Write;
+    use crate::FlexStr;
 
     #[test]
     fn string_buffer() {
@@ -258,9 +259,7 @@ mod tests {
         let write3 = "x".repeat(BUFFER_SIZE);
         assert!(builder.write_str(&write3).is_ok());
         assert!(matches!(builder, FlexStrBuilder::Large(_)));
-        assert_eq!(
-            &*builder.into_flex_str(),
-            write1.to_string() + write2 + &write3
-        );
+        let s: FlexStr = builder.into();
+        assert_eq!(s, write1.to_string() + write2 + &write3);
     }
 }
