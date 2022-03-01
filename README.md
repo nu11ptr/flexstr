@@ -4,7 +4,7 @@
 [![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)](https://docs.rs/flexstr)
 
 A flexible, simple to use, immutable, clone-efficient `String` replacement for 
-Rust
+Rust. It unifies literals, inlined, and heap allocated strings in a single type.
 
 ## Overview
 
@@ -23,6 +23,17 @@ This type is not inherently "better" than `String`, but different. It
 is a higher level type, that can at times mean higher overhead. It really 
 depends on the use case.
 
+## How Does It Work?
+
+Internally, `FlexStr` uses an enum with these variants:
+
+* `Static` - A simple wrapper around a static string literal (`&'static str`)
+* `Inlined` - An inlined string (no heap allocation for small strings)
+* `Heap` - A heap allocated (reference counted) string
+
+The type automatically chooses the best storage and allows you to use them 
+interchangeably as a single string type.
+
 ## Features
 
 * Optimized for immutability and cheap cloning
@@ -34,18 +45,16 @@ depends on the use case.
 * Compatible with embedded systems (doesn't use `std`)
 * Efficient conditional ownership (borrows can take ownership without 
   allocation/copying)
+* Both single threaded compatible (`FlexStr`) and multi-thread safe 
+  (`AFlexStr`) options
 * It is simple to use!
 
 ## Types
 
-* `FlexStr`
-    * Wrapper type for string literals (`&'static str`), inlined strings 
-      (`InlineFlexStr`), or an `Rc` wrapped `str` 
-    * NOT `Send` or `Sync` (due to usage of `Rc`)
-* `AFlexStr`
-    * Equivalent to `FlexStr` but uses `Arc` instead of `Rc` for the wrapped 
-      `str`
-    * Both `Send` and `Sync`
+* `FlexStr` - regular usage 
+    * `Heap` storage based on `Rc`
+* `AFlexStr`- provides `Send` / `Sync` for multi-threaded use
+    * `Heap` storage based on `Arc` 
 
 ## Usage
 
@@ -56,8 +65,8 @@ use flexstr::IntoFlexStr;
 
 fn main() {
   // Literal - no copying or allocation
-  let hello = "world!".into_flex_str();
-  
+  let hello = "world!".into_a_flex_str();
+
   println!("Hello {world}");
 }
 ```
@@ -68,34 +77,34 @@ fn main() {
 use flexstr::{IntoAFlexStr, IntoFlexStr, ToFlexStr};
 
 fn main() {
-    // From literal - no copying or allocation
-    // NOTE: `to_flex_str` will copy, so use `into_flex_str` for literals
-    let literal = "literal".into_flex_str();
-    
-    // From borrowed string - Copied into inline string
-    let owned = "inlined".to_string();
-    let str_to_inlined = (&owned).to_flex_str();
+  // From literal - no copying or allocation
+  // NOTE: `to_flex_str` will copy, so use `into_flex_str` for literals
+  let literal = "literal".into_a_flex_str();
 
-    // From borrowed String - copied into `str` wrapped in `Rc`
-    let owned = "A bit too long to be inlined!!!".to_string();
-    let str_to_wrapped = (&owned).to_flex_str();
-    
-    // From String - copied into inline string (`String` storage released)
-    let inlined = "inlined".to_string().into_flex_str();
+  // From borrowed string - Copied into inline string
+  let owned = "inlined".to_string();
+  let str_to_inlined = (&owned).to_flex_str();
 
-    // From String - `str` wrapped in `Rc` (`String` storage released)
-    let counted = "A bit too long to be inlined!!!".to_string().into_flex_str();
-   
-    // *** If you want a Send/Sync type you need `AFlexStr` instead ***
+  // From borrowed String - copied into `str` wrapped in `Rc`
+  let owned = "A bit too long to be inlined!!!".to_string();
+  let str_to_wrapped = (&owned).to_flex_str();
 
-    // From FlexStr wrapped literal - no copying or allocation
-    let literal = literal.into_a_flex_str();
-    
-    // From FlexStr inlined string - no allocation
-    let inlined = inlined.into_a_flex_str();
-    
-    // From FlexStr `Rc` wrapped `str` - copies into `str` wrapped in `Arc`
-    let counted = counted.into_a_flex_str();
+  // From String - copied into inline string (`String` storage released)
+  let inlined = "inlined".to_string().into_a_flex_str();
+
+  // From String - `str` wrapped in `Rc` (`String` storage released)
+  let counted = "A bit too long to be inlined!!!".to_string().into_a_flex_str();
+
+  // *** If you want a Send/Sync type you need `AFlexStr` instead ***
+
+  // From FlexStr wrapped literal - no copying or allocation
+  let literal = literal.into_a_flex_str();
+
+  // From FlexStr inlined string - no allocation
+  let inlined = inlined.into_a_flex_str();
+
+  // From FlexStr `Rc` wrapped `str` - copies into `str` wrapped in `Arc`
+  let counted = counted.into_a_flex_str();
 }
 ```
 
@@ -130,33 +139,33 @@ This has always been a confusing situation in Rust, but it is easy with
 use flexstr::{IntoFlexStr, FlexStr};
 
 struct MyStruct {
-    s: FlexStr
+  s: FlexStr
 }
 
 impl MyStruct {
-    fn to_own_or_not_to_own(s: &FlexStr) -> Self {
-        let s = if s == "own_me" {
-            // Since a wrapped literal, no copy or allocation
-            s.clone()
-        } else {
-            // Wrapped literal - no copy or allocation
-            "own_me".into()
-        };
+  fn to_own_or_not_to_own(s: &FlexStr) -> Self {
+    let s = if s == "own_me" {
+      // Since a wrapped literal, no copy or allocation
+      s.clone()
+    } else {
+      // Wrapped literal - no copy or allocation
+      "own_me".into()
+    };
 
-        Self { s }
-    }
+    Self { s }
+  }
 }
 
 fn main() {
-    // Wrapped literals - no copy or allocation
-    let s = "borrow me".into_flex_str();
-    let s2 = "own me".into_flex_str();
+  // Wrapped literals - no copy or allocation
+  let s = "borrow me".into_a_flex_str();
+  let s2 = "own me".into_a_flex_str();
 
-    let struct1 = MyStruct::to_own_or_not_to_own(&s);
-    let struct2 = MyStruct::to_own_or_not_to_own(&s2);
+  let struct1 = MyStruct::to_own_or_not_to_own(&s);
+  let struct2 = MyStruct::to_own_or_not_to_own(&s2);
 
-    assert_eq!(s2, struct1.s);
-    assert_eq!(s2, struct2.s);
+  assert_eq!(s2, struct1.s);
+  assert_eq!(s2, struct2.s);
 }
 ```
 

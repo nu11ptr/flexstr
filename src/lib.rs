@@ -7,6 +7,9 @@ extern crate alloc;
 
 mod builder;
 mod inline;
+mod traits;
+
+pub use traits::*;
 
 use alloc::rc::Rc;
 use alloc::string::String;
@@ -135,37 +138,25 @@ where
 }
 
 /// ```
-/// use flexstr::FlexStr;
+/// use flexstr::{AFlexStr, FlexStr, ToFlex};
 ///
-/// let s: FlexStr = "inlined".into();
-/// let s2: FlexStr = s.clone();
+/// let lit = "inlined";
+/// let s: FlexStr = lit.into();
+/// let s2: AFlexStr = lit.into();
 /// assert_eq!(s, s2);
 /// ```
-impl<T> PartialEq for FlexStr<T>
+impl<T, U> PartialEq<FlexStr<U>> for FlexStr<T>
 where
     T: Deref<Target = str>,
+    U: Deref<Target = str>,
 {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+    fn eq(&self, other: &FlexStr<U>) -> bool {
+        PartialEq::eq(&self.deref(), &other.deref())
     }
 }
 
-// /// ```
-// /// use flexstr::{FlexStr, ToFlexStr};
-// ///
-// /// let s: FlexStr = "inlined".into();
-// /// let s2: FlexStr = s.to_flex_str();
-// /// assert_eq!(s, s2);
-// /// ```
-// impl PartialEq<FlexStr> for FlexStr {
-//     fn eq(&self, other: &FlexStr) -> bool {
-//         <&str as PartialEq>::eq(&self.deref(), &other.deref())
-//     }
-// }
-
 /// ```
-/// use flexstr::{FlexStr, ToFlexStr};
+/// use flexstr::{FlexStr, ToFlex};
 ///
 /// let lit = "inlined";
 /// let s: FlexStr = lit.to_flex();
@@ -177,12 +168,12 @@ where
 {
     #[inline]
     fn eq(&self, other: &&str) -> bool {
-        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+        PartialEq::eq(&self.deref(), &other.deref())
     }
 }
 
 /// ```
-/// use flexstr::{FlexStr, ToFlexStr};
+/// use flexstr::{FlexStr, ToFlex};
 ///
 /// let lit = "inlined";
 /// let s: FlexStr = lit.to_flex();
@@ -194,7 +185,7 @@ where
 {
     #[inline]
     fn eq(&self, other: &str) -> bool {
-        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+        PartialEq::eq(&self.deref(), &other.deref())
     }
 }
 
@@ -211,7 +202,7 @@ where
 {
     #[inline]
     fn eq(&self, other: &String) -> bool {
-        <&str as PartialEq>::eq(&self.deref(), &other.deref())
+        PartialEq::eq(&self.deref(), &other.deref())
     }
 }
 
@@ -225,7 +216,7 @@ where
 {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+        PartialOrd::partial_cmp(&self.deref(), &other.deref())
     }
 }
 
@@ -235,7 +226,7 @@ where
 {
     #[inline]
     fn partial_cmp(&self, other: &str) -> Option<Ordering> {
-        <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+        PartialOrd::partial_cmp(&self.deref(), &other.deref())
     }
 }
 
@@ -245,7 +236,7 @@ where
 {
     #[inline]
     fn partial_cmp(&self, other: &String) -> Option<Ordering> {
-        <&str as PartialOrd>::partial_cmp(&self.deref(), &other.deref())
+        PartialOrd::partial_cmp(&self.deref(), &other.deref())
     }
 }
 
@@ -255,7 +246,7 @@ where
 {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        <&str as Ord>::cmp(&self.deref(), &other.deref())
+        Ord::cmp(&self.deref(), &other.deref())
     }
 }
 
@@ -414,28 +405,16 @@ where
 
 // *** From ***
 
-// impl From<&FlexStr2> for FlexStr {
-// #[inline]
-// fn from(s: &FlexStr2) -> Self {
-//     s.clone().into()
-// }
-// }
-//
-// impl From<FlexStr2> for FlexStr {
-// fn from(s: FlexStr2) -> Self {
-//     FlexStr(match s.0 {
-//         [<FlexStr2 Inner>]::Static(s) => [<FlexStr Inner>]::Static(s),
-//         [<FlexStr2 Inner>]::Inlined(s) => [<FlexStr Inner>]::Inlined(s),
-//         [<FlexStr2 Inner>]::RefCounted(rc) => {
-//         // TODO: Any more efficient way to do this?
-//         // Would like to use `from_raw` and `into_raw`, but need to ensure
-//         // exclusive ownership for this to be safe. For `Rc` that might be possible,
-//         // but `Arc` could be multi-threaded so needs to be atomic
-//         [<FlexStr Inner>]::RefCounted(rc.deref().into())
-//         }
-//     })
-// }
-// }
+impl<T, U> From<&FlexStr<U>> for FlexStr<T>
+where
+    U: Clone,
+    FlexStr<T>: From<FlexStr<U>>,
+{
+    #[inline]
+    fn from(s: &FlexStr<U>) -> Self {
+        s.clone().into()
+    }
+}
 
 impl<T> From<builder::FlexStrBuilder> for FlexStr<T>
 where
@@ -521,60 +500,6 @@ impl<T> From<&'static str> for FlexStr<T> {
     #[inline]
     fn from(s: &'static str) -> Self {
         FlexStr(FlexStrInner::Static(s))
-    }
-}
-
-// *** To/Into Custom Traits ***
-
-/// A trait that converts the source to a `FlexStr` without consuming it
-pub trait ToFlexStr<T> {
-    /// Converts the source to a `FlexStr` without consuming it
-    fn to_flex(&self) -> FlexStr<T>;
-}
-
-impl<T> ToFlexStr<T> for str
-where
-    T: for<'a> From<&'a str>,
-{
-    #[inline]
-    fn to_flex(&self) -> FlexStr<T> {
-        FlexStr(match self.try_into() {
-            Ok(s) => FlexStrInner::Inlined(s),
-            Err(_) => FlexStrInner::Heap(T::from(self)),
-        })
-    }
-}
-
-/// A trait that converts the source to a `FlexStr` while consuming the original
-pub trait IntoFlexStr<T> {
-    /// Converts the source to a `FlexStr` while consuming the original
-    fn into_flex(self) -> FlexStr<T>;
-}
-
-impl<T> IntoFlexStr<T> for &'static str {
-    #[inline]
-    fn into_flex(self) -> FlexStr<T> {
-        self.into()
-    }
-}
-
-impl<T> IntoFlexStr<T> for String
-where
-    Self: Into<FlexStr<T>>,
-{
-    #[inline]
-    fn into_flex(self) -> FlexStr<T> {
-        self.into()
-    }
-}
-
-impl<T> IntoFlexStr<T> for builder::FlexStrBuilder
-where
-    T: From<String> + for<'a> From<&'a str>,
-{
-    #[inline]
-    fn into_flex(self) -> FlexStr<T> {
-        self.into()
     }
 }
 
