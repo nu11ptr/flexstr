@@ -108,28 +108,6 @@ fn main() {
 }
 ```
 
-### Borrowing
-
-Works just like `String`
-
-NOTE: The only benefit to passing as a `&str` is more compatibility with 
-existing code. By passing as a `&FlexStr` instead, we retain the possibility 
-of cheap multi ownership (see below).
-
-```rust
-use flexstr::FlexStr;
-
-fn my_func(str: &FlexStr) {
-    println!("Borrowed string: {str}");
-}
-
-fn main() {
-    // Literal - no copy or allocation
-    let str: FlexStr = "my string".into();
-    my_func(&str);
-}
-```
-
 ### Passing FlexStr to Conditional Ownership Functions
 
 This has always been a confusing situation in Rust, but it is easy with 
@@ -183,8 +161,8 @@ NOTE: No benchmarking has yet been done
 * `into_flex_str()` and `into_a_flex_str()` are equivalent to calling `into()` 
   on both literals and `String` (they are present primarily for `let` 
   bindings so there is no need to declare a type)
-* `to_flex_str()` and `to_a_flex_str()` are meant for the on-boarding of borrowed 
-  strings and always copy into either an inline string (for short strings) or 
+* `to_flex_str()` and `to_a_flex_str()` are meant for taking ownership of 
+  borrowed strings and always copy into either an inline string (for short strings) or 
   an `Rc`/`Arc` wrapped `str` (which will allocate)
 * `to_string` always copies into a new `String`
 * Conversions back and forth between `AFlexStr` and `FlexStr` using `into()` 
@@ -207,8 +185,8 @@ There is no free lunch:
 
 ## Status
 
-This is currently Alpha quality and in heavy development. There is much testing 
-and design work still needed. The API may break at any time.
+This is currently beta quality and still needs testing. The API may very 
+possibly change but semantic versioning will be followed.
 
 ## License
 

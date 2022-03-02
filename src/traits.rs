@@ -77,7 +77,7 @@ where
     U: Deref<Target = str>,
 {
     /// ```
-    /// use flexstr::{AFlexStr, FlexStr, IntoFlex, WFlexStr};
+    /// use flexstr::{AFlexStr, FlexStr, IntoFlex};
     ///
     /// let a: AFlexStr = "This can be just wrapped as a static string literal!".into_flex();
     /// assert!(a.is_static());
@@ -87,11 +87,11 @@ where
     ///
     /// let c: FlexStr = "Inlined!".to_string().into_flex();
     /// assert!(c.is_inlined());
-    /// let d: WFlexStr = c.clone().into_flex();
+    /// let d: AFlexStr = c.clone().into_flex();
     /// assert!(d.is_inlined());
     /// assert_eq!(c, d);
     ///
-    /// let e: WFlexStr = "This will be a wrapped heap allocated `String`!".to_string().into_flex();
+    /// let e: FlexStr = "This will be a wrapped heap allocated `String`!".to_string().into_flex();
     /// assert!(e.is_heap());
     /// let f: AFlexStr = e.clone().into_flex();
     /// assert!(f.is_heap());
@@ -130,7 +130,7 @@ impl<T> IntoFlex<T> for &'static str {
 
 impl<T> IntoFlex<T> for String
 where
-    Self: Into<FlexStr<T>>,
+    T: From<String>,
 {
     /// ```
     /// use flexstr::{AFlexStr, IntoFlex};
@@ -139,6 +139,23 @@ where
     /// let b: AFlexStr = a.clone().into_flex();
     /// assert!(b.is_inlined());
     /// assert_eq!(b, a);
+    /// ```
+    #[inline]
+    fn into_flex(self) -> FlexStr<T> {
+        self.into()
+    }
+}
+
+impl<T> IntoFlex<T> for char
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    /// ```
+    /// use flexstr::{AFlexStr, IntoFlex};
+    ///
+    /// let a: AFlexStr = 't'.into_flex();
+    /// assert!(a.is_inlined());
+    /// assert_eq!(a, "t");
     /// ```
     #[inline]
     fn into_flex(self) -> FlexStr<T> {
@@ -259,6 +276,20 @@ impl IntoFlexStr for String {
     }
 }
 
+impl IntoFlexStr for char {
+    /// ```
+    /// use flexstr::IntoFlexStr;
+    ///
+    /// let a = 't'.into_flex_str();
+    /// assert!(a.is_inlined());
+    /// assert_eq!(a, "t");
+    /// ```
+    #[inline]
+    fn into_flex_str(self) -> FlexStr {
+        self.into()
+    }
+}
+
 // *** AFlexStr `Into` Traits ***
 
 /// A trait that converts the source to a `AFlexStr` while consuming the original
@@ -310,6 +341,20 @@ impl IntoAFlexStr for String {
     ///
     /// let a = "This is a heap allocated string since it is a `String`".to_string().into_a_flex_str();
     /// assert!(a.is_heap());
+    /// ```
+    #[inline]
+    fn into_a_flex_str(self) -> AFlexStr {
+        self.into()
+    }
+}
+
+impl IntoAFlexStr for char {
+    /// ```
+    /// use flexstr::IntoAFlexStr;
+    ///
+    /// let a = 't'.into_a_flex_str();
+    /// assert!(a.is_inlined());
+    /// assert_eq!(a, "t");
     /// ```
     #[inline]
     fn into_a_flex_str(self) -> AFlexStr {
