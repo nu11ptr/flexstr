@@ -92,19 +92,19 @@ where
     /// Returns true if this `FlexStr` is empty
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.deref().is_empty()
+        str::is_empty(self)
     }
 
     /// Returns the length of this `FlexStr` in bytes (not chars/graphemes)
     #[inline]
     pub fn len(&self) -> usize {
-        self.deref().len()
+        str::len(self)
     }
 
     /// Extracts a string slice containing the entire `FlexStr`
     #[inline]
     pub fn as_str(&self) -> &str {
-        self.deref()
+        &**self
     }
 
     /// Returns true if this is a wrapped string literal (`&'static str`)
@@ -151,17 +151,23 @@ where
     }
 }
 
-impl<T> Debug for FlexStr<T> {
+impl<T> Debug for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(self.deref(), f)
+        <str as Debug>::fmt(self, f)
     }
 }
 
-impl<T> Display for FlexStr<T> {
+impl<T> Display for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(self.deref(), f)
+        <str as Display>::fmt(self, f)
     }
 }
 
@@ -173,14 +179,14 @@ where
 {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        Hash::hash(self.deref(), state)
+        str::hash(self, state)
     }
 }
 
-impl<T, U> PartialEq<FlexStr<U>> for FlexStr<T>
+impl<T, T2> PartialEq<FlexStr<T2>> for FlexStr<T>
 where
     T: Deref<Target = str>,
-    U: Deref<Target = str>,
+    T2: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{AFlexStr, FlexStr, ToFlex};
@@ -190,8 +196,26 @@ where
     /// let s2: AFlexStr = lit.into();
     /// assert_eq!(s, s2);
     /// ```
-    fn eq(&self, other: &FlexStr<U>) -> bool {
-        PartialEq::eq(&self.deref(), &other.deref())
+    fn eq(&self, other: &FlexStr<T2>) -> bool {
+        str::eq(self, &**other)
+    }
+}
+
+impl<T, T2> PartialEq<FlexStr<T2>> for &FlexStr<T>
+where
+    T: Deref<Target = str>,
+    T2: Deref<Target = str>,
+{
+    /// ```
+    /// use flexstr::{AFlexStr, FlexStr, ToFlex};
+    ///
+    /// let lit = "inlined";
+    /// let s: FlexStr = lit.into();
+    /// let s2: AFlexStr = lit.into();
+    /// assert_eq!(&s, s2);
+    /// ```
+    fn eq(&self, other: &FlexStr<T2>) -> bool {
+        str::eq(self, &**other)
     }
 }
 
@@ -208,7 +232,7 @@ where
     /// ```
     #[inline]
     fn eq(&self, other: &&str) -> bool {
-        PartialEq::eq(&self.deref(), &other.deref())
+        str::eq(self, *other)
     }
 }
 
@@ -225,7 +249,7 @@ where
     /// ```
     #[inline]
     fn eq(&self, other: &str) -> bool {
-        PartialEq::eq(&self.deref(), &other.deref())
+        str::eq(self, other)
     }
 }
 
@@ -242,7 +266,7 @@ where
     /// ```
     #[inline]
     fn eq(&self, other: &String) -> bool {
-        PartialEq::eq(&self.deref(), &other.deref())
+        str::eq(self, other)
     }
 }
 
@@ -256,7 +280,7 @@ where
 {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        PartialOrd::partial_cmp(&self.deref(), &other.deref())
+        str::partial_cmp(self, other)
     }
 }
 
@@ -266,7 +290,7 @@ where
 {
     #[inline]
     fn partial_cmp(&self, other: &str) -> Option<Ordering> {
-        PartialOrd::partial_cmp(&self.deref(), &other.deref())
+        str::partial_cmp(self, other)
     }
 }
 
@@ -276,7 +300,7 @@ where
 {
     #[inline]
     fn partial_cmp(&self, other: &String) -> Option<Ordering> {
-        PartialOrd::partial_cmp(&self.deref(), &other.deref())
+        str::partial_cmp(self, other)
     }
 }
 
@@ -286,7 +310,7 @@ where
 {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        Ord::cmp(&self.deref(), &other.deref())
+        str::cmp(self, other)
     }
 }
 
@@ -300,7 +324,7 @@ where
 
     #[inline]
     fn index(&self, index: Range<usize>) -> &Self::Output {
-        &self.deref()[index]
+        str::index(self, index)
     }
 }
 
@@ -312,7 +336,7 @@ where
 
     #[inline]
     fn index(&self, index: RangeTo<usize>) -> &Self::Output {
-        &self.deref()[index]
+        str::index(self, index)
     }
 }
 
@@ -324,7 +348,7 @@ where
 
     #[inline]
     fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
-        &self.deref()[index]
+        str::index(self, index)
     }
 }
 
@@ -335,8 +359,8 @@ where
     type Output = str;
 
     #[inline]
-    fn index(&self, _index: RangeFull) -> &Self::Output {
-        self.deref()
+    fn index(&self, index: RangeFull) -> &Self::Output {
+        str::index(self, index)
     }
 }
 
@@ -348,7 +372,7 @@ where
 
     #[inline]
     fn index(&self, index: RangeInclusive<usize>) -> &Self::Output {
-        &self.deref()[index]
+        str::index(self, index)
     }
 }
 
@@ -360,7 +384,7 @@ where
 
     #[inline]
     fn index(&self, index: RangeToInclusive<usize>) -> &Self::Output {
-        &self.deref()[index]
+        str::index(self, index)
     }
 }
 
@@ -372,7 +396,7 @@ where
 {
     let mut builder = builder::FlexStrBuilder::with_capacity(s1.len() + s2.len());
     unsafe {
-        // Safety: write_str always succeeds
+        // SAFETY: write_str always succeeds
         builder.write_str(s1).unwrap_unchecked();
         builder.write_str(s2).unwrap_unchecked();
     }
@@ -437,7 +461,7 @@ where
 {
     #[inline]
     fn borrow(&self) -> &str {
-        self.deref()
+        str::borrow(self)
     }
 }
 
@@ -455,13 +479,13 @@ where
 
 // *** From ***
 
-impl<T, U> From<&FlexStr<U>> for FlexStr<T>
+impl<T, T2> From<&FlexStr<T2>> for FlexStr<T>
 where
-    U: Clone,
-    FlexStr<T>: From<FlexStr<U>>,
+    T2: Clone,
+    FlexStr<T>: From<FlexStr<T2>>,
 {
     #[inline]
-    fn from(s: &FlexStr<U>) -> Self {
+    fn from(s: &FlexStr<T2>) -> Self {
         s.clone().into()
     }
 }
@@ -569,103 +593,154 @@ where
     }
 }
 
-// *** ToCase custom trait ***
+// *** FromIterator ***
 
-/// Trait that provides uppercase/lowercase conversion functions for `FlexStr`
-pub trait ToCase<T> {
-    /// Converts string to uppercase and returns a `FlexStr`
-    fn to_upper(&self) -> FlexStr<T>;
+fn from_iter_str<I, T, U>(iter: I) -> FlexStr<T>
+where
+    I: IntoIterator<Item = U>,
+    T: From<String> + for<'b> From<&'b str>,
+    U: AsRef<str>,
+{
+    let iter = iter.into_iter();
 
-    /// Converts string to lowercase and returns a `FlexStr`
-    fn to_lower(&self) -> FlexStr<T>;
-
-    /// Converts string to ASCII uppercase and returns a `FlexStr`
-    fn to_ascii_upper(&self) -> FlexStr<T>;
-
-    /// Converts string to ASCII lowercase and returns a `FlexStr`
-    fn to_ascii_lower(&self) -> FlexStr<T>;
+    // Since `IntoIterator` consumes, we cannot loop over it twice to find lengths of strings
+    // for a good capacity # without cloning it (which might be expensive)
+    let mut builder = builder::FlexStrBuilder::new();
+    for s in iter {
+        // SAFETY: Always succeeds
+        unsafe {
+            builder.write_str(s.as_ref()).unwrap_unchecked();
+        }
+    }
+    builder.into()
 }
 
-impl<T> ToCase<T> for str
+fn from_iter_char<I, F, T, U>(iter: I, f: F) -> FlexStr<T>
 where
-    T: From<String> + for<'a> From<&'a str>,
+    I: IntoIterator<Item = U>,
+    F: Fn(U) -> char,
+    T: From<String> + for<'b> From<&'b str>,
+{
+    let iter = iter.into_iter();
+    let (lower, _) = iter.size_hint();
+
+    let mut builder = builder::FlexStrBuilder::with_capacity(lower);
+    for ch in iter {
+        // SAFETY: Always succeeds
+        unsafe {
+            builder.write_char(f(ch)).unwrap_unchecked();
+        }
+    }
+    builder.into()
+}
+
+impl<T, T2> FromIterator<FlexStr<T2>> for FlexStr<T>
+where
+    T: From<String> + for<'b> From<&'b str>,
+    T2: Deref<Target = str>,
 {
     /// ```
-    /// use flexstr::{FlexStr, ToCase};
+    /// use flexstr::{FlexStr};
     ///
-    /// let a: FlexStr = "test".to_upper();
-    /// assert_eq!(a, "TEST");
+    /// let v: Vec<FlexStr> = vec!["best".into(), "test".into()];
+    /// let s: FlexStr = v.into_iter().map(|s| if s == "best" { "test".into() } else { s }).collect();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "testtest");
     /// ```
-    fn to_upper(&self) -> FlexStr<T> {
-        // We estimate capacity based on previous string, but if not ASCII this might be wrong
-        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
-
-        for ch in self.chars() {
-            let upper_chars = ch.to_uppercase();
-            for ch in upper_chars {
-                // Safety: Wraps `write_str` which always succeeds
-                unsafe { builder.write_char(ch).unwrap_unchecked() }
-            }
-        }
-
-        builder.into()
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = FlexStr<T2>>>(iter: I) -> Self {
+        from_iter_str(iter)
     }
+}
 
+impl<'a, T, T2> FromIterator<&'a FlexStr<T2>> for FlexStr<T>
+where
+    T: From<String> + for<'b> From<&'b str>,
+    T2: Deref<Target = str> + 'a,
+{
     /// ```
-    /// use flexstr::{FlexStr, ToCase};
+    /// use flexstr::{FlexStr};
     ///
-    /// let a: FlexStr = "TEST".to_lower();
-    /// assert_eq!(a, "test");
+    /// let v: Vec<FlexStr> = vec!["best".into(), "test".into()];
+    /// let s: FlexStr = v.iter().filter(|s| *s == "best").collect();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "best");
     /// ```
-    fn to_lower(&self) -> FlexStr<T> {
-        // We estimate capacity based on previous string, but if not ASCII this might be wrong
-        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
-
-        for ch in self.chars() {
-            let lower_chars = ch.to_lowercase();
-            for ch in lower_chars {
-                // Safety: Wraps `write_str` which always succeeds
-                unsafe { builder.write_char(ch).unwrap_unchecked() }
-            }
-        }
-
-        builder.into()
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = &'a FlexStr<T2>>>(iter: I) -> Self {
+        from_iter_str(iter)
     }
+}
 
+impl<T> FromIterator<String> for FlexStr<T>
+where
+    T: From<String> + for<'b> From<&'b str>,
+{
     /// ```
-    /// use flexstr::{FlexStr, ToCase};
+    /// use flexstr::{FlexStr};
     ///
-    /// let a: FlexStr = "test".to_ascii_upper();
-    /// assert_eq!(a, "TEST");
+    /// let v = vec!["best".to_string(), "test".to_string()];
+    /// let s: FlexStr = v.into_iter().map(|s| if s == "best" { "test".into() } else { s }).collect();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "testtest");
     /// ```
-    fn to_ascii_upper(&self) -> FlexStr<T> {
-        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
-
-        for mut ch in self.chars() {
-            char::make_ascii_uppercase(&mut ch);
-            // Safety: Wraps `write_str` which always succeeds
-            unsafe { builder.write_char(ch).unwrap_unchecked() }
-        }
-
-        builder.into()
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = String>>(iter: I) -> Self {
+        from_iter_str(iter)
     }
+}
 
+impl<'a, T> FromIterator<&'a str> for FlexStr<T>
+where
+    T: From<String> + for<'b> From<&'b str>,
+{
     /// ```
-    /// use flexstr::{FlexStr, ToCase};
+    /// use flexstr::{FlexStr};
     ///
-    /// let a: FlexStr = "TEST".to_ascii_lower();
-    /// assert_eq!(a, "test");
+    /// let v = vec!["best", "test"];
+    /// let s: FlexStr = v.into_iter().map(|s| if s == "best" { "test" } else { s }).collect();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "testtest");
     /// ```
-    fn to_ascii_lower(&self) -> FlexStr<T> {
-        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
+        from_iter_str(iter)
+    }
+}
 
-        for mut ch in self.chars() {
-            char::make_ascii_lowercase(&mut ch);
-            // Safety: Wraps `write_str` which always succeeds
-            unsafe { builder.write_char(ch).unwrap_unchecked() }
-        }
+impl<T> FromIterator<char> for FlexStr<T>
+where
+    T: From<String> + for<'b> From<&'b str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr};
+    ///
+    /// let v = "besttest";
+    /// let s: FlexStr = v.chars().map(|c| if c == 'b' { 't' } else { c }).collect();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "testtest");
+    /// ```
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = char>>(iter: I) -> Self {
+        from_iter_char(iter, |ch| ch)
+    }
+}
 
-        builder.into()
+impl<'a, T> FromIterator<&'a char> for FlexStr<T>
+where
+    T: From<String> + for<'b> From<&'b str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr};
+    ///
+    /// let v = vec!['b', 'e', 's', 't', 't', 'e', 's', 't'];
+    /// let s: FlexStr = v.iter().filter(|&ch| *ch != 'b').collect();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "esttest");
+    /// ```
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = &'a char>>(iter: I) -> Self {
+        from_iter_char(iter, |ch| *ch)
     }
 }
 

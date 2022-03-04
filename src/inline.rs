@@ -29,7 +29,7 @@ impl InlineFlexStr {
     }
 
     unsafe fn new(s: &str) -> Self {
-        // Safety: This is safe because while uninitialized to start, we copy the the str contents
+        // SAFETY: This is safe because while uninitialized to start, we copy the the str contents
         // over the top. We check to ensure it is not too long in `try_new` and don't call this
         // function directly. The copy is restrained to the length of the str.
 
@@ -64,7 +64,7 @@ impl InlineFlexStr {
             let data = self.data[self.len as usize..].as_mut_ptr().cast::<u8>();
 
             unsafe {
-                // Safety: We know the buffer is large enough and that the location is not overlapping
+                // SAFETY: We know the buffer is large enough and that the location is not overlapping
                 // this one (we know that because we have ownership of one of them)
                 // Copy contents of &str to our data buffer
                 ptr::copy_nonoverlapping(s.as_ptr(), data, s.len());
@@ -78,7 +78,7 @@ impl InlineFlexStr {
 impl Debug for InlineFlexStr {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self.deref(), f)
+        <str as Debug>::fmt(self, f)
     }
 }
 
@@ -89,7 +89,7 @@ impl Deref for InlineFlexStr {
         let data = &self.data[..self.len()];
 
         unsafe {
-            // Safety: The contents are always obtained from a valid UTF8 str, so they must be valid
+            // SAFETY: The contents are always obtained from a valid UTF8 str, so they must be valid
             // Additionally, we clamp the size of the slice passed to be no longer than our str length
             let data = &*(data as *const [mem::MaybeUninit<u8>] as *const [u8]);
             str::from_utf8_unchecked(data)

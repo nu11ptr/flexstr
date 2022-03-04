@@ -2,7 +2,159 @@
 
 use crate::{builder, AFlexStr, FlexStr, FlexStrInner};
 use alloc::string::String;
+use core::fmt::Write;
 use core::ops::Deref;
+
+// *** ToCase custom trait ***
+
+/// Trait that provides uppercase/lowercase conversion functions for `FlexStr`
+pub trait ToCase<T> {
+    /// Converts string to uppercase and returns a `FlexStr`
+    fn to_upper(&self) -> FlexStr<T>;
+
+    /// Converts string to lowercase and returns a `FlexStr`
+    fn to_lower(&self) -> FlexStr<T>;
+
+    /// Converts string to ASCII uppercase and returns a `FlexStr`
+    fn to_ascii_upper(&self) -> FlexStr<T>;
+
+    /// Converts string to ASCII lowercase and returns a `FlexStr`
+    fn to_ascii_lower(&self) -> FlexStr<T>;
+}
+
+impl<T> ToCase<T> for FlexStr<T>
+where
+    T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "test".into_flex_str().to_upper();
+    /// assert_eq!(a, "TEST");
+    /// ```
+    #[inline]
+    fn to_upper(&self) -> FlexStr<T> {
+        str::to_upper(self)
+    }
+
+    /// ```
+    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "TEST".into_flex_str().to_lower();
+    /// assert_eq!(a, "test");
+    /// ```
+    #[inline]
+    fn to_lower(&self) -> FlexStr<T> {
+        str::to_lower(self)
+    }
+
+    /// ```
+    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "test".into_flex_str().to_ascii_upper();
+    /// assert_eq!(a, "TEST");
+    /// ```
+    #[inline]
+    fn to_ascii_upper(&self) -> FlexStr<T> {
+        str::to_ascii_upper(self)
+    }
+
+    /// ```
+    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "TEST".into_flex_str().to_ascii_lower();
+    /// assert_eq!(a, "test");
+    /// ```
+    #[inline]
+    fn to_ascii_lower(&self) -> FlexStr<T> {
+        str::to_ascii_lower(self)
+    }
+}
+
+impl<T> ToCase<T> for str
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "test".to_upper();
+    /// assert_eq!(a, "TEST");
+    /// ```
+    fn to_upper(&self) -> FlexStr<T> {
+        // We estimate capacity based on previous string, but if not ASCII this might be wrong
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for ch in self.chars() {
+            let upper_chars = ch.to_uppercase();
+            for ch in upper_chars {
+                // SAFETY: Wraps `write_str` which always succeeds
+                unsafe { builder.write_char(ch).unwrap_unchecked() }
+            }
+        }
+
+        builder.into()
+    }
+
+    /// ```
+    /// use flexstr::{FlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "TEST".to_lower();
+    /// assert_eq!(a, "test");
+    /// ```
+    fn to_lower(&self) -> FlexStr<T> {
+        // We estimate capacity based on previous string, but if not ASCII this might be wrong
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for ch in self.chars() {
+            let lower_chars = ch.to_lowercase();
+            for ch in lower_chars {
+                // SAFETY: Wraps `write_str` which always succeeds
+                unsafe { builder.write_char(ch).unwrap_unchecked() }
+            }
+        }
+
+        builder.into()
+    }
+
+    /// ```
+    /// use flexstr::{FlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "test".to_ascii_upper();
+    /// assert_eq!(a, "TEST");
+    /// ```
+    fn to_ascii_upper(&self) -> FlexStr<T> {
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for mut ch in self.chars() {
+            char::make_ascii_uppercase(&mut ch);
+            // SAFETY: Wraps `write_str` which always succeeds
+            unsafe { builder.write_char(ch).unwrap_unchecked() }
+        }
+
+        builder.into()
+    }
+
+    /// ```
+    /// use flexstr::{FlexStr, ToCase};
+    ///
+    /// let a: FlexStr = "TEST".to_ascii_lower();
+    /// assert_eq!(a, "test");
+    /// ```
+    fn to_ascii_lower(&self) -> FlexStr<T> {
+        let mut builder = builder::FlexStrBuilder::with_capacity(self.len());
+
+        for mut ch in self.chars() {
+            char::make_ascii_lowercase(&mut ch);
+            // SAFETY: Wraps `write_str` which always succeeds
+            unsafe { builder.write_char(ch).unwrap_unchecked() }
+        }
+
+        builder.into()
+    }
+}
+
+// *** Generic `To` trait ***
 
 /// A trait that converts the source to a `FlexStr<T>` without consuming it
 /// ```
@@ -16,10 +168,10 @@ pub trait ToFlex<T> {
     fn to_flex(&self) -> FlexStr<T>;
 }
 
-impl<T, U> ToFlex<T> for FlexStr<U>
+impl<T, T2> ToFlex<T> for FlexStr<T2>
 where
     T: for<'a> From<&'a str>,
-    U: Clone + Deref<Target = str>,
+    T2: Clone + Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{AFlexStr, FlexStr, ToFlex};
@@ -52,7 +204,7 @@ where
     fn to_flex(&self) -> FlexStr<T> {
         FlexStr(match self.try_into() {
             Ok(s) => FlexStrInner::Inlined(s),
-            Err(_) => FlexStrInner::Heap(T::from(self)),
+            Err(_) => FlexStrInner::Heap(self.into()),
         })
     }
 }
@@ -71,10 +223,10 @@ pub trait IntoFlex<T> {
     fn into_flex(self) -> FlexStr<T>;
 }
 
-impl<T, U> IntoFlex<T> for FlexStr<U>
+impl<T, T2> IntoFlex<T> for FlexStr<T2>
 where
     T: for<'a> From<&'a str>,
-    U: Deref<Target = str>,
+    T2: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{AFlexStr, FlexStr, IntoFlex};
@@ -107,7 +259,7 @@ where
                 // Would like to use `from_raw` and `into_raw`, but need to ensure
                 // exclusive ownership for this to be safe. For `Rc` that might be possible,
                 // but `Arc` could be multi-threaded so needs to be atomic
-                FlexStrInner::Heap(heap.deref().into())
+                FlexStrInner::Heap(T::from(&heap))
             }
         })
     }
@@ -218,6 +370,51 @@ impl ToFlexStr for str {
     }
 }
 
+// *** AFlexStr `To` Traits ***
+
+/// A trait that converts the source to an `AFlexStr` without consuming it
+/// ```
+/// use flexstr::ToAFlexStr;
+///
+/// let a = "This is a heap allocated string!!!!!".to_a_flex_str();
+/// assert!(a.is_heap());
+/// ```
+pub trait ToAFlexStr {
+    /// Converts the source to a `AFlexStr` without consuming it
+    fn to_a_flex_str(&self) -> AFlexStr;
+}
+
+impl<T> ToAFlexStr for FlexStr<T>
+where
+    T: Clone + Deref<Target = str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr, ToAFlexStr};
+    ///
+    /// let a: FlexStr = "test".into();
+    /// let b = a.to_a_flex_str();
+    /// assert_eq!(a, b);
+    /// ```
+    #[inline]
+    fn to_a_flex_str(&self) -> AFlexStr {
+        self.to_flex()
+    }
+}
+
+impl ToAFlexStr for str {
+    /// ```
+    /// use flexstr::ToAFlexStr;
+    ///
+    /// // Don't use for literals - use `into_flex_str` instead
+    /// let a = "test".to_a_flex_str();
+    /// assert!(a.is_inlined());
+    /// ```
+    #[inline]
+    fn to_a_flex_str(&self) -> AFlexStr {
+        self.to_flex()
+    }
+}
+
 // *** FlexStr `Into` Traits ***
 
 /// A trait that converts the source to a `FlexStr` while consuming the original
@@ -300,7 +497,7 @@ impl IntoFlexStr for char {
 /// assert!(a.is_static());
 /// ```
 pub trait IntoAFlexStr {
-    /// Converts the source to a `AFlexStr` while consuming the original
+    /// Converts the source to an `AFlexStr` while consuming the original
     fn into_a_flex_str(self) -> AFlexStr;
 }
 

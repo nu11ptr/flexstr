@@ -19,7 +19,7 @@ pub(crate) struct StringBuffer<const N: usize> {
 impl<const N: usize> StringBuffer<N> {
     pub fn new() -> Self {
         unsafe {
-            // Safety: This should all be ok, because we will never read more then `len` which is
+            // SAFETY: This should all be ok, because we will never read more then `len` which is
             // never larger than what has been written
 
             Self {
@@ -55,7 +55,7 @@ impl<const N: usize> StringBuffer<N> {
 
         if !self.is_empty() {
             unsafe {
-                // Safety: This should be ok because we only copy what we've already written into
+                // SAFETY: This should be ok because we only copy what we've already written into
                 // a brand new buffer. No way for it to overlap.
                 // *** WE DO NEED TO BE CAREFUL TO ENSURE N2 >= self.len ALWAYS ***
 
@@ -92,7 +92,7 @@ impl<const N: usize> StringBuffer<N> {
             let buffer = &mut self.buffer[len..];
 
             unsafe {
-                // Safety: we've ensured enough space, moved up position, and no way s can overlap
+                // SAFETY: we've ensured enough space, moved up position, and no way s can overlap
                 ptr::copy_nonoverlapping(s.as_ptr(), buffer.as_mut_ptr().cast(), s.len());
             }
             self.len += s.len();
@@ -110,7 +110,7 @@ impl<const N: usize> Deref for StringBuffer<N> {
         let buffer = &self.buffer[..self.len()];
 
         unsafe {
-            // Safety: The contents are always obtained from a valid UTF8 str, so they must be valid
+            // SAFETY: The contents are always obtained from a valid UTF8 str, so they must be valid
             // Additionally, we clamp the size of the slice passed to be no longer than our str length
             let buffer = &*(buffer as *const [mem::MaybeUninit<u8>] as *const [u8]);
             str::from_utf8_unchecked(buffer)
@@ -152,7 +152,7 @@ impl FlexStrBuilder {
         let required_cap = buffer.len() + s.len();
         // Start with a capacity twice the size of what is needed (to try and avoid future heap allocations)
         let mut buffer = buffer.to_string_buffer(required_cap * 2);
-        // Safety: This always succeeds for String
+        // SAFETY: This always succeeds for String
         unsafe {
             buffer.write_str(s).unwrap_unchecked();
         }
