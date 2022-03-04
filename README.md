@@ -236,8 +236,8 @@ fn main() {
 
 ### Create
 
-Heap creates are fairly expensive still compared to `String`, `rc<str>` and 
-`arc<str>`, but inline/static creation is very fast as expected.
+Heap creates are fairly expensive still compared to `String`, `Rc<str>` and 
+`Arc<str>`, but inline/static creation is very fast as expected.
 
 #### FlexStr
 

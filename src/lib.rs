@@ -73,6 +73,7 @@ use core::ops::{
 use core::str::FromStr;
 use core::{fmt, mem};
 
+use crate::inline::InlineFlexStr;
 #[cfg(feature = "serde")]
 use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
@@ -99,6 +100,32 @@ impl<T> FlexStr<T>
 where
     T: Deref<Target = str>,
 {
+    /// Creates a wrapped static string literal
+    #[inline]
+    pub fn from_static(s: &'static str) -> FlexStr<T> {
+        FlexStr(FlexStrInner::Static(s))
+    }
+
+    /// Attempts to create an inlined string. Returns new inline string on success or original source
+    /// string as `Err` if it will not fit.
+    #[inline]
+    pub fn try_inline(s: &str) -> Result<FlexStr<T>, &str> {
+        match InlineFlexStr::try_new(s) {
+            Ok(s) => Ok(FlexStr(FlexStrInner::Inlined(s))),
+            Err(s) => Err(s),
+        }
+    }
+
+    /// Force the creation of a heap allocated string. Unlike into functions, this will not attempt
+    /// to inline first even if the string is a candidate for inlining.
+    #[inline]
+    pub fn heap(s: &str) -> FlexStr<T>
+    where
+        T: for<'a> From<&'a str>,
+    {
+        FlexStr(FlexStrInner::Heap(s.into()))
+    }
+
     /// Returns true if this `FlexStr` is empty
     #[inline]
     pub fn is_empty(&self) -> bool {
@@ -458,10 +485,13 @@ where
     }
 }
 
-impl<T> Default for FlexStr<T> {
+impl<T> Default for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
     #[inline]
     fn default() -> Self {
-        FlexStr(FlexStrInner::Static(""))
+        Self::from_static("")
     }
 }
 
@@ -569,7 +599,10 @@ where
     }
 }
 
-impl<T> From<&'static str> for FlexStr<T> {
+impl<T> From<&'static str> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
     /// ```
     /// use flexstr::FlexStr;
     ///
@@ -580,7 +613,7 @@ impl<T> From<&'static str> for FlexStr<T> {
     /// ```
     #[inline]
     fn from(s: &'static str) -> Self {
-        FlexStr(FlexStrInner::Static(s))
+        Self::from_static(s)
     }
 }
 

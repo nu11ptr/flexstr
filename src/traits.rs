@@ -265,7 +265,10 @@ where
     }
 }
 
-impl<T> IntoFlex<T> for &'static str {
+impl<T> IntoFlex<T> for &'static str
+where
+    T: Deref<Target = str>,
+{
     /// ```
     /// use flexstr::{AFlexStr, IntoFlex};
     ///
