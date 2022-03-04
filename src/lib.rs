@@ -15,8 +15,9 @@
 //! let inline_str = "inlined".to_flex_str();
 //! assert!(inline_str.is_inlined());
 //!
-//! // When a string can't be wrapped/inlined, it will heap allocate
-//! let rc_str = "This is too long to be inlined. It will be wrapped in `Rc`".to_flex_str();
+//! // When a string is too long to be wrapped/inlined, it will heap allocate
+//! // (demo only, use `into` for literals as above)
+//! let rc_str = "This is too long to be inlined".to_flex_str();
 //! assert!(rc_str.is_heap());
 //!
 //! // You can efficiently create a new `FlexStr` (without creating a `String`)
@@ -25,15 +26,20 @@
 //! assert!(inline_str2.is_inlined());
 //! assert_eq!(inline_str, inline_str2);
 //!
-//! // We can upper/lowercase strings without converting to a `String`
-//! // This doesn't heap allocate
+//! // We can upper/lowercase strings without converting to a `String` first
+//! // This doesn't heap allocate since inlined
 //! let inline_str3: FlexStr = "INLINED".to_ascii_lower();
 //! assert!(inline_str3.is_inlined());
 //! assert_eq!(inline_str, inline_str3);
 //!
-//! // Clone is almost free, even when borrowed
+//! // Concatenation doesn't even copy if we can fit it in the inline string
+//! let inline_str4 = inline_str3 + "!!!";
+//! assert!(inline_str4.is_inlined());
+//! assert_eq!(inline_str4, "inlined!!!");
+//!
+//! // Clone is almost free, and never allocates
 //! // (at most it is a ref count increment for heap allocated strings)
-//! let static_str2 = (&static_str).clone();
+//! let static_str2 = static_str.clone();
 //! assert!(static_str2.is_static());
 //!
 //! // Regardless of storage type, these all operate seamlessly together

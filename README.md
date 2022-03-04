@@ -24,7 +24,7 @@ that is optimized for those use cases, while retaining the usage simplicity of
 
 This type is not inherently "better" than `String`, but different. It 
 works best in 'typical' string use cases (immutability, concatenation, cheap 
-multi ownership) whereas `String` works better in "string buffer" usage cases
+multi ownership) whereas `String` works better in "string buffer" use cases
 (mutability, string building, single ownership).
 
 ## Installation
@@ -51,8 +51,9 @@ fn main() {
   let inline_str = "inlined".to_flex_str();
   assert!(inline_str.is_inlined());
 
-  // When a string can't be wrapped/inlined, it will heap allocate
-  let rc_str = "This is too long to be inlined. It will be wrapped in `Rc`".to_flex_str();
+  // When a string is too long to be wrapped/inlined, it will heap allocate
+  // (demo only, use `into` for literals as above)
+  let rc_str = "This is too long to be inlined".to_flex_str();
   assert!(rc_str.is_heap());
 
   // You can efficiently create a new `FlexStr` (without creating a `String`)
@@ -67,9 +68,14 @@ fn main() {
   assert!(inline_str3.is_inlined());
   assert_eq!(inline_str, inline_str3);
 
-  // Clone is almost free, even when borrowed 
+  // Concatenation doesn't even copy if we can fit it in the inline string
+  let inline_str4 = inline_str3 + "!!!";
+  assert!(inline_str4.is_inlined());
+  assert_eq!(inline_str4, "inlined!!!");
+  
+  // Clone is almost free, and never allocates
   // (at most it is a ref count increment for heap allocated strings)
-  let static_str2 = (&static_str).clone();
+  let static_str2 = static_str.clone();
   assert!(static_str2.is_static());
 
   // Regardless of storage type, these all operate seamlessly together 
@@ -206,8 +212,6 @@ fn main() {
 
 ## Performance Characteristics
 
-NOTE: No benchmarking has yet been done
-
 * Clones are cheap and never allocate
     * At minimum, they are just a copy of the enum and at max an additional 
       reference count increment
@@ -227,6 +231,41 @@ NOTE: No benchmarking has yet been done
     * Inlined strings and wrapped literals just create a new enum wrapper
     * Reference counted wrapped strings will always require an allocation 
       and copy for the  new `Rc` or `Arc`
+
+## Benchmarks
+
+Summmary: Creates are fairly expensive (yet) compared to `String`, but clones 
+are MUCH cheaper. 
+
+Keep in mind even though creates are more expensive that 
+depending on your workload you may earn that back via clones and it will save
+memory as well.
+
+### Create
+
+```
+create_static_normal    time:   [3.6473 ns 3.6613 ns 3.6782 ns]
+create_inline_small     time:   [9.4807 ns 9.4990 ns 9.5192 ns]
+create_heap_normal      time:   [13.597 ns 13.620 ns 13.647 ns]
+create_heap_large       time:   [19.031 ns 19.062 ns 19.095 ns]
+create_heap_arc_normal  time:   [18.617 ns 18.640 ns 18.664 ns]
+create_heap_arc_large   time:   [24.490 ns 24.532 ns 24.578 ns]
+create_string_small     time:   [7.2761 ns 7.2809 ns 7.2860 ns]
+create_string_normal    time:   [7.6338 ns 7.6401 ns 7.6475 ns]
+create_string_large     time:   [13.227 ns 13.318 ns 13.406 ns]
+```
+
+### Clone
+
+```
+clone_static_normal     time:   [3.8704 ns 3.8750 ns 3.8799 ns]
+clone_inline_small      time:   [4.5057 ns 4.5090 ns 4.5125 ns]
+clone_heap_normal       time:   [4.4501 ns 4.4546 ns 4.4597 ns]
+clone_heap_arc_normal   time:   [10.701 ns 10.717 ns 10.735 ns]
+clone_string_small      time:   [10.986 ns 11.074 ns 11.164 ns]
+clone_string_normal     time:   [12.817 ns 12.828 ns 12.842 ns]
+clone_string_large      time:   [14.659 ns 14.780 ns 14.889 ns]
+```
 
 ## Negatives
 
