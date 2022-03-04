@@ -234,41 +234,41 @@ fn main() {
 
 ## Benchmarks
 
-Summary: Creates are fairly expensive (yet) compared to `String`, but clones 
-are MUCH cheaper (except when using `Arc`).
-
-Keep in mind even though creates are more expensive that 
-depending on your workload you may earn that back via clones and it will save
-memory as well.
-
 ### Create
+
+Heap creates are fairly expensive still compared to `String`, `rc<str>` and 
+`arc<str>`, but inline/static creation is very fast as expected.
 
 #### FlexStr
 
 ```
-create_static_normal    time:   [3.7180 ns 3.7246 ns 3.7311 ns]
-create_inline_small     time:   [9.4513 ns 9.4574 ns 9.4643 ns]
-create_heap_normal      time:   [13.558 ns 13.577 ns 13.596 ns]
-create_heap_large       time:   [19.433 ns 19.451 ns 19.470 ns]
-create_heap_arc_normal  time:   [18.400 ns 18.438 ns 18.490 ns]
-create_heap_arc_large   time:   [25.057 ns 25.155 ns 25.253 ns]
+create_static_normal    time:   [3.7062 ns 3.7213 ns 3.7422 ns]
+create_inline_small     time:   [3.8932 ns 3.9004 ns 3.9084 ns]
+create_heap_normal      time:   [13.533 ns 13.557 ns 13.587 ns]
+create_heap_large       time:   [18.605 ns 18.635 ns 18.664 ns]
+create_heap_arc_normal  time:   [18.535 ns 18.551 ns 18.568 ns]
+create_heap_arc_large   time:   [26.794 ns 26.861 ns 26.937 ns]
 ```
 
 #### Comparables
 
 ```
-create_string_small     time:   [6.8949 ns 6.9307 ns 6.9868 ns]
-create_string_normal    time:   [7.8346 ns 7.8390 ns 7.8441 ns]
-create_string_large     time:   [12.852 ns 12.868 ns 12.886 ns]
-create_rc_small         time:   [8.0822 ns 8.1364 ns 8.1810 ns]
-create_rc_normal        time:   [8.3205 ns 8.3502 ns 8.3816 ns]
-create_rc_large         time:   [13.356 ns 13.369 ns 13.384 ns]
-create_arc_small        time:   [8.3220 ns 8.3675 ns 8.4364 ns]
-create_arc_normal       time:   [8.7265 ns 8.7343 ns 8.7434 ns]
-create_arc_large        time:   [13.768 ns 13.816 ns 13.865 ns]
+create_string_small     time:   [7.4377 ns 7.4572 ns 7.4794 ns]
+create_string_normal    time:   [8.0550 ns 8.0605 ns 8.0667 ns]
+create_string_large     time:   [12.940 ns 12.955 ns 12.973 ns]
+create_rc_small         time:   [8.0525 ns 8.0577 ns 8.0639 ns]
+create_rc_normal        time:   [8.2438 ns 8.2512 ns 8.2604 ns]
+create_rc_large         time:   [13.139 ns 13.153 ns 13.168 ns]
+create_arc_small        time:   [8.7128 ns 8.7231 ns 8.7341 ns]
+create_arc_normal       time:   [8.7454 ns 8.7851 ns 8.8446 ns]
+create_arc_large        time:   [13.827 ns 13.855 ns 13.886 ns]
 ```
 
 ### Clone
+
+Clones are MUCH cheaper than `String` (except when using `Arc`). Interested 
+to find out why the single branch op causes such a large differential between 
+the wrapped `Rc<str>`/`Arc<str>` and the raw version.
 
 #### FlexStr
 

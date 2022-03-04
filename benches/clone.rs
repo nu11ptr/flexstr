@@ -18,78 +18,7 @@ aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in volup
 cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in \
 culpa qui officia deserunt mollit anim id est laborum.";
 
-pub fn create_benchmark(c: &mut Criterion) {
-    // Static and Inline
-    c.bench_function("create_static_normal", |b| {
-        b.iter(|| NORMAL_STR.into_flex_str())
-    });
-    c.bench_function("create_inline_small", |b| {
-        b.iter(|| SMALL_STR.to_flex_str())
-    });
-
-    // Heap
-    c.bench_function("create_heap_normal", |b| {
-        b.iter(|| NORMAL_STR.to_flex_str())
-    });
-    c.bench_function("create_heap_large", |b| b.iter(|| LARGE_STR.to_flex_str()));
-
-    // Heap (Arc)
-    c.bench_function("create_heap_arc_normal", |b| {
-        b.iter(|| NORMAL_STR.to_a_flex_str())
-    });
-    c.bench_function("create_heap_arc_large", |b| {
-        b.iter(|| LARGE_STR.to_a_flex_str())
-    });
-
-    // String
-    c.bench_function("create_string_small", |b| b.iter(|| SMALL_STR.to_string()));
-    c.bench_function("create_string_normal", |b| {
-        b.iter(|| NORMAL_STR.to_string())
-    });
-    c.bench_function("create_string_large", |b| b.iter(|| LARGE_STR.to_string()));
-
-    // Rc
-    c.bench_function("create_rc_small", |b| {
-        b.iter(|| {
-            let rc: Rc<str> = Rc::from(SMALL_STR);
-            rc
-        })
-    });
-    c.bench_function("create_rc_normal", |b| {
-        b.iter(|| {
-            let rc: Rc<str> = Rc::from(NORMAL_STR);
-            rc
-        })
-    });
-    c.bench_function("create_rc_large", |b| {
-        b.iter(|| {
-            let rc: Rc<str> = Rc::from(LARGE_STR);
-            rc
-        })
-    });
-
-    // Arc
-    c.bench_function("create_arc_small", |b| {
-        b.iter(|| {
-            let arc: Arc<str> = Arc::from(SMALL_STR);
-            arc
-        })
-    });
-    c.bench_function("create_arc_normal", |b| {
-        b.iter(|| {
-            let arc: Arc<str> = Arc::from(NORMAL_STR);
-            arc
-        })
-    });
-    c.bench_function("create_arc_large", |b| {
-        b.iter(|| {
-            let arc: Arc<str> = Arc::from(LARGE_STR);
-            arc
-        })
-    });
-}
-
-pub fn clone_benchmark(c: &mut Criterion) {
+pub fn clone(c: &mut Criterion) {
     // Static and Inline
     let static_str = NORMAL_STR.into_flex_str();
     assert!(static_str.is_static());
@@ -127,5 +56,5 @@ pub fn clone_benchmark(c: &mut Criterion) {
     c.bench_function("clone_arc_normal", |b| b.iter(|| Arc::clone(&arc)));
 }
 
-criterion_group!(benches, create_benchmark, clone_benchmark);
+criterion_group!(benches, clone);
 criterion_main!(benches);

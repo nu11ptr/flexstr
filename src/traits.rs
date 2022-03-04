@@ -442,6 +442,7 @@ where
     /// assert!(b.is_static());
     /// assert_eq!(a, b);
     /// ```
+    #[inline]
     fn into_flex_str(self) -> FlexStr {
         self.into_flex()
     }
@@ -514,6 +515,7 @@ where
     /// assert!(b.is_static());
     /// assert_eq!(a, b);
     /// ```
+    #[inline]
     fn into_a_flex_str(self) -> AFlexStr {
         self.into_flex()
     }

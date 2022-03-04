@@ -1,6 +1,6 @@
 [package]
 name = "flexstr"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust"
@@ -15,7 +15,11 @@ edition = "2021"
 all-features = true
 
 [[bench]]
-name = "benches"
+name = "create"
+harness = false
+
+[[bench]]
+name = "clone"
 harness = false
 
 [dependencies]

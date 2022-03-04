@@ -28,6 +28,7 @@ impl InlineFlexStr {
         }
     }
 
+    #[inline]
     unsafe fn new(s: &str) -> Self {
         // SAFETY: This is safe because while uninitialized to start, we copy the the str contents
         // over the top. We check to ensure it is not too long in `try_new` and don't call this
