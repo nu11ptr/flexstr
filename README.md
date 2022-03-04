@@ -234,8 +234,8 @@ fn main() {
 
 ## Benchmarks
 
-Summmary: Creates are fairly expensive (yet) compared to `String`, but clones 
-are MUCH cheaper. 
+Summary: Creates are fairly expensive (yet) compared to `String`, but clones 
+are MUCH cheaper (except when using `Arc`).
 
 Keep in mind even though creates are more expensive that 
 depending on your workload you may earn that back via clones and it will save
@@ -243,28 +243,50 @@ memory as well.
 
 ### Create
 
+#### FlexStr
+
 ```
-create_static_normal    time:   [3.6473 ns 3.6613 ns 3.6782 ns]
-create_inline_small     time:   [9.4807 ns 9.4990 ns 9.5192 ns]
-create_heap_normal      time:   [13.597 ns 13.620 ns 13.647 ns]
-create_heap_large       time:   [19.031 ns 19.062 ns 19.095 ns]
-create_heap_arc_normal  time:   [18.617 ns 18.640 ns 18.664 ns]
-create_heap_arc_large   time:   [24.490 ns 24.532 ns 24.578 ns]
-create_string_small     time:   [7.2761 ns 7.2809 ns 7.2860 ns]
-create_string_normal    time:   [7.6338 ns 7.6401 ns 7.6475 ns]
-create_string_large     time:   [13.227 ns 13.318 ns 13.406 ns]
+create_static_normal    time:   [3.7180 ns 3.7246 ns 3.7311 ns]
+create_inline_small     time:   [9.4513 ns 9.4574 ns 9.4643 ns]
+create_heap_normal      time:   [13.558 ns 13.577 ns 13.596 ns]
+create_heap_large       time:   [19.433 ns 19.451 ns 19.470 ns]
+create_heap_arc_normal  time:   [18.400 ns 18.438 ns 18.490 ns]
+create_heap_arc_large   time:   [25.057 ns 25.155 ns 25.253 ns]
+```
+
+#### Comparables
+
+```
+create_string_small     time:   [6.8949 ns 6.9307 ns 6.9868 ns]
+create_string_normal    time:   [7.8346 ns 7.8390 ns 7.8441 ns]
+create_string_large     time:   [12.852 ns 12.868 ns 12.886 ns]
+create_rc_small         time:   [8.0822 ns 8.1364 ns 8.1810 ns]
+create_rc_normal        time:   [8.3205 ns 8.3502 ns 8.3816 ns]
+create_rc_large         time:   [13.356 ns 13.369 ns 13.384 ns]
+create_arc_small        time:   [8.3220 ns 8.3675 ns 8.4364 ns]
+create_arc_normal       time:   [8.7265 ns 8.7343 ns 8.7434 ns]
+create_arc_large        time:   [13.768 ns 13.816 ns 13.865 ns]
 ```
 
 ### Clone
 
+#### FlexStr
+
 ```
-clone_static_normal     time:   [3.8704 ns 3.8750 ns 3.8799 ns]
-clone_inline_small      time:   [4.5057 ns 4.5090 ns 4.5125 ns]
-clone_heap_normal       time:   [4.4501 ns 4.4546 ns 4.4597 ns]
-clone_heap_arc_normal   time:   [10.701 ns 10.717 ns 10.735 ns]
-clone_string_small      time:   [10.986 ns 11.074 ns 11.164 ns]
-clone_string_normal     time:   [12.817 ns 12.828 ns 12.842 ns]
-clone_string_large      time:   [14.659 ns 14.780 ns 14.889 ns]
+clone_static_normal     time:   [3.9540 ns 3.9572 ns 3.9610 ns]
+clone_inline_small      time:   [4.4717 ns 4.4763 ns 4.4819 ns]
+clone_heap_normal       time:   [4.4738 ns 4.4839 ns 4.4965 ns]
+clone_heap_arc_normal   time:   [10.596 ns 10.607 ns 10.618 ns]
+```
+
+#### Comparables
+
+```
+clone_string_small      time:   [11.774 ns 11.789 ns 11.807 ns]
+clone_string_normal     time:   [12.289 ns 12.422 ns 12.540 ns]
+clone_string_large      time:   [14.931 ns 15.013 ns 15.116 ns]
+clone_rc_normal         time:   [652.97 ps 653.58 ps 654.30 ps]
+clone_arc_normal        time:   [3.2948 ns 3.2986 ns 3.3021 ns]
 ```
 
 ## Negatives
