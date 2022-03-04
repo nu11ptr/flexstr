@@ -6,34 +6,38 @@
 //! ```
 //! use flexstr::{flex_fmt, FlexStr, IntoFlexStr, ToCase, ToFlexStr};
 //!
-//! // Use an `into` function to simply wrap a string literal, no allocation or copying
+//! // Use an `into` function to wrap a literal, no allocation or copying
 //! let static_str = "This will not allocate or copy".into_flex_str();
 //! assert!(static_str.is_static());
 //!
-//! // Strings up to 22 bytes (on 64-bit) will be inlined automatically (demo only, use `into` for literals as above)
+//! // Strings up to 22 bytes (on 64-bit) will be inlined automatically
+//! // (demo only, use `into` for literals as above)
 //! let inline_str = "inlined".to_flex_str();
 //! assert!(inline_str.is_inlined());
 //!
-//! // When a string can't be wrapped or inlined, it wil fall back to heap allocation
+//! // When a string can't be wrapped/inlined, it will heap allocate
 //! let rc_str = "This is too long to be inlined. It will be wrapped in `Rc`".to_flex_str();
 //! assert!(rc_str.is_heap());
 //!
-//! // You can efficiently create new FlexStrs without ever creating a `String`
-//! // This is equivalent to stdlib `format!` macro
+//! // You can efficiently create a new `FlexStr` (without creating a `String`)
+//! // This is equivalent to the stdlib `format!` macro
 //! let inline_str2 = flex_fmt!("in{}", "lined");
 //! assert!(inline_str2.is_inlined());
 //! assert_eq!(inline_str, inline_str2);
 //!
-//! // We can even upper/lower strings without ever using `String` - the below doesn't allocate
+//! // We can upper/lowercase strings without converting to a `String`
+//! // This doesn't heap allocate
 //! let inline_str3: FlexStr = "INLINED".to_ascii_lower();
 //! assert!(inline_str3.is_inlined());
 //! assert_eq!(inline_str, inline_str3);
 //!
-//! // Clone is almost free, even when borrowed (at most it is a ref count increment for heap allocated strings)
+//! // Clone is almost free, even when borrowed
+//! // (at most it is a ref count increment for heap allocated strings)
 //! let static_str2 = (&static_str).clone();
 //! assert!(static_str2.is_static());
 //!
-//! // Regardless of storage type, these all operate seamlessly together and choose storage as required
+//! // Regardless of storage type, these all operate seamlessly together
+//! // and choose storage as required
 //! let heap_str2 = static_str2 + &inline_str;
 //! assert!(heap_str2.is_heap());
 //! assert_eq!(heap_str2, "This will not allocate or copyinlined");  

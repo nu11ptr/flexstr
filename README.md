@@ -4,64 +4,76 @@
 [![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)](https://docs.rs/flexstr)
 
 A flexible, simple to use, immutable, clone-efficient `String` replacement for 
-Rust. It unifies literals, inlined, and heap allocated strings in a single type.
+Rust. It unifies literals, inlined, and heap allocated strings into a single 
+type.
 
 ## Overview
 
 Rust is great, but it's `String` type is optimized as a mutable string 
 buffer, not for typical string use cases. Most string use cases don't 
-modify their string contents, often need to copy strings around as if 
+modify their contents, often need to copy strings around as if 
 they were cheap like integers, typically concatenate instead of modify, and 
 often end up being cloned with identical contents. Additionally, `String` 
-isn't able to wrap a string literal without additional allocation and copying. 
+isn't able to wrap a string literal without additional allocation and copying.
+
 Rust needs a new string type to unify usage of both literals and 
-allocated strings in typical use cases. This crate creates a new string type 
+allocated strings in these typical use cases. This crate creates a new string 
+type 
 that is optimized for those use cases, while retaining the usage simplicity of
 `String`.
 
 This type is not inherently "better" than `String`, but different. It 
-is a higher level type, that can at times mean higher overhead. It really 
-depends on the use case.
+works best in 'typical' string use cases (immutability, concatenation, cheap 
+multi ownership) whereas `String` works better in "string buffer" usage cases
+(mutability, string building, single ownership).
 
-## Examples
+## Installation
+
+NOTE: The serde feature is optional and only included when specified.
 
 ```toml
 [dependencies]
-flexstr = "0.4"
+flexstr = { version = "0.4", features = ["serde"] }
 ```
+
+## Examples
 
 ```rust
 use flexstr::{flex_fmt, FlexStr, IntoFlexStr, ToCase, ToFlexStr};
 
 fn main() {
-  // Use an `into` function to simply wrap a string literal, no allocation or copying
+  // Use an `into` function to wrap a literal, no allocation or copying
   let static_str = "This will not allocate or copy".into_flex_str();
   assert!(static_str.is_static());
 
-  // Strings up to 22 bytes (on 64-bit) will be inlined automatically (demo only, use `into` for literals as above)
+  // Strings up to 22 bytes (on 64-bit) will be inlined automatically 
+  // (demo only, use `into` for literals as above)
   let inline_str = "inlined".to_flex_str();
   assert!(inline_str.is_inlined());
 
-  // When a string can't be wrapped or inlined, it wil fall back to heap allocation
+  // When a string can't be wrapped/inlined, it will heap allocate
   let rc_str = "This is too long to be inlined. It will be wrapped in `Rc`".to_flex_str();
   assert!(rc_str.is_heap());
 
-  // You can efficiently create new FlexStrs without ever creating a `String`
-  // This is equivalent to stdlib `format!` macro
+  // You can efficiently create a new `FlexStr` (without creating a `String`)
+  // This is equivalent to the stdlib `format!` macro
   let inline_str2 = flex_fmt!("in{}", "lined");
   assert!(inline_str2.is_inlined());
   assert_eq!(inline_str, inline_str2);
 
-  // We can even upper/lower strings without ever using `String` - the below doesn't allocate
+  // We can upper/lowercase strings without converting to a `String`
+  // This doesn't heap allocate
   let inline_str3: FlexStr = "INLINED".to_ascii_lower();
   assert!(inline_str3.is_inlined());
   assert_eq!(inline_str, inline_str3);
 
-  // Clone is almost free, even when borrowed (at most it is a ref count increment for heap allocated strings)
+  // Clone is almost free, even when borrowed 
+  // (at most it is a ref count increment for heap allocated strings)
   let static_str2 = (&static_str).clone();
   assert!(static_str2.is_static());
 
-  // Regardless of storage type, these all operate seamlessly together and choose storage as required
+  // Regardless of storage type, these all operate seamlessly together 
+  // and choose storage as required
   let heap_str2 = static_str2 + &inline_str;
   assert!(heap_str2.is_heap());
   assert_eq!(heap_str2, "This will not allocate or copyinlined");
@@ -124,7 +136,7 @@ use flexstr::{IntoAFlexStr, IntoFlexStr, ToFlexStr};
 fn main() {
   // From literal - no copying or allocation
   // NOTE: `to_flex_str` will copy, so use `into_flex_str` for literals
-  let literal = "literal".into_a_flex_str();
+  let literal = "literal".into_flex_str();
 
   // From borrowed string - Copied into inline string
   let owned = "inlined".to_string();
@@ -135,10 +147,10 @@ fn main() {
   let str_to_wrapped = (&owned).to_flex_str();
 
   // From String - copied into inline string (`String` storage released)
-  let inlined = "inlined".to_string().into_a_flex_str();
+  let inlined = "inlined".to_string().into_flex_str();
 
   // From String - `str` wrapped in `Rc` (`String` storage released)
-  let counted = "A bit too long to be inlined!!!".to_string().into_a_flex_str();
+  let counted = "A bit too long to be inlined!!!".to_string().into_flex_str();
 
   // *** If you want a Send/Sync type you need `AFlexStr` instead ***
 
@@ -181,8 +193,8 @@ impl MyStruct {
 
 fn main() {
   // Wrapped literals - no copy or allocation
-  let s = "borrow me".into_a_flex_str();
-  let s2 = "own me".into_a_flex_str();
+  let s = "borrow me".into_flex_str();
+  let s2 = "own me".into_flex_str();
 
   let struct1 = MyStruct::to_own_or_not_to_own(&s);
   let struct2 = MyStruct::to_own_or_not_to_own(&s2);
