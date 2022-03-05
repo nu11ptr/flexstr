@@ -100,14 +100,28 @@ impl<T> FlexStr<T>
 where
     T: Deref<Target = str>,
 {
-    /// Creates a wrapped static string literal
+    /// Creates a wrapped static string literal. This function is equivalent to calling the `into`
+    /// functions on a static string literal.
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = <FlexStr>::from_static("test");
+    /// assert!(s.is_static());
+    /// ```
     #[inline]
     pub fn from_static(s: &'static str) -> FlexStr<T> {
         FlexStr(FlexStrInner::Static(s))
     }
 
     /// Attempts to create an inlined string. Returns new inline string on success or original source
-    /// string as `Err` if it will not fit.
+    /// string as `Err` if it will not fit. Since the to/into functions will automatically inline when
+    /// possible, this function is really only for special use cases.
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = <FlexStr>::try_inline("test").unwrap();
+    /// assert!(s.is_inlined());
+    /// ```
     #[inline]
     pub fn try_inline(s: &str) -> Result<FlexStr<T>, &str> {
         match InlineFlexStr::try_new(s) {
@@ -116,8 +130,15 @@ where
         }
     }
 
-    /// Force the creation of a heap allocated string. Unlike into functions, this will not attempt
-    /// to inline first even if the string is a candidate for inlining.
+    /// Force the creation of a heap allocated string. Unlike to/into functions, this will not attempt
+    /// to inline first even if the string is a candidate for inlining. Using this is generally not
+    /// recommended, and the to/into conversions functions should be preferred.
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = <FlexStr>::heap("test");
+    /// assert!(s.is_heap());
+    /// ```
     #[inline]
     pub fn heap(s: &str) -> FlexStr<T>
     where
@@ -127,15 +148,37 @@ where
     }
 
     /// Returns true if this `FlexStr` is empty
+    /// ```
+    /// use flexstr::ToFlexStr;
+    ///
+    /// let inlined = "".to_flex_str();
+    /// assert!(inlined.is_empty());
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
-        str::is_empty(self)
+        // Due to how inline does deref, I'm guessing this is slightly cheaper by using inline native is_empty
+        match &self.0 {
+            FlexStrInner::Static(str) => str.is_empty(),
+            FlexStrInner::Inlined(s) => s.is_empty(),
+            FlexStrInner::Heap(rc) => rc.is_empty(),
+        }
     }
 
     /// Returns the length of this `FlexStr` in bytes (not chars/graphemes)
+    /// ```
+    /// use flexstr::ToFlexStr;
+    ///
+    /// let inlined = "len".to_flex_str();
+    /// assert_eq!(inlined.len(), 3);
+    /// ```
     #[inline]
     pub fn len(&self) -> usize {
-        str::len(self)
+        // Due to how inline does deref, I'm guessing this is slightly cheaper by using inline native len
+        match &self.0 {
+            FlexStrInner::Static(str) => str.len(),
+            FlexStrInner::Inlined(s) => s.len(),
+            FlexStrInner::Heap(rc) => rc.len(),
+        }
     }
 
     /// Extracts a string slice containing the entire `FlexStr`
@@ -146,17 +189,35 @@ where
 
     /// Returns true if this is a wrapped string literal (`&'static str`)
     #[inline]
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = <FlexStr>::from_static("test");
+    /// assert!(s.is_static());
+    /// ```
     pub fn is_static(&self) -> bool {
         matches!(self.0, FlexStrInner::Static(_))
     }
 
     /// Returns true if this is an inlined string
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = <FlexStr>::try_inline("test").unwrap();
+    /// assert!(s.is_inlined());
+    /// ```
     #[inline]
     pub fn is_inlined(&self) -> bool {
         matches!(self.0, FlexStrInner::Inlined(_))
     }
 
     /// Returns true if this is a wrapped string using heap storage
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = <FlexStr>::heap("test");
+    /// assert!(s.is_heap());
+    /// ```
     #[inline]
     pub fn is_heap(&self) -> bool {
         matches!(self.0, FlexStrInner::Heap(_))
@@ -355,77 +416,30 @@ where
 
 // *** Index ***
 
-impl<T> Index<Range<usize>> for FlexStr<T>
-where
-    T: Deref<Target = str>,
-{
-    type Output = str;
+macro_rules! impl_ranges {
+    ($($type:ty),+) => {
+        $(impl<T> Index<$type> for FlexStr<T>
+        where
+            T: Deref<Target = str>,
+        {
+            type Output = str;
 
-    #[inline]
-    fn index(&self, index: Range<usize>) -> &Self::Output {
-        str::index(self, index)
+            #[inline]
+            fn index(&self, index: $type) -> &Self::Output {
+                str::index(self, index)
+            }
+        })+
     }
 }
 
-impl<T> Index<RangeTo<usize>> for FlexStr<T>
-where
-    T: Deref<Target = str>,
-{
-    type Output = str;
-
-    #[inline]
-    fn index(&self, index: RangeTo<usize>) -> &Self::Output {
-        str::index(self, index)
-    }
-}
-
-impl<T> Index<RangeFrom<usize>> for FlexStr<T>
-where
-    T: Deref<Target = str>,
-{
-    type Output = str;
-
-    #[inline]
-    fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
-        str::index(self, index)
-    }
-}
-
-impl<T> Index<RangeFull> for FlexStr<T>
-where
-    T: Deref<Target = str>,
-{
-    type Output = str;
-
-    #[inline]
-    fn index(&self, index: RangeFull) -> &Self::Output {
-        str::index(self, index)
-    }
-}
-
-impl<T> Index<RangeInclusive<usize>> for FlexStr<T>
-where
-    T: Deref<Target = str>,
-{
-    type Output = str;
-
-    #[inline]
-    fn index(&self, index: RangeInclusive<usize>) -> &Self::Output {
-        str::index(self, index)
-    }
-}
-
-impl<T> Index<RangeToInclusive<usize>> for FlexStr<T>
-where
-    T: Deref<Target = str>,
-{
-    type Output = str;
-
-    #[inline]
-    fn index(&self, index: RangeToInclusive<usize>) -> &Self::Output {
-        str::index(self, index)
-    }
-}
+impl_ranges!(
+    Range<usize>,
+    RangeTo<usize>,
+    RangeFrom<usize>,
+    RangeFull,
+    RangeInclusive<usize>,
+    RangeToInclusive<usize>
+);
 
 // *** Add ***
 

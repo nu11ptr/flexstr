@@ -440,7 +440,7 @@ impl ToFlexStr for str {
 
 impl ToFlexStr for bool {
     /// ```
-    /// use flexstr::{FlexStr, ToFlexStr};
+    /// use flexstr::ToFlexStr;
     ///
     /// let s = false.to_flex_str();
     /// assert!(s.is_static());
@@ -454,7 +454,7 @@ impl ToFlexStr for bool {
 
 impl ToFlexStr for char {
     /// ```
-    /// use flexstr::{FlexStr, ToFlexStr};
+    /// use flexstr::ToFlexStr;
     ///
     /// let s = '☺'.to_flex_str();
     /// assert!(s.is_inlined());
@@ -471,7 +471,7 @@ macro_rules! impl_int_flex_str {
         $(impl ToFlexStr for $type
         {
             /// ```
-            /// use flexstr::{FlexStr, ToFlexStr};
+            /// use flexstr::ToFlexStr;
             ///
             #[doc = concat!("let s = 123", stringify!($type), ".to_flex_str();")]
             /// assert!(s.is_inlined());
@@ -492,7 +492,7 @@ macro_rules! impl_float_flex_str {
         $(impl ToFlexStr for $type
         {
             /// ```
-            /// use flexstr::{FlexStr, ToFlexStr};
+            /// use flexstr::ToFlexStr;
             ///
             #[doc = concat!("let s = 123.456", stringify!($type), ".to_flex_str();")]
             /// assert!(s.is_inlined());
@@ -555,7 +555,7 @@ impl ToAFlexStr for str {
 
 impl ToAFlexStr for bool {
     /// ```
-    /// use flexstr::{FlexStr, ToAFlexStr};
+    /// use flexstr::ToAFlexStr;
     ///
     /// let s = false.to_a_flex_str();
     /// assert!(s.is_static());
@@ -569,7 +569,7 @@ impl ToAFlexStr for bool {
 
 impl ToAFlexStr for char {
     /// ```
-    /// use flexstr::{FlexStr, ToAFlexStr};
+    /// use flexstr::ToAFlexStr;
     ///
     /// let s = '☺'.to_a_flex_str();
     /// assert!(s.is_inlined());
@@ -586,7 +586,7 @@ macro_rules! impl_int_a_flex_str {
         $(impl ToAFlexStr for $type
         {
             /// ```
-            /// use flexstr::{FlexStr, ToAFlexStr};
+            /// use flexstr::ToAFlexStr;
             ///
             #[doc = concat!("let s = 123", stringify!($type), ".to_a_flex_str();")]
             /// assert!(s.is_inlined());
@@ -607,7 +607,7 @@ macro_rules! impl_float_a_flex_str {
         $(impl ToAFlexStr for $type
         {
             /// ```
-            /// use flexstr::{FlexStr, ToAFlexStr};
+            /// use flexstr::ToAFlexStr;
             ///
             #[doc = concat!("let s = 123.456", stringify!($type), ".to_a_flex_str();")]
             /// assert!(s.is_inlined());

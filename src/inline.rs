@@ -56,6 +56,12 @@ impl InlineFlexStr {
         self.len as usize
     }
 
+    /// Return true if the inline string is empty else false
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Attempts to concatenate the `&str` if there is room. It returns true if it is able to do so.
     pub fn try_concat(&mut self, s: &str) -> bool {
         if self.len() + s.len() > MAX_INLINE {
