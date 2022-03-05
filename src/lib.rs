@@ -132,7 +132,7 @@ where
 
     /// Force the creation of a heap allocated string. Unlike to/into functions, this will not attempt
     /// to inline first even if the string is a candidate for inlining. Using this is generally not
-    /// recommended, and the to/into conversions functions should be preferred.
+    /// recommended, and the to/into conversion functions should be preferred.
     /// ```
     /// use flexstr::FlexStr;
     ///
@@ -185,6 +185,20 @@ where
     #[inline]
     pub fn as_str(&self) -> &str {
         &**self
+    }
+
+    /// Converts this `FlexStr` into a `String`. This should be more efficient than using the `ToString`
+    /// trait (which we cannot implement due to a blanket stdlib implementation) as this avoids the
+    /// `Display`-based implementation.
+    /// ```
+    /// use flexstr::IntoFlexStr;
+    ///
+    /// let s = "abc".into_flex_str().to_string();
+    /// assert_eq!(s, "abc");
+    /// ```
+    #[inline]
+    pub fn to_string(&self) -> String {
+        String::from(&**self)
     }
 
     /// Returns true if this is a wrapped string literal (`&'static str`)
