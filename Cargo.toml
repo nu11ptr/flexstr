@@ -1,6 +1,6 @@
 [package]
 name = "flexstr"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust"
@@ -22,7 +22,13 @@ harness = false
 name = "clone"
 harness = false
 
+[[bench]]
+name = "convert"
+harness = false
+
 [dependencies]
+itoa = "1"
+ryu = "1"
 serde = { version = "1", optional = true }
 
 [dev-dependencies]

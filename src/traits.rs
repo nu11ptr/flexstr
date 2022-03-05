@@ -303,7 +303,7 @@ where
 
 impl<T> IntoFlex<T> for char
 where
-    T: From<String> + for<'a> From<&'a str>,
+    T: From<String> + for<'a> From<&'a str> + Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{AFlexStr, IntoFlex};

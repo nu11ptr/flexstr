@@ -63,6 +63,7 @@ use alloc::sync::Arc;
 use core::borrow::Borrow;
 use core::cmp::Ordering;
 use core::convert::Infallible;
+use core::fmt;
 use core::fmt::{Arguments, Debug, Display, Formatter, Write};
 use core::hash::{Hash, Hasher};
 #[cfg(feature = "serde")]
@@ -71,7 +72,6 @@ use core::ops::{
     Add, Deref, Index, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
 };
 use core::str::FromStr;
-use core::{fmt, mem};
 
 use crate::inline::InlineFlexStr;
 #[cfg(feature = "serde")]
@@ -233,6 +233,7 @@ where
     /// let s2: AFlexStr = lit.into();
     /// assert_eq!(s, s2);
     /// ```
+    #[inline]
     fn eq(&self, other: &FlexStr<T2>) -> bool {
         str::eq(self, &**other)
     }
@@ -251,6 +252,7 @@ where
     /// let s2: AFlexStr = lit.into();
     /// assert_eq!(&s, s2);
     /// ```
+    #[inline]
     fn eq(&self, other: &FlexStr<T2>) -> bool {
         str::eq(self, &**other)
     }
@@ -619,7 +621,7 @@ where
 
 impl<T> From<char> for FlexStr<T>
 where
-    T: From<String> + for<'a> From<&'a str>,
+    T: From<String> + for<'a> From<&'a str> + Deref<Target = str>,
 {
     /// ```
     /// use flexstr::FlexStr;
@@ -628,13 +630,77 @@ where
     /// assert!(s.is_inlined());
     /// assert_eq!(&s, "t");
     /// ```
+    #[inline]
     fn from(ch: char) -> Self {
-        let mut builder = builder::FlexStrBuilder::with_capacity(mem::size_of::<char>());
-        // SAFETY: Always succeeds
-        unsafe { builder.write_char(ch).unwrap_unchecked() }
-        builder.into()
+        // SAFETY: Regardless of architecture, 4 bytes will always fit in an inline string
+        unsafe { Self::try_inline(ch.encode_utf8(&mut [0; 4])).unwrap_unchecked() }
     }
 }
+
+impl<T> From<bool> for FlexStr<T>
+where
+    T: Deref<Target = str>,
+{
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s: FlexStr = false.into();
+    /// assert!(s.is_static());
+    /// assert_eq!(s, "false");
+    /// ```
+    #[inline]
+    fn from(b: bool) -> Self {
+        if b { "true" } else { "false" }.into()
+    }
+}
+
+macro_rules! impl_int_from {
+    ($($type:ty),+) => {
+        $(impl<T> From<$type> for FlexStr<T>
+        where
+            T: for<'a> From<&'a str> + From<String>,
+        {
+            /// ```
+            /// use flexstr::FlexStr;
+            ///
+            #[doc = concat!("let s: FlexStr = 123", stringify!($type), ".into();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123");
+            /// ```
+            #[inline]
+            fn from(i: $type) -> Self {
+                let mut buffer = itoa::Buffer::new();
+                buffer.format(i).to_flex()
+            }
+        })+
+    };
+}
+
+impl_int_from!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
+
+macro_rules! impl_float_from {
+    ($($type:ty),+) => {
+        $(impl<T> From<$type> for FlexStr<T>
+        where
+            T: for<'a> From<&'a str> + From<String>,
+        {
+            /// ```
+            /// use flexstr::FlexStr;
+            ///
+            #[doc = concat!("let s: FlexStr = 123.456", stringify!($type), ".into();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123.456");
+            /// ```
+            #[inline]
+            fn from(f: $type) -> Self {
+                let mut buffer = ryu::Buffer::new();
+                buffer.format(f).to_flex()
+            }
+        })+
+    };
+}
+
+impl_float_from!(f32, f64);
 
 // *** FromIterator ***
 

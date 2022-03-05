@@ -236,8 +236,9 @@ fn main() {
 
 ### Create
 
-Heap creates are fairly expensive still compared to `String`, `Rc<str>` and 
-`Arc<str>`, but inline/static creation is very fast as expected.
+Heap creates are fairly expensive still compared to `String` (apparently due 
+to the overhead of creating the enum?), `Rc<str>` and`Arc<str>`, but 
+inline/static creation is very fast as expected.
 
 #### FlexStr
 
@@ -267,8 +268,8 @@ create_arc_large        time:   [13.827 ns 13.855 ns 13.886 ns]
 ### Clone
 
 Clones are MUCH cheaper than `String` (except when using `Arc`). Interested 
-to find out why the single branch op causes such a large differential between 
-the wrapped `Rc<str>`/`Arc<str>` and the raw version.
+to find out why the enum wrapper and single branch op causes such a large 
+differential between the wrapped `Rc<str>`/`Arc<str>` and the raw version.
 
 #### FlexStr
 
@@ -287,6 +288,39 @@ clone_string_normal     time:   [12.289 ns 12.422 ns 12.540 ns]
 clone_string_large      time:   [14.931 ns 15.013 ns 15.116 ns]
 clone_rc_normal         time:   [652.97 ps 653.58 ps 654.30 ps]
 clone_arc_normal        time:   [3.2948 ns 3.2986 ns 3.3021 ns]
+```
+
+### Conversions
+
+Thanks (mostly) to `itoa` and `ryu` our conversions are much faster than 
+`String`.
+
+#### FlexStr
+
+```
+convert_bool            time:   [3.6423 ns 3.6436 ns 3.6449 ns]
+convert_char            time:   [3.7979 ns 3.7995 ns 3.8012 ns]
+convert_i8              time:   [3.1668 ns 3.1744 ns 3.1884 ns]
+convert_i16             time:   [17.009 ns 17.039 ns 17.084 ns]
+convert_i32             time:   [15.509 ns 15.530 ns 15.553 ns]
+convert_i64             time:   [17.836 ns 17.845 ns 17.856 ns]
+convert_i128            time:   [38.833 ns 38.872 ns 38.912 ns]
+convert_f32             time:   [22.940 ns 22.970 ns 22.999 ns]
+convert_f64             time:   [35.064 ns 35.130 ns 35.201 ns]
+```
+
+#### Comparables
+
+```
+convert_string_bool     time:   [18.466 ns 18.505 ns 18.538 ns]
+convert_string_char     time:   [7.2933 ns 7.2966 ns 7.3003 ns]
+convert_string_i8       time:   [7.3838 ns 7.4546 ns 7.5457 ns]
+convert_string_i16      time:   [23.087 ns 23.477 ns 24.025 ns]
+convert_string_i32      time:   [38.577 ns 38.624 ns 38.683 ns]
+convert_string_i64      time:   [43.348 ns 43.396 ns 43.446 ns]
+convert_string_i128     time:   [71.120 ns 71.174 ns 71.225 ns]
+convert_string_f32      time:   [100.24 ns 100.50 ns 100.78 ns]
+convert_string_f64      time:   [179.86 ns 180.00 ns 180.14 ns]
 ```
 
 ## Negatives
