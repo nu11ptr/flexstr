@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use flexstr::FlexStr;
+use flexstr::ToFlexStr;
 
 macro_rules! min_nums {
     ($($name:ident, $type:ty),+) => {
@@ -16,10 +16,7 @@ macro_rules! flex_convert {
     ($($name:literal, $var:ident),+) => {
         pub fn flex_convert(c: &mut Criterion) {
             $(c.bench_function($name, |b| {
-                b.iter(|| {
-                    let i: FlexStr = $var.into();
-                    i
-                })
+                b.iter(|| $var.to_flex_str())
             });)+
         }
     };

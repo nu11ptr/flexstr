@@ -33,7 +33,7 @@ NOTE: The serde feature is optional and only included when specified.
 
 ```toml
 [dependencies]
-flexstr = { version = "0.4", features = ["serde"] }
+flexstr = { version = "0.5", features = ["serde"] }
 ```
 
 ## Examples
@@ -298,15 +298,15 @@ Thanks (mostly) to `itoa` and `ryu` our conversions are much faster than
 #### FlexStr
 
 ```
-convert_bool            time:   [3.6423 ns 3.6436 ns 3.6449 ns]
-convert_char            time:   [3.7979 ns 3.7995 ns 3.8012 ns]
-convert_i8              time:   [3.1668 ns 3.1744 ns 3.1884 ns]
-convert_i16             time:   [17.009 ns 17.039 ns 17.084 ns]
-convert_i32             time:   [15.509 ns 15.530 ns 15.553 ns]
-convert_i64             time:   [17.836 ns 17.845 ns 17.856 ns]
-convert_i128            time:   [38.833 ns 38.872 ns 38.912 ns]
-convert_f32             time:   [22.940 ns 22.970 ns 22.999 ns]
-convert_f64             time:   [35.064 ns 35.130 ns 35.201 ns]
+convert_bool            time:   [3.7080 ns 3.7094 ns 3.7109 ns]
+convert_char            time:   [3.8104 ns 3.8159 ns 3.8222 ns]
+convert_i8              time:   [3.2817 ns 3.2827 ns 3.2838 ns]
+convert_i16             time:   [3.5285 ns 3.5379 ns 3.5511 ns]
+convert_i32             time:   [10.568 ns 10.575 ns 10.582 ns]
+convert_i64             time:   [7.6351 ns 7.6390 ns 7.6430 ns]
+convert_i128            time:   [38.756 ns 38.787 ns 38.821 ns]
+convert_f32             time:   [24.669 ns 24.692 ns 24.721 ns]
+convert_f64             time:   [33.105 ns 33.145 ns 33.184 ns]
 ```
 
 #### Comparables

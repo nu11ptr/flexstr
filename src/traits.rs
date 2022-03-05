@@ -209,6 +209,88 @@ where
     }
 }
 
+impl<T> ToFlex<T> for bool
+where
+    T: Deref<Target = str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr, ToFlex};
+    ///
+    /// let s: FlexStr = false.to_flex();
+    /// assert!(s.is_static());
+    /// assert_eq!(s, "false");
+    /// ```
+    #[inline]
+    fn to_flex(&self) -> FlexStr<T> {
+        if *self { "true" } else { "false" }.into()
+    }
+}
+
+impl<T> ToFlex<T> for char
+where
+    T: for<'a> From<&'a str> + From<String> + Deref<Target = str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr, ToFlex};
+    ///
+    /// let s: FlexStr = '☺'.to_flex();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "☺");
+    /// ```
+    #[inline]
+    fn to_flex(&self) -> FlexStr<T> {
+        (*self).into()
+    }
+}
+
+macro_rules! impl_int_flex {
+    ($($type:ty),+) => {
+        $(impl<T> ToFlex<T> for $type
+        where
+            T: for<'a> From<&'a str>,
+        {
+            /// ```
+            /// use flexstr::{FlexStr, ToFlex};
+            ///
+            #[doc = concat!("let s: FlexStr = 123", stringify!($type), ".to_flex();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123");
+            /// ```
+            #[inline]
+            fn to_flex(&self) -> FlexStr<T> {
+                let mut buffer = itoa::Buffer::new();
+                buffer.format(*self).to_flex()
+            }
+        })+
+    };
+}
+
+impl_int_flex!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
+
+macro_rules! impl_float_flex {
+    ($($type:ty),+) => {
+        $(impl<T> ToFlex<T> for $type
+        where
+            T: for<'a> From<&'a str>,
+        {
+            /// ```
+            /// use flexstr::{FlexStr, ToFlex};
+            ///
+            #[doc = concat!("let s: FlexStr = 123.456", stringify!($type), ".to_flex();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123.456");
+            /// ```
+            #[inline]
+            fn to_flex(&self) -> FlexStr<T> {
+                let mut buffer = ryu::Buffer::new();
+                buffer.format(*self).to_flex()
+            }
+        })+
+    };
+}
+
+impl_float_flex!(f32, f64);
+
 // *** Generic `Into` Custom Traits ***
 
 /// A trait that converts the source to a `FlexStr<T>` while consuming the original
@@ -301,23 +383,6 @@ where
     }
 }
 
-impl<T> IntoFlex<T> for char
-where
-    T: From<String> + for<'a> From<&'a str> + Deref<Target = str>,
-{
-    /// ```
-    /// use flexstr::{AFlexStr, IntoFlex};
-    ///
-    /// let a: AFlexStr = 't'.into_flex();
-    /// assert!(a.is_inlined());
-    /// assert_eq!(a, "t");
-    /// ```
-    #[inline]
-    fn into_flex(self) -> FlexStr<T> {
-        self.into()
-    }
-}
-
 impl<T> IntoFlex<T> for builder::FlexStrBuilder
 where
     T: From<String> + for<'a> From<&'a str>,
@@ -373,6 +438,76 @@ impl ToFlexStr for str {
     }
 }
 
+impl ToFlexStr for bool {
+    /// ```
+    /// use flexstr::{FlexStr, ToFlexStr};
+    ///
+    /// let s = false.to_flex_str();
+    /// assert!(s.is_static());
+    /// assert_eq!(s, "false");
+    /// ```
+    #[inline]
+    fn to_flex_str(&self) -> FlexStr {
+        self.to_flex()
+    }
+}
+
+impl ToFlexStr for char {
+    /// ```
+    /// use flexstr::{FlexStr, ToFlexStr};
+    ///
+    /// let s = '☺'.to_flex_str();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "☺");
+    /// ```
+    #[inline]
+    fn to_flex_str(&self) -> FlexStr {
+        self.to_flex()
+    }
+}
+
+macro_rules! impl_int_flex_str {
+    ($($type:ty),+) => {
+        $(impl ToFlexStr for $type
+        {
+            /// ```
+            /// use flexstr::{FlexStr, ToFlexStr};
+            ///
+            #[doc = concat!("let s = 123", stringify!($type), ".to_flex_str();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123");
+            /// ```
+            #[inline]
+            fn to_flex_str(&self) -> FlexStr {
+                self.to_flex()
+            }
+        })+
+    };
+}
+
+impl_int_flex_str!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
+
+macro_rules! impl_float_flex_str {
+    ($($type:ty),+) => {
+        $(impl ToFlexStr for $type
+        {
+            /// ```
+            /// use flexstr::{FlexStr, ToFlexStr};
+            ///
+            #[doc = concat!("let s = 123.456", stringify!($type), ".to_flex_str();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123.456");
+            /// ```
+            #[inline]
+            fn to_flex_str(&self) -> FlexStr {
+                self.to_flex()
+            }
+        })+
+    };
+}
+
+impl_float_flex_str!(f32, f64);
+
 // *** AFlexStr `To` Traits ***
 
 /// A trait that converts the source to an `AFlexStr` without consuming it
@@ -417,6 +552,76 @@ impl ToAFlexStr for str {
         self.to_flex()
     }
 }
+
+impl ToAFlexStr for bool {
+    /// ```
+    /// use flexstr::{FlexStr, ToAFlexStr};
+    ///
+    /// let s = false.to_a_flex_str();
+    /// assert!(s.is_static());
+    /// assert_eq!(s, "false");
+    /// ```
+    #[inline]
+    fn to_a_flex_str(&self) -> AFlexStr {
+        self.to_flex()
+    }
+}
+
+impl ToAFlexStr for char {
+    /// ```
+    /// use flexstr::{FlexStr, ToAFlexStr};
+    ///
+    /// let s = '☺'.to_a_flex_str();
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "☺");
+    /// ```
+    #[inline]
+    fn to_a_flex_str(&self) -> AFlexStr {
+        self.to_flex()
+    }
+}
+
+macro_rules! impl_int_a_flex_str {
+    ($($type:ty),+) => {
+        $(impl ToAFlexStr for $type
+        {
+            /// ```
+            /// use flexstr::{FlexStr, ToAFlexStr};
+            ///
+            #[doc = concat!("let s = 123", stringify!($type), ".to_a_flex_str();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123");
+            /// ```
+            #[inline]
+            fn to_a_flex_str(&self) -> AFlexStr {
+                self.to_flex()
+            }
+        })+
+    };
+}
+
+impl_int_a_flex_str!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
+
+macro_rules! impl_float_a_flex_str {
+    ($($type:ty),+) => {
+        $(impl ToAFlexStr for $type
+        {
+            /// ```
+            /// use flexstr::{FlexStr, ToAFlexStr};
+            ///
+            #[doc = concat!("let s = 123.456", stringify!($type), ".to_a_flex_str();")]
+            /// assert!(s.is_inlined());
+            /// assert_eq!(s, "123.456");
+            /// ```
+            #[inline]
+            fn to_a_flex_str(&self) -> AFlexStr {
+                self.to_flex()
+            }
+        })+
+    };
+}
+
+impl_float_a_flex_str!(f32, f64);
 
 // *** FlexStr `Into` Traits ***
 
@@ -477,20 +682,6 @@ impl IntoFlexStr for String {
     }
 }
 
-impl IntoFlexStr for char {
-    /// ```
-    /// use flexstr::IntoFlexStr;
-    ///
-    /// let a = 't'.into_flex_str();
-    /// assert!(a.is_inlined());
-    /// assert_eq!(a, "t");
-    /// ```
-    #[inline]
-    fn into_flex_str(self) -> FlexStr {
-        self.into()
-    }
-}
-
 // *** AFlexStr `Into` Traits ***
 
 /// A trait that converts the source to a `AFlexStr` while consuming the original
@@ -543,20 +734,6 @@ impl IntoAFlexStr for String {
     ///
     /// let a = "This is a heap allocated string since it is a `String`".to_string().into_a_flex_str();
     /// assert!(a.is_heap());
-    /// ```
-    #[inline]
-    fn into_a_flex_str(self) -> AFlexStr {
-        self.into()
-    }
-}
-
-impl IntoAFlexStr for char {
-    /// ```
-    /// use flexstr::IntoAFlexStr;
-    ///
-    /// let a = 't'.into_a_flex_str();
-    /// assert!(a.is_inlined());
-    /// assert_eq!(a, "t");
     /// ```
     #[inline]
     fn into_a_flex_str(self) -> AFlexStr {
