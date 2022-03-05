@@ -2,7 +2,6 @@
 
 use crate::{builder, AFlexStr, FlexStr, FlexStrInner};
 use alloc::string::String;
-use core::fmt::Write;
 use core::ops::Deref;
 
 // *** ToCase custom trait ***
@@ -88,8 +87,7 @@ where
         for ch in self.chars() {
             let upper_chars = ch.to_uppercase();
             for ch in upper_chars {
-                // SAFETY: Wraps `write_str` which always succeeds
-                unsafe { builder.write_char(ch).unwrap_unchecked() }
+                builder.char_write(ch);
             }
         }
 
@@ -109,8 +107,7 @@ where
         for ch in self.chars() {
             let lower_chars = ch.to_lowercase();
             for ch in lower_chars {
-                // SAFETY: Wraps `write_str` which always succeeds
-                unsafe { builder.write_char(ch).unwrap_unchecked() }
+                builder.char_write(ch);
             }
         }
 
@@ -128,8 +125,7 @@ where
 
         for mut ch in self.chars() {
             char::make_ascii_uppercase(&mut ch);
-            // SAFETY: Wraps `write_str` which always succeeds
-            unsafe { builder.write_char(ch).unwrap_unchecked() }
+            builder.char_write(ch);
         }
 
         builder.into()
@@ -146,8 +142,7 @@ where
 
         for mut ch in self.chars() {
             char::make_ascii_lowercase(&mut ch);
-            // SAFETY: Wraps `write_str` which always succeeds
-            unsafe { builder.write_char(ch).unwrap_unchecked() }
+            builder.char_write(ch);
         }
 
         builder.into()

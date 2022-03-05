@@ -152,11 +152,26 @@ impl FlexStrBuilder {
         let required_cap = buffer.len() + s.len();
         // Start with a capacity twice the size of what is needed (to try and avoid future heap allocations)
         let mut buffer = buffer.to_string_buffer(required_cap * 2);
-        // SAFETY: This always succeeds for String
+        // SAFETY: This always succeeds for String per stdlib
         unsafe {
             buffer.write_str(s).unwrap_unchecked();
         }
         FlexStrBuilder::Large(buffer)
+    }
+
+    #[inline]
+    pub fn str_write(&mut self, s: &str) {
+        // SAFETY: This always succeeds - buffer will be promoted until it eventually becomes a
+        // `String` which cannot fail per stdlib docs
+        unsafe {
+            self.write_str(s).unwrap_unchecked();
+        }
+    }
+
+    #[inline]
+    pub fn char_write(&mut self, c: char) {
+        // SAFETY: Wraps `write_str` which always succeeds per above
+        unsafe { self.write_char(c).unwrap_unchecked() }
     }
 }
 
@@ -184,6 +199,7 @@ impl Write for FlexStrBuilder {
                     Ok(())
                 }
             }
+            // This always succeeds per stdlib docs
             FlexStrBuilder::Large(buffer) => buffer.write_str(s),
         }
     }

@@ -462,11 +462,8 @@ where
     T: From<String> + for<'a> From<&'a str>,
 {
     let mut builder = builder::FlexStrBuilder::with_capacity(s1.len() + s2.len());
-    unsafe {
-        // SAFETY: write_str always succeeds
-        builder.write_str(s1).unwrap_unchecked();
-        builder.write_str(s2).unwrap_unchecked();
-    }
+    builder.str_write(s1);
+    builder.str_write(s2);
     builder.into()
 }
 
@@ -679,10 +676,7 @@ where
     // for a good capacity # without cloning it (which might be expensive)
     let mut builder = builder::FlexStrBuilder::new();
     for s in iter {
-        // SAFETY: Always succeeds
-        unsafe {
-            builder.write_str(s.as_ref()).unwrap_unchecked();
-        }
+        builder.str_write(s.as_ref());
     }
     builder.into()
 }
@@ -698,10 +692,7 @@ where
 
     let mut builder = builder::FlexStrBuilder::with_capacity(lower);
     for ch in iter {
-        // SAFETY: Always succeeds
-        unsafe {
-            builder.write_char(f(ch)).unwrap_unchecked();
-        }
+        builder.char_write(f(ch));
     }
     builder.into()
 }
