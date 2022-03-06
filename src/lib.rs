@@ -879,7 +879,7 @@ where
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder.into_flex()
+    builder.into()
 }
 
 /// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`

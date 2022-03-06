@@ -31,7 +31,7 @@ impl<const N: usize> StringBuffer<N> {
     }
 
     #[inline]
-    pub fn capacity(&self) -> usize {
+    pub fn capacity() -> usize {
         N
     }
 
@@ -91,7 +91,7 @@ impl<const N: usize> StringBuffer<N> {
     pub fn write(&mut self, s: &str) -> bool {
         let len = self.len();
 
-        if (self.capacity() - len) >= s.len() {
+        if (Self::capacity() - len) >= s.len() {
             let buffer = &mut self.buffer[len..];
 
             unsafe {
@@ -125,13 +125,14 @@ impl<const N: usize> Deref for StringBuffer<N> {
 // *** FlexStr Builder ***
 
 #[allow(clippy::large_enum_variant)]
-pub(crate) enum FlexStrBuilder {
-    Small(StringBuffer<STRING_SIZED_INLINE>),
-    Regular(StringBuffer<BUFFER_SIZE>),
+pub(crate) enum FlexStrBuilder<const N: usize = STRING_SIZED_INLINE, const N2: usize = BUFFER_SIZE>
+{
+    Small(StringBuffer<N>),
+    Regular(StringBuffer<N2>),
     Large(String),
 }
 
-impl FlexStrBuilder {
+impl<const N: usize, const N2: usize> FlexStrBuilder<N, N2> {
     #[inline]
     pub fn new() -> Self {
         // TODO: Is it worth assuming inline size if we don't know the capacity needed???
@@ -140,9 +141,9 @@ impl FlexStrBuilder {
 
     #[inline]
     pub fn with_capacity(cap: usize) -> Self {
-        if cap <= STRING_SIZED_INLINE {
+        if cap <= N {
             FlexStrBuilder::Small(StringBuffer::new())
-        } else if cap <= BUFFER_SIZE {
+        } else if cap <= N2 {
             FlexStrBuilder::Regular(StringBuffer::new())
         } else {
             FlexStrBuilder::Large(String::with_capacity(cap))
@@ -150,10 +151,7 @@ impl FlexStrBuilder {
     }
 
     #[inline]
-    fn create_string_and_write<const N: usize>(
-        buffer: &mut StringBuffer<N>,
-        s: &str,
-    ) -> FlexStrBuilder {
+    fn create_string_and_write<const N3: usize>(buffer: &mut StringBuffer<N3>, s: &str) -> Self {
         let required_cap = buffer.len() + s.len();
         // Start with a capacity twice the size of what is needed (to try and avoid future heap allocations)
         let mut buffer = buffer.to_string_buffer(required_cap * 2);
@@ -180,7 +178,7 @@ impl FlexStrBuilder {
     }
 }
 
-impl Write for FlexStrBuilder {
+impl<const N: usize, const N2: usize> Write for FlexStrBuilder<N, N2> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         match self {
             FlexStrBuilder::Small(buffer) => {
