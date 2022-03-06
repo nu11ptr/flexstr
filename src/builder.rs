@@ -3,7 +3,7 @@ use core::fmt::Write;
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
-use crate::inline::MAX_INLINE;
+use crate::inline::STRING_SIZED_INLINE;
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
 pub(crate) const BUFFER_SIZE: usize = 1024;
@@ -126,7 +126,7 @@ impl<const N: usize> Deref for StringBuffer<N> {
 
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum FlexStrBuilder {
-    Small(StringBuffer<MAX_INLINE>),
+    Small(StringBuffer<STRING_SIZED_INLINE>),
     Regular(StringBuffer<BUFFER_SIZE>),
     Large(String),
 }
@@ -140,7 +140,7 @@ impl FlexStrBuilder {
 
     #[inline]
     pub fn with_capacity(cap: usize) -> Self {
-        if cap <= MAX_INLINE {
+        if cap <= STRING_SIZED_INLINE {
             FlexStrBuilder::Small(StringBuffer::new())
         } else if cap <= BUFFER_SIZE {
             FlexStrBuilder::Regular(StringBuffer::new())
@@ -216,14 +216,14 @@ mod tests {
     use core::fmt::Write;
 
     use crate::builder::{FlexStrBuilder, StringBuffer, BUFFER_SIZE};
-    use crate::inline::MAX_INLINE;
+    use crate::inline::STRING_SIZED_INLINE;
     use crate::FlexStr;
 
     #[test]
     fn string_buffer() {
         // Write 1
         let write1 = "test";
-        let mut buffer: StringBuffer<MAX_INLINE> = StringBuffer::new();
+        let mut buffer: StringBuffer<STRING_SIZED_INLINE> = StringBuffer::new();
         assert!(buffer.is_empty());
         assert!(buffer.write(write1));
         assert_eq!(buffer.len(), write1.len());

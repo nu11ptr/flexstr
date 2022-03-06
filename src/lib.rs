@@ -73,7 +73,8 @@ use core::ops::{
 };
 use core::str::FromStr;
 
-use crate::inline::InlineFlexStr;
+use crate::inline::STRING_SIZED_INLINE;
+
 #[cfg(feature = "serde")]
 use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
@@ -84,7 +85,7 @@ enum FlexStrInner<T> {
     /// A wrapped string literal
     Static(&'static str),
     /// An inlined string
-    Inlined(inline::InlineFlexStr),
+    Inlined(inline::InlineFlexStr<STRING_SIZED_INLINE>),
     /// A reference count wrapped `str`
     Heap(T),
 }
@@ -126,7 +127,7 @@ where
     /// ```
     #[inline]
     pub fn try_inline(s: &str) -> Result<FlexStr<T>, &str> {
-        match InlineFlexStr::try_new(s) {
+        match inline::InlineFlexStr::try_new(s) {
             Ok(s) => Ok(FlexStr(FlexStrInner::Inlined(s))),
             Err(s) => Err(s),
         }

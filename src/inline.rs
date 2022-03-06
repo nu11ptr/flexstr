@@ -4,27 +4,27 @@ use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
 /// The max capacity of an inline string (in bytes)
-pub(crate) const MAX_INLINE: usize = mem::size_of::<String>() - 2;
+pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used
 /// transparently by `FlexStr` and `AFlexStr`
 #[derive(Clone, Copy)]
-pub(crate) struct InlineFlexStr {
-    data: [mem::MaybeUninit<u8>; MAX_INLINE],
+pub(crate) struct InlineFlexStr<const N: usize = STRING_SIZED_INLINE> {
+    data: [mem::MaybeUninit<u8>; N],
     len: u8,
 }
 
-impl InlineFlexStr {
+impl<const N: usize> InlineFlexStr<N> {
     /// Attempts to return a new `InlineFlexStr` if the source string is short enough to be copied.
     /// If not, the source is returned as the error.
     #[inline]
     pub fn try_new<T: AsRef<str>>(s: T) -> Result<Self, T> {
         let s_ref = s.as_ref();
 
-        if s_ref.len() > MAX_INLINE {
-            Err(s)
-        } else {
+        if s_ref.len() <= Self::capacity() {
             unsafe { Ok(Self::new(s_ref)) }
+        } else {
+            Err(s)
         }
     }
 
@@ -35,7 +35,7 @@ impl InlineFlexStr {
         // function directly. The copy is restrained to the length of the str.
 
         // Declare array, but keep uninitialized (we will overwrite momentarily)
-        let mut data: [mem::MaybeUninit<u8>; MAX_INLINE] = mem::MaybeUninit::uninit().assume_init();
+        let mut data: [mem::MaybeUninit<u8>; N] = mem::MaybeUninit::uninit().assume_init();
         // Copy contents of &str to our data buffer
         ptr::copy_nonoverlapping(s.as_ptr(), data.as_mut_ptr().cast::<u8>(), s.len());
 
@@ -46,8 +46,14 @@ impl InlineFlexStr {
     }
 
     #[inline]
-    pub(crate) fn from_array(data: [mem::MaybeUninit<u8>; MAX_INLINE], len: u8) -> Self {
+    pub(crate) fn from_array(data: [mem::MaybeUninit<u8>; N], len: u8) -> Self {
         Self { data, len }
+    }
+
+    /// Returns the capacity of this inline string
+    #[inline]
+    pub fn capacity() -> usize {
+        N
     }
 
     /// Returns the length of this `InlineFlexStr` in bytes
@@ -65,7 +71,7 @@ impl InlineFlexStr {
     /// Attempts to concatenate the `&str` if there is room. It returns true if it is able to do so.
     #[inline]
     pub fn try_concat(&mut self, s: &str) -> bool {
-        if self.len() + s.len() <= MAX_INLINE {
+        if self.len() + s.len() <= Self::capacity() {
             // Point to the location directly after our string
             let data = self.data[self.len as usize..].as_mut_ptr().cast::<u8>();
 
@@ -83,14 +89,14 @@ impl InlineFlexStr {
     }
 }
 
-impl Debug for InlineFlexStr {
+impl<const N: usize> Debug for InlineFlexStr<N> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         <str as Debug>::fmt(self, f)
     }
 }
 
-impl Deref for InlineFlexStr {
+impl<const N: usize> Deref for InlineFlexStr<N> {
     type Target = str;
 
     #[inline]
@@ -106,7 +112,7 @@ impl Deref for InlineFlexStr {
     }
 }
 
-impl TryFrom<String> for InlineFlexStr {
+impl<const N: usize> TryFrom<String> for InlineFlexStr<N> {
     type Error = String;
 
     #[inline]
@@ -115,7 +121,7 @@ impl TryFrom<String> for InlineFlexStr {
     }
 }
 
-impl<'s> TryFrom<&'s String> for InlineFlexStr {
+impl<'s, const N: usize> TryFrom<&'s String> for InlineFlexStr<N> {
     type Error = &'s String;
 
     #[inline]
@@ -124,7 +130,7 @@ impl<'s> TryFrom<&'s String> for InlineFlexStr {
     }
 }
 
-impl<'s> TryFrom<&'s str> for InlineFlexStr {
+impl<'s, const N: usize> TryFrom<&'s str> for InlineFlexStr<N> {
     type Error = &'s str;
 
     #[inline]
@@ -157,7 +163,7 @@ mod tests {
     #[test]
     fn bad_init() {
         let lit = "This is way too long to be an inline string!!!";
-        let s = InlineFlexStr::try_new(lit).unwrap_err();
+        let s = <InlineFlexStr>::try_new(lit).unwrap_err();
         assert_eq!(s, lit);
         assert_eq!(s.len(), lit.len())
     }
@@ -166,7 +172,7 @@ mod tests {
     fn good_concat() {
         let lit = "Inline";
         let lit2 = " me";
-        let mut s = InlineFlexStr::try_new(lit).expect("bad inline str");
+        let mut s = <InlineFlexStr>::try_new(lit).expect("bad inline str");
         assert!(s.try_concat(lit2));
         assert_eq!(&*s, lit.to_string() + lit2);
     }
@@ -175,7 +181,7 @@ mod tests {
     fn bad_concat() {
         let lit = "This is";
         let lit2 = " way too long to be an inline string!!!";
-        let mut s = InlineFlexStr::try_new(lit).expect("bad inline str");
+        let mut s = <InlineFlexStr>::try_new(lit).expect("bad inline str");
         assert!(!s.try_concat(lit2));
         assert_eq!(&*s, lit);
     }
