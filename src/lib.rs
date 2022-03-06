@@ -479,14 +479,14 @@ where
     /// assert_eq!(a, "inline");
     /// ```
     #[inline]
-    fn add(self, rhs: &str) -> Self::Output {
+    fn add(mut self, rhs: &str) -> Self::Output {
         match self.0 {
             FlexStrInner::Static(s) => concat(s, rhs),
-            FlexStrInner::Inlined(mut s) => {
+            FlexStrInner::Inlined(ref mut s) => {
                 if s.try_concat(rhs) {
-                    FlexStr(FlexStrInner::Inlined(s))
+                    self
                 } else {
-                    concat(&s, rhs)
+                    concat(s, rhs)
                 }
             }
             FlexStrInner::Heap(s) => concat(&s, rhs),

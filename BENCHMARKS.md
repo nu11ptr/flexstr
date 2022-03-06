@@ -96,23 +96,22 @@ Formatting is a little faster with inline and a little slower with heap
 based, but roughly the same. I suspect `format_args!` dominates the time
 and is known to be slow, and they both use it.
 
-Addition is surprisingly slow on both inline and static strings. 
-That code path will need to be looked at for optimizations. Heap additions 
-are somewhat slower as well.
+Addition is surprisingly slow on static strings. That code path will need to 
+be looked at for optimizations. Heap additions are somewhat slower as well.
 
 Repetition of strings is more or less the same.
 
 ```
-format_inline_short     time:    [47.147 ns 47.566 ns 48.096 ns]
-format_heap_rc_long     time:    [83.948 ns 84.067 ns 84.192 ns]
-format_heap_arc_long    time:    [87.600 ns 87.900 ns 88.477 ns]
-add_static_small        time:    [32.212 ns 32.262 ns 32.304 ns]
-add_inline_small        time:    [17.247 ns 17.271 ns 17.295 ns]
-add_heap_rc_normal      time:    [56.522 ns 56.796 ns 57.142 ns]
-add_heap_arc_normal     time:    [56.504 ns 56.539 ns 56.574 ns]
-repeat_inline_tiny10    time:    [27.500 ns 27.576 ns 27.680 ns]
-repeat_heap_rc_normal10 time:    [47.161 ns 47.228 ns 47.294 ns]
-repeat_heap_arc_normal10 time:   [46.882 ns 46.935 ns 46.993 ns]
+format_inline_short      time:   [47.185 ns 47.502 ns 47.824 ns]
+format_heap_rc_long      time:   [81.865 ns 82.100 ns 82.424 ns]
+format_heap_arc_long     time:   [92.182 ns 92.439 ns 92.750 ns]
+add_static_small         time:   [36.137 ns 36.197 ns 36.245 ns]
+add_inline_small         time:   [9.6935 ns 9.6993 ns 9.7047 ns]
+add_heap_rc_normal       time:   [56.524 ns 56.572 ns 56.618 ns]
+add_heap_arc_normal      time:   [59.094 ns 59.126 ns 59.158 ns]
+repeat_inline_tiny10     time:   [26.938 ns 27.074 ns 27.221 ns]
+repeat_heap_rc_normal10  time:   [46.060 ns 46.300 ns 46.634 ns]
+repeat_heap_arc_normal10 time:   [44.603 ns 44.683 ns 44.766 ns]
 ```
 
 ### Comparables
