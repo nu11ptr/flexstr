@@ -63,10 +63,9 @@ impl InlineFlexStr {
     }
 
     /// Attempts to concatenate the `&str` if there is room. It returns true if it is able to do so.
+    #[inline]
     pub fn try_concat(&mut self, s: &str) -> bool {
-        if self.len() + s.len() > MAX_INLINE {
-            false
-        } else {
+        if self.len() + s.len() <= MAX_INLINE {
             // Point to the location directly after our string
             let data = self.data[self.len as usize..].as_mut_ptr().cast::<u8>();
 
@@ -78,6 +77,8 @@ impl InlineFlexStr {
             }
             self.len += s.len() as u8;
             true
+        } else {
+            false
         }
     }
 }
@@ -92,6 +93,7 @@ impl Debug for InlineFlexStr {
 impl Deref for InlineFlexStr {
     type Target = str;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         let data = &self.data[..self.len()];
 

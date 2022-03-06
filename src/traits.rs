@@ -40,6 +40,7 @@ where
     /// assert!(s.is_inlined());
     /// assert_eq!(s, "a".repeat(10));
     /// ```
+    #[inline]
     fn repeat_n(&self, n: usize) -> FlexStr<T> {
         let cap = self.len() * n;
         let mut builder = FlexStrBuilder::with_capacity(cap);

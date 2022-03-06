@@ -198,6 +198,7 @@ where
     /// let s = "abc".into_flex_str().to_string();
     /// assert_eq!(s, "abc");
     /// ```
+    #[allow(clippy::inherent_to_string_shadow_display)]
     #[inline]
     pub fn to_string(&self) -> String {
         String::from(&**self)
@@ -449,6 +450,7 @@ impl_ranges!(
 
 // *** Add ***
 
+#[inline]
 fn concat<T>(s1: &str, s2: &str) -> FlexStr<T>
 where
     T: From<String> + for<'a> From<&'a str>,
@@ -656,6 +658,7 @@ where
 
 // *** FromIterator ***
 
+#[inline]
 fn from_iter_str<I, T, U>(iter: I) -> FlexStr<T>
 where
     I: IntoIterator<Item = U>,
@@ -673,6 +676,7 @@ where
     builder.into()
 }
 
+#[inline]
 fn from_iter_char<I, F, T, U>(iter: I, f: F) -> FlexStr<T>
 where
     I: IntoIterator<Item = U>,

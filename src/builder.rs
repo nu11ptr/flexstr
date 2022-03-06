@@ -17,6 +17,7 @@ pub(crate) struct StringBuffer<const N: usize> {
 }
 
 impl<const N: usize> StringBuffer<N> {
+    #[inline]
     pub fn new() -> Self {
         unsafe {
             // SAFETY: This should all be ok, because we will never read more then `len` which is
@@ -50,6 +51,7 @@ impl<const N: usize> StringBuffer<N> {
     }
 
     /// Create a new large string buffer copying the existing content
+    #[inline]
     pub fn to_large_buffer<const N2: usize>(&self) -> StringBuffer<N2> {
         let mut buffer = StringBuffer::new();
 
@@ -74,6 +76,7 @@ impl<const N: usize> StringBuffer<N> {
     }
 
     /// Create a new heap allocated string buffer copying the existing content
+    #[inline]
     pub fn to_string_buffer(&self, cap: usize) -> String {
         let mut buffer = String::with_capacity(cap);
 
@@ -106,6 +109,7 @@ impl<const N: usize> StringBuffer<N> {
 impl<const N: usize> Deref for StringBuffer<N> {
     type Target = str;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         let buffer = &self.buffer[..self.len()];
 
@@ -145,6 +149,7 @@ impl FlexStrBuilder {
         }
     }
 
+    #[inline]
     fn create_string_and_write<const N: usize>(
         buffer: &mut StringBuffer<N>,
         s: &str,

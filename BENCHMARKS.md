@@ -1,6 +1,6 @@
 # Benchmarks
 
-## Create
+## Create and Destroy
 
 `Rc`-based heap creates are about 50% more expensive compared to `String` 
 and `Arc`-based approx. twice as slow. Inline/static creation is very fast as 
@@ -33,7 +33,7 @@ create_arc_large        time:   [13.827 ns 13.855 ns 13.886 ns]
 
 ## Clone
 
-Clones are MUCH cheaper than `String` (except when using `Arc`, a which 
+Clones are MUCH cheaper than `String` (except when using `Arc`, at which 
 point they are only slightly faster, but still save memory).
 
 ### FlexStr
@@ -86,4 +86,42 @@ convert_string_i64      time:   [43.348 ns 43.396 ns 43.446 ns]
 convert_string_i128     time:   [71.120 ns 71.174 ns 71.225 ns]
 convert_string_f32      time:   [100.24 ns 100.50 ns 100.78 ns]
 convert_string_f64      time:   [179.86 ns 180.00 ns 180.14 ns]
+```
+
+## Operations
+
+### FlexStr
+
+Formatting is a little faster with inline and a little slower with heap 
+based, but roughly the same. I suspect `format_args!` dominates the time
+and is known to be slow, and they both use it.
+
+Addition is surprisingly slow on both inline and static strings. 
+That code path will need to be looked at for optimizations. Heap additions 
+are somewhat slower as well.
+
+Repetition of strings is more or less the same.
+
+```
+format_inline_short     time:    [47.147 ns 47.566 ns 48.096 ns]
+format_heap_rc_long     time:    [83.948 ns 84.067 ns 84.192 ns]
+format_heap_arc_long    time:    [87.600 ns 87.900 ns 88.477 ns]
+add_static_small        time:    [32.212 ns 32.262 ns 32.304 ns]
+add_inline_small        time:    [17.247 ns 17.271 ns 17.295 ns]
+add_heap_rc_normal      time:    [56.522 ns 56.796 ns 57.142 ns]
+add_heap_arc_normal     time:    [56.504 ns 56.539 ns 56.574 ns]
+repeat_inline_tiny10    time:    [27.500 ns 27.576 ns 27.680 ns]
+repeat_heap_rc_normal10 time:    [47.161 ns 47.228 ns 47.294 ns]
+repeat_heap_arc_normal10 time:   [46.882 ns 46.935 ns 46.993 ns]
+```
+
+### Comparables
+
+```
+format_string_short     time:   [53.822 ns 54.099 ns 54.412 ns]
+format_string_long      time:   [72.984 ns 73.308 ns 73.802 ns]
+add_string_small        time:   [16.496 ns 16.541 ns 16.586 ns]
+add_string_normal       time:   [32.962 ns 33.044 ns 33.132 ns]
+repeat_string_tiny10    time:   [27.783 ns 27.800 ns 27.816 ns]
+repeat_string_normal10  time:   [44.734 ns 44.837 ns 44.953 ns]
 ```
