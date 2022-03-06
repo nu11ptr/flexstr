@@ -33,7 +33,7 @@ NOTE: The serde feature is optional and only included when specified.
 
 ```toml
 [dependencies]
-flexstr = { version = "0.5", features = ["serde"] }
+flexstr = { version = "0.6", features = ["serde"] }
 ```
 
 ## Examples
