@@ -27,11 +27,13 @@ pub fn create(c: &mut Criterion) {
         b.iter(|| SMALL_STR.to_flex_str())
     });
 
-    // Heap
-    c.bench_function("create_heap_normal", |b| {
+    // Heap (Rc)
+    c.bench_function("create_heap_rc_normal", |b| {
         b.iter(|| NORMAL_STR.to_flex_str())
     });
-    c.bench_function("create_heap_large", |b| b.iter(|| LARGE_STR.to_flex_str()));
+    c.bench_function("create_heap_rc_large", |b| {
+        b.iter(|| LARGE_STR.to_flex_str())
+    });
 
     // Heap (Arc)
     c.bench_function("create_heap_arc_normal", |b| {

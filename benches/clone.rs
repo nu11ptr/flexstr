@@ -28,10 +28,10 @@ pub fn clone(c: &mut Criterion) {
     c.bench_function("clone_static_normal", |b| b.iter(|| static_str.clone()));
     c.bench_function("clone_inline_small", |b| b.iter(|| inline_str.clone()));
 
-    // Heap
+    // Heap (Rc)
     let heap_str = NORMAL_STR.to_flex_str();
     assert!(heap_str.is_heap());
-    c.bench_function("clone_heap_normal", |b| b.iter(|| heap_str.clone()));
+    c.bench_function("clone_heap_rc_normal", |b| b.iter(|| heap_str.clone()));
 
     // Heap (Arc)
     let a_heap_str = NORMAL_STR.to_a_flex_str();

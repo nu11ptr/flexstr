@@ -1,8 +1,56 @@
-// *** Generic `To` Custom Traits ***
-
-use crate::{builder, AFlexStr, FlexStr, FlexStrInner};
 use alloc::string::String;
 use core::ops::Deref;
+
+use crate::builder::FlexStrBuilder;
+use crate::{builder, AFlexStr, FlexStr, FlexStrInner};
+
+// *** Repeat custom trait ***
+
+/// Trait that can repeat a given `FlexStr` "n" times efficiently
+pub trait Repeat<T> {
+    /// Repeats a given `FlexStr` "n" times efficiently and returns a new `FlexStr`
+    fn repeat_n(&self, n: usize) -> FlexStr<T>;
+}
+
+impl<T> Repeat<T> for FlexStr<T>
+where
+    T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
+{
+    /// ```
+    /// use flexstr::{IntoFlexStr, Repeat};
+    ///
+    /// let s = "a".into_flex_str().repeat_n(10);
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "a".repeat(10));
+    /// ```
+    #[inline]
+    fn repeat_n(&self, n: usize) -> FlexStr<T> {
+        str::repeat_n(self, n)
+    }
+}
+
+impl<T> Repeat<T> for str
+where
+    T: From<String> + for<'a> From<&'a str>,
+{
+    /// ```
+    /// use flexstr::{FlexStr, IntoFlexStr, Repeat};
+    ///
+    /// let s: FlexStr = "a".repeat_n(10);
+    /// assert!(s.is_inlined());
+    /// assert_eq!(s, "a".repeat(10));
+    /// ```
+    fn repeat_n(&self, n: usize) -> FlexStr<T> {
+        let cap = self.len() * n;
+        let mut builder = FlexStrBuilder::with_capacity(cap);
+
+        for _ in 0..n {
+            builder.str_write(self);
+        }
+
+        builder.into()
+    }
+}
 
 // *** ToCase custom trait ***
 

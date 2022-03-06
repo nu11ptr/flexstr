@@ -11,8 +11,8 @@ expected, and are several fold faster than creating a heap-based `String`.
 ```
 create_static_normal    time:   [3.7062 ns 3.7213 ns 3.7422 ns]
 create_inline_small     time:   [3.8932 ns 3.9004 ns 3.9084 ns]
-create_heap_normal      time:   [13.533 ns 13.557 ns 13.587 ns]
-create_heap_large       time:   [18.605 ns 18.635 ns 18.664 ns]
+create_heap_rc_normal   time:   [13.533 ns 13.557 ns 13.587 ns]
+create_heap_rc_large    time:   [18.605 ns 18.635 ns 18.664 ns]
 create_heap_arc_normal  time:   [18.535 ns 18.551 ns 18.568 ns]
 create_heap_arc_large   time:   [26.794 ns 26.861 ns 26.937 ns]
 ```
@@ -41,7 +41,7 @@ point they are only slightly faster, but still save memory).
 ```
 clone_static_normal     time:   [3.9540 ns 3.9572 ns 3.9610 ns]
 clone_inline_small      time:   [4.4717 ns 4.4763 ns 4.4819 ns]
-clone_heap_normal       time:   [4.4738 ns 4.4839 ns 4.4965 ns]
+clone_heap_rc_normal    time:   [4.4738 ns 4.4839 ns 4.4965 ns]
 clone_heap_arc_normal   time:   [10.596 ns 10.607 ns 10.618 ns]
 ```
 

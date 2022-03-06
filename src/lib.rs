@@ -79,7 +79,7 @@ use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum FlexStrInner<T> {
     /// A wrapped string literal
     Static(&'static str),
@@ -90,29 +90,31 @@ enum FlexStrInner<T> {
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FlexStr<T = Rc<str>>(FlexStrInner<T>);
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
 pub type AFlexStr = FlexStr<Arc<str>>;
 
+impl<T> FlexStr<T> {
+    /// Creates a wrapped static string literal. This function is equivalent to calling the `into`
+    /// functions on a static string literal, but is `const fn` so can be used to init a constant.
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// const S: FlexStr = <FlexStr>::from_static("test");
+    /// assert!(S.is_static());
+    /// ```
+    #[inline]
+    pub const fn from_static(s: &'static str) -> FlexStr<T> {
+        FlexStr(FlexStrInner::Static(s))
+    }
+}
+
 impl<T> FlexStr<T>
 where
     T: Deref<Target = str>,
 {
-    /// Creates a wrapped static string literal. This function is equivalent to calling the `into`
-    /// functions on a static string literal.
-    /// ```
-    /// use flexstr::FlexStr;
-    ///
-    /// let s = <FlexStr>::from_static("test");
-    /// assert!(s.is_static());
-    /// ```
-    #[inline]
-    pub fn from_static(s: &'static str) -> FlexStr<T> {
-        FlexStr(FlexStrInner::Static(s))
-    }
-
     /// Attempts to create an inlined string. Returns new inline string on success or original source
     /// string as `Err` if it will not fit. Since the to/into functions will automatically inline when
     /// possible, this function is really only for special use cases.
@@ -202,13 +204,13 @@ where
     }
 
     /// Returns true if this is a wrapped string literal (`&'static str`)
-    #[inline]
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let s = <FlexStr>::from_static("test");
     /// assert!(s.is_static());
     /// ```
+    #[inline]
     pub fn is_static(&self) -> bool {
         matches!(self.0, FlexStrInner::Static(_))
     }
@@ -260,16 +262,6 @@ where
             FlexStrInner::Inlined(ss) => ss,
             FlexStrInner::Heap(rc) => rc,
         }
-    }
-}
-
-impl<T> Debug for FlexStr<T>
-where
-    T: Deref<Target = str>,
-{
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        <str as Debug>::fmt(self, f)
     }
 }
 
