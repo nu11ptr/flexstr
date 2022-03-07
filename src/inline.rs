@@ -3,7 +3,7 @@ use core::fmt::{Debug, Formatter};
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
-/// The max capacity of an inline string (in bytes)
+/// Using this inline capacity will result in a type with the same memory size as a builtin `String`
 pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used

@@ -2,17 +2,17 @@ use alloc::string::String;
 use core::ops::Deref;
 
 use crate::builder::FlexStrBuilder;
-use crate::{builder, AFlexStr, FlexStr, FlexStrInner};
+use crate::{builder, AFlexStr, FlexStr, FlexStrInner, STRING_SIZED_INLINE};
 
 // *** Repeat custom trait ***
 
 /// Trait that can repeat a given `FlexStr` "n" times efficiently
-pub trait Repeat<T> {
+pub trait Repeat<const N: usize, T> {
     /// Repeats a given `FlexStr` "n" times efficiently and returns a new `FlexStr`
-    fn repeat_n(&self, n: usize) -> FlexStr<T>;
+    fn repeat_n(&self, n: usize) -> FlexStr<N, T>;
 }
 
-impl<T> Repeat<T> for FlexStr<T>
+impl<const N: usize, T> Repeat<N, T> for FlexStr<N, T>
 where
     T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
 {
@@ -24,12 +24,12 @@ where
     /// assert_eq!(s, "a".repeat(10));
     /// ```
     #[inline]
-    fn repeat_n(&self, n: usize) -> FlexStr<T> {
+    fn repeat_n(&self, n: usize) -> FlexStr<N, T> {
         str::repeat_n(self, n)
     }
 }
 
-impl<T> Repeat<T> for str
+impl<const N: usize, T> Repeat<N, T> for str
 where
     T: From<String> + for<'a> From<&'a str>,
 {
@@ -41,9 +41,9 @@ where
     /// assert_eq!(s, "a".repeat(10));
     /// ```
     #[inline]
-    fn repeat_n(&self, n: usize) -> FlexStr<T> {
+    fn repeat_n(&self, n: usize) -> FlexStr<N, T> {
         let cap = self.len() * n;
-        let mut builder = <FlexStrBuilder>::with_capacity(cap);
+        let mut builder = <FlexStrBuilder<N>>::with_capacity(cap);
 
         for _ in 0..n {
             builder.str_write(self);
@@ -56,21 +56,21 @@ where
 // *** ToCase custom trait ***
 
 /// Trait that provides uppercase/lowercase conversion functions for `FlexStr`
-pub trait ToCase<T> {
+pub trait ToCase<const N: usize, T> {
     /// Converts string to uppercase and returns a `FlexStr`
-    fn to_upper(&self) -> FlexStr<T>;
+    fn to_upper(&self) -> FlexStr<N, T>;
 
     /// Converts string to lowercase and returns a `FlexStr`
-    fn to_lower(&self) -> FlexStr<T>;
+    fn to_lower(&self) -> FlexStr<N, T>;
 
     /// Converts string to ASCII uppercase and returns a `FlexStr`
-    fn to_ascii_upper(&self) -> FlexStr<T>;
+    fn to_ascii_upper(&self) -> FlexStr<N, T>;
 
     /// Converts string to ASCII lowercase and returns a `FlexStr`
-    fn to_ascii_lower(&self) -> FlexStr<T>;
+    fn to_ascii_lower(&self) -> FlexStr<N, T>;
 }
 
-impl<T> ToCase<T> for FlexStr<T>
+impl<const N: usize, T> ToCase<N, T> for FlexStr<N, T>
 where
     T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
 {
@@ -81,7 +81,7 @@ where
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
-    fn to_upper(&self) -> FlexStr<T> {
+    fn to_upper(&self) -> FlexStr<N, T> {
         str::to_upper(self)
     }
 
@@ -92,7 +92,7 @@ where
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
-    fn to_lower(&self) -> FlexStr<T> {
+    fn to_lower(&self) -> FlexStr<N, T> {
         str::to_lower(self)
     }
 
@@ -103,7 +103,7 @@ where
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
-    fn to_ascii_upper(&self) -> FlexStr<T> {
+    fn to_ascii_upper(&self) -> FlexStr<N, T> {
         str::to_ascii_upper(self)
     }
 
@@ -114,12 +114,12 @@ where
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
-    fn to_ascii_lower(&self) -> FlexStr<T> {
+    fn to_ascii_lower(&self) -> FlexStr<N, T> {
         str::to_ascii_lower(self)
     }
 }
 
-impl<T> ToCase<T> for str
+impl<const N: usize, T> ToCase<N, T> for str
 where
     T: From<String> + for<'a> From<&'a str>,
 {
@@ -129,9 +129,9 @@ where
     /// let a: FlexStr = "test".to_upper();
     /// assert_eq!(a, "TEST");
     /// ```
-    fn to_upper(&self) -> FlexStr<T> {
+    fn to_upper(&self) -> FlexStr<N, T> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
-        let mut builder = <builder::FlexStrBuilder>::with_capacity(self.len());
+        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
 
         for ch in self.chars() {
             let upper_chars = ch.to_uppercase();
@@ -149,9 +149,9 @@ where
     /// let a: FlexStr = "TEST".to_lower();
     /// assert_eq!(a, "test");
     /// ```
-    fn to_lower(&self) -> FlexStr<T> {
+    fn to_lower(&self) -> FlexStr<N, T> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
-        let mut builder = <builder::FlexStrBuilder>::with_capacity(self.len());
+        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
 
         for ch in self.chars() {
             let lower_chars = ch.to_lowercase();
@@ -169,8 +169,8 @@ where
     /// let a: FlexStr = "test".to_ascii_upper();
     /// assert_eq!(a, "TEST");
     /// ```
-    fn to_ascii_upper(&self) -> FlexStr<T> {
-        let mut builder = <builder::FlexStrBuilder>::with_capacity(self.len());
+    fn to_ascii_upper(&self) -> FlexStr<N, T> {
+        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
 
         for mut ch in self.chars() {
             char::make_ascii_uppercase(&mut ch);
@@ -186,8 +186,8 @@ where
     /// let a: FlexStr = "TEST".to_ascii_lower();
     /// assert_eq!(a, "test");
     /// ```
-    fn to_ascii_lower(&self) -> FlexStr<T> {
-        let mut builder = <builder::FlexStrBuilder>::with_capacity(self.len());
+    fn to_ascii_lower(&self) -> FlexStr<N, T> {
+        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
 
         for mut ch in self.chars() {
             char::make_ascii_lowercase(&mut ch);
@@ -200,19 +200,19 @@ where
 
 // *** Generic `To` trait ***
 
-/// A trait that converts the source to a `FlexStr<T>` without consuming it
+/// A trait that converts the source to a `FlexStr<N, T>` without consuming it
 /// ```
 /// use flexstr::{FlexStr, ToFlex};
 ///
 /// let a: FlexStr = "This is a heap allocated string!!!!!".to_string().to_flex();
 /// assert!(a.is_heap());
 /// ```
-pub trait ToFlex<T> {
-    /// Converts the source to a `FlexStr<T>` without consuming it
-    fn to_flex(&self) -> FlexStr<T>;
+pub trait ToFlex<const N: usize, T> {
+    /// Converts the source to a `FlexStr<N, T>` without consuming it
+    fn to_flex(&self) -> FlexStr<N, T>;
 }
 
-impl<T, T2> ToFlex<T> for FlexStr<T2>
+impl<const N: usize, T, T2> ToFlex<N, T> for FlexStr<N, T2>
 where
     T: for<'a> From<&'a str>,
     T2: Clone + Deref<Target = str>,
@@ -225,12 +225,12 @@ where
     /// assert_eq!(a, b);
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<T> {
+    fn to_flex(&self) -> FlexStr<N, T> {
         self.clone().into_flex()
     }
 }
 
-impl<T> ToFlex<T> for str
+impl<const N: usize, T> ToFlex<N, T> for str
 where
     T: for<'a> From<&'a str>,
 {
@@ -245,7 +245,7 @@ where
     /// assert!(b.is_heap())
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<T> {
+    fn to_flex(&self) -> FlexStr<N, T> {
         FlexStr(match self.try_into() {
             Ok(s) => FlexStrInner::Inlined(s),
             Err(_) => FlexStrInner::Heap(self.into()),
@@ -253,7 +253,7 @@ where
     }
 }
 
-impl<T> ToFlex<T> for bool
+impl<const N: usize, T> ToFlex<N, T> for bool
 where
     T: Deref<Target = str>,
 {
@@ -265,12 +265,12 @@ where
     /// assert_eq!(s, "false");
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<T> {
+    fn to_flex(&self) -> FlexStr<N, T> {
         if *self { "true" } else { "false" }.into()
     }
 }
 
-impl<T> ToFlex<T> for char
+impl<const N: usize, T> ToFlex<N, T> for char
 where
     T: for<'a> From<&'a str> + From<String> + Deref<Target = str>,
 {
@@ -282,14 +282,14 @@ where
     /// assert_eq!(s, "☺");
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<T> {
+    fn to_flex(&self) -> FlexStr<N, T> {
         (*self).into()
     }
 }
 
 macro_rules! impl_int_flex {
     ($($type:ty),+) => {
-        $(impl<T> ToFlex<T> for $type
+        $(impl<const N: usize, T> ToFlex<N, T> for $type
         where
             T: for<'a> From<&'a str>,
         {
@@ -301,7 +301,7 @@ macro_rules! impl_int_flex {
             /// assert_eq!(s, "123");
             /// ```
             #[inline]
-            fn to_flex(&self) -> FlexStr<T> {
+            fn to_flex(&self) -> FlexStr<N, T> {
                 let mut buffer = itoa::Buffer::new();
                 buffer.format(*self).to_flex()
             }
@@ -313,7 +313,7 @@ impl_int_flex!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
 
 macro_rules! impl_float_flex {
     ($($type:ty),+) => {
-        $(impl<T> ToFlex<T> for $type
+        $(impl<const N: usize, T> ToFlex<N, T> for $type
         where
             T: for<'a> From<&'a str>,
         {
@@ -325,7 +325,7 @@ macro_rules! impl_float_flex {
             /// assert_eq!(s, "123.456");
             /// ```
             #[inline]
-            fn to_flex(&self) -> FlexStr<T> {
+            fn to_flex(&self) -> FlexStr<N, T> {
                 let mut buffer = ryu::Buffer::new();
                 buffer.format(*self).to_flex()
             }
@@ -337,19 +337,19 @@ impl_float_flex!(f32, f64);
 
 // *** Generic `Into` Custom Traits ***
 
-/// A trait that converts the source to a `FlexStr<T>` while consuming the original
+/// A trait that converts the source to a `FlexStr<N, T>` while consuming the original
 /// ```
 /// use flexstr::{FlexStr, IntoFlex};
 ///
 /// let a: FlexStr = "This is a wrapped static string literal no matter how long it is!!!!!".into_flex();
 /// assert!(a.is_static());
 /// ```
-pub trait IntoFlex<T> {
-    /// Converts the source to a `FlexStr<T>` while consuming the original
-    fn into_flex(self) -> FlexStr<T>;
+pub trait IntoFlex<const N: usize, T> {
+    /// Converts the source to a `FlexStr<N, T>` while consuming the original
+    fn into_flex(self) -> FlexStr<N, T>;
 }
 
-impl<T, T2> IntoFlex<T> for FlexStr<T2>
+impl<const N: usize, T, T2> IntoFlex<N, T> for FlexStr<N, T2>
 where
     T: for<'a> From<&'a str>,
     T2: Deref<Target = str>,
@@ -376,7 +376,7 @@ where
     /// assert_eq!(e, f);
     /// ```
     #[inline]
-    fn into_flex(self) -> FlexStr<T> {
+    fn into_flex(self) -> FlexStr<N, T> {
         FlexStr(match self.0 {
             FlexStrInner::Static(s) => FlexStrInner::Static(s),
             FlexStrInner::Inlined(s) => FlexStrInner::Inlined(s),
@@ -391,7 +391,7 @@ where
     }
 }
 
-impl<T> IntoFlex<T> for &'static str
+impl<const N: usize, T> IntoFlex<N, T> for &'static str
 where
     T: Deref<Target = str>,
 {
@@ -404,12 +404,12 @@ where
     /// assert_eq!(b, a);
     /// ```
     #[inline]
-    fn into_flex(self) -> FlexStr<T> {
+    fn into_flex(self) -> FlexStr<N, T> {
         self.into()
     }
 }
 
-impl<T> IntoFlex<T> for String
+impl<const N: usize, T> IntoFlex<N, T> for String
 where
     T: From<String>,
 {
@@ -422,7 +422,7 @@ where
     /// assert_eq!(b, a);
     /// ```
     #[inline]
-    fn into_flex(self) -> FlexStr<T> {
+    fn into_flex(self) -> FlexStr<N, T> {
         self.into()
     }
 }
@@ -441,7 +441,7 @@ pub trait ToFlexStr {
     fn to_flex_str(&self) -> FlexStr;
 }
 
-impl<T> ToFlexStr for FlexStr<T>
+impl<T> ToFlexStr for FlexStr<STRING_SIZED_INLINE, T>
 where
     T: Clone + Deref<Target = str>,
 {
@@ -556,7 +556,7 @@ pub trait ToAFlexStr {
     fn to_a_flex_str(&self) -> AFlexStr;
 }
 
-impl<T> ToAFlexStr for FlexStr<T>
+impl<T> ToAFlexStr for FlexStr<STRING_SIZED_INLINE, T>
 where
     T: Clone + Deref<Target = str>,
 {
@@ -671,7 +671,7 @@ pub trait IntoFlexStr {
     fn into_flex_str(self) -> FlexStr;
 }
 
-impl<T> IntoFlexStr for FlexStr<T>
+impl<T> IntoFlexStr for FlexStr<STRING_SIZED_INLINE, T>
 where
     T: Deref<Target = str>,
 {
@@ -730,7 +730,7 @@ pub trait IntoAFlexStr {
     fn into_a_flex_str(self) -> AFlexStr;
 }
 
-impl<T> IntoAFlexStr for FlexStr<T>
+impl<T> IntoAFlexStr for FlexStr<STRING_SIZED_INLINE, T>
 where
     T: Deref<Target = str>,
 {

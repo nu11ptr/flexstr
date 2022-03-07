@@ -211,6 +211,26 @@ fn main() {
 }
 ```
 
+### Make Your Own String Type
+
+All you need to do is pick an inline size (the default `STRING_SIZED_INLINE` 
+will result in a type the same size as a `String`) and a storage type. The 
+storage type must implement `Deref<Target = str>`, `From<String>`, `From<&str>`, and `Clone`. Pretty much all smart 
+pointers do this already.
+
+```rust
+use flexstr::{FlexStr, STRING_SIZED_INLINE, Repeat, ToFlex};
+
+type BoxFlexStr = FlexStr<STRING_SIZED_INLINE, Box<str>>;
+
+fn main() {
+  // This will be allocated in a box instead of the default `Rc`
+  // Demo only: normally use `into_flex` with literals just to wrap them
+  let my_str: BoxFlexStr = "cool!".to_flex().repeat_n(3);
+  assert_eq!(my_str, "cool!cool!cool!");
+}
+```
+
 ## Performance Characteristics
 
 * Clones are cheap and never allocate

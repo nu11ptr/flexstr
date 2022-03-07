@@ -56,6 +56,7 @@ mod builder;
 mod inline;
 mod traits;
 
+pub use inline::STRING_SIZED_INLINE;
 pub use traits::*;
 
 use alloc::rc::Rc;
@@ -74,31 +75,29 @@ use core::ops::{
 };
 use core::str::FromStr;
 
-use crate::inline::STRING_SIZED_INLINE;
-
 #[cfg(feature = "serde")]
 use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug)]
-enum FlexStrInner<T> {
+enum FlexStrInner<const N: usize, T> {
     /// A wrapped string literal
     Static(&'static str),
     /// An inlined string
-    Inlined(inline::InlineFlexStr<STRING_SIZED_INLINE>),
+    Inlined(inline::InlineFlexStr<N>),
     /// A reference count wrapped `str`
     Heap(T),
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
 #[derive(Clone, Debug)]
-pub struct FlexStr<T = Rc<str>>(FlexStrInner<T>);
+pub struct FlexStr<const N: usize = STRING_SIZED_INLINE, T = Rc<str>>(FlexStrInner<N, T>);
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
-pub type AFlexStr = FlexStr<Arc<str>>;
+pub type AFlexStr = FlexStr<STRING_SIZED_INLINE, Arc<str>>;
 
-impl<T> FlexStr<T> {
+impl<const N: usize, T> FlexStr<N, T> {
     /// Creates a wrapped static string literal. This function is equivalent to calling the `into`
     /// functions on a static string literal, but is `const fn` so can be used to init a constant.
     /// ```
@@ -108,12 +107,12 @@ impl<T> FlexStr<T> {
     /// assert!(S.is_static());
     /// ```
     #[inline]
-    pub const fn from_static(s: &'static str) -> FlexStr<T> {
+    pub const fn from_static(s: &'static str) -> FlexStr<N, T> {
         FlexStr(FlexStrInner::Static(s))
     }
 }
 
-impl<T> FlexStr<T>
+impl<const N: usize, T> FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -127,7 +126,7 @@ where
     /// assert!(s.is_inlined());
     /// ```
     #[inline]
-    pub fn try_inline(s: &str) -> Result<FlexStr<T>, &str> {
+    pub fn try_inline(s: &str) -> Result<FlexStr<N, T>, &str> {
         match inline::InlineFlexStr::try_new(s) {
             Ok(s) => Ok(FlexStr(FlexStrInner::Inlined(s))),
             Err(s) => Err(s),
@@ -144,7 +143,7 @@ where
     /// assert!(s.is_heap());
     /// ```
     #[inline]
-    pub fn heap(s: &str) -> FlexStr<T>
+    pub fn heap(s: &str) -> FlexStr<N, T>
     where
         T: for<'a> From<&'a str>,
     {
@@ -245,7 +244,7 @@ where
 
 // *** Deref / Debug / Display ***
 
-impl<T> Deref for FlexStr<T>
+impl<const N: usize, T> Deref for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -268,7 +267,7 @@ where
     }
 }
 
-impl<T> Display for FlexStr<T>
+impl<const N: usize, T> Display for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -280,7 +279,7 @@ where
 
 // *** Hash, PartialEq, Eq ***
 
-impl<T> Hash for FlexStr<T>
+impl<const N: usize, T> Hash for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -290,7 +289,7 @@ where
     }
 }
 
-impl<T, T2> PartialEq<FlexStr<T2>> for FlexStr<T>
+impl<const N: usize, T, T2> PartialEq<FlexStr<N, T2>> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
     T2: Deref<Target = str>,
@@ -304,12 +303,12 @@ where
     /// assert_eq!(s, s2);
     /// ```
     #[inline]
-    fn eq(&self, other: &FlexStr<T2>) -> bool {
+    fn eq(&self, other: &FlexStr<N, T2>) -> bool {
         str::eq(self, &**other)
     }
 }
 
-impl<T, T2> PartialEq<FlexStr<T2>> for &FlexStr<T>
+impl<const N: usize, T, T2> PartialEq<FlexStr<N, T2>> for &FlexStr<N, T>
 where
     T: Deref<Target = str>,
     T2: Deref<Target = str>,
@@ -323,12 +322,12 @@ where
     /// assert_eq!(&s, s2);
     /// ```
     #[inline]
-    fn eq(&self, other: &FlexStr<T2>) -> bool {
+    fn eq(&self, other: &FlexStr<N, T2>) -> bool {
         str::eq(self, &**other)
     }
 }
 
-impl<T> PartialEq<&str> for FlexStr<T>
+impl<const N: usize, T> PartialEq<&str> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -345,7 +344,7 @@ where
     }
 }
 
-impl<T> PartialEq<str> for FlexStr<T>
+impl<const N: usize, T> PartialEq<str> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -362,7 +361,7 @@ where
     }
 }
 
-impl<T> PartialEq<String> for FlexStr<T>
+impl<const N: usize, T> PartialEq<String> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -379,11 +378,11 @@ where
     }
 }
 
-impl<T> Eq for FlexStr<T> where T: Deref<Target = str> {}
+impl<const N: usize, T> Eq for FlexStr<N, T> where T: Deref<Target = str> {}
 
 // *** PartialOrd / Ord ***
 
-impl<T> PartialOrd for FlexStr<T>
+impl<const N: usize, T> PartialOrd for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -393,7 +392,7 @@ where
     }
 }
 
-impl<T> PartialOrd<str> for FlexStr<T>
+impl<const N: usize, T> PartialOrd<str> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -403,7 +402,7 @@ where
     }
 }
 
-impl<T> PartialOrd<String> for FlexStr<T>
+impl<const N: usize, T> PartialOrd<String> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -413,7 +412,7 @@ where
     }
 }
 
-impl<T> Ord for FlexStr<T>
+impl<const N: usize, T> Ord for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -427,7 +426,7 @@ where
 
 macro_rules! impl_ranges {
     ($($type:ty),+) => {
-        $(impl<T> Index<$type> for FlexStr<T>
+        $(impl<const N: usize, T> Index<$type> for FlexStr<N, T>
         where
             T: Deref<Target = str>,
         {
@@ -453,21 +452,21 @@ impl_ranges!(
 // *** Add ***
 
 #[inline]
-fn concat<T>(s1: &str, s2: &str) -> FlexStr<T>
+fn concat<const N: usize, T>(s1: &str, s2: &str) -> FlexStr<N, T>
 where
     T: From<String> + for<'a> From<&'a str>,
 {
-    let mut builder = <builder::FlexStrBuilder>::with_capacity(s1.len() + s2.len());
+    let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(s1.len() + s2.len());
     builder.str_write(s1);
     builder.str_write(s2);
     builder_into!(builder)
 }
 
-impl<T> Add<&str> for FlexStr<T>
+impl<const N: usize, T> Add<&str> for FlexStr<N, T>
 where
     T: From<String> + for<'a> From<&'a str> + Deref<Target = str>,
 {
-    type Output = FlexStr<T>;
+    type Output = FlexStr<N, T>;
 
     /// ```
     /// use flexstr::IntoFlexStr;
@@ -498,7 +497,7 @@ where
 
 // *** Misc. standard traits ***
 
-impl<T> AsRef<str> for FlexStr<T>
+impl<const N: usize, T> AsRef<str> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -508,7 +507,7 @@ where
     }
 }
 
-impl<T> Default for FlexStr<T>
+impl<const N: usize, T> Default for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -518,7 +517,7 @@ where
     }
 }
 
-impl<T> Borrow<str> for FlexStr<T>
+impl<const N: usize, T> Borrow<str> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -528,7 +527,7 @@ where
     }
 }
 
-impl<T> FromStr for FlexStr<T>
+impl<const N: usize, T> FromStr for FlexStr<N, T>
 where
     T: for<'a> From<&'a str>,
 {
@@ -542,18 +541,18 @@ where
 
 // *** From ***
 
-impl<T, T2> From<&FlexStr<T2>> for FlexStr<T>
+impl<const N: usize, T, T2> From<&FlexStr<N, T2>> for FlexStr<N, T>
 where
     T2: Clone,
-    FlexStr<T>: From<FlexStr<T2>>,
+    FlexStr<N, T>: From<FlexStr<N, T2>>,
 {
     #[inline]
-    fn from(s: &FlexStr<T2>) -> Self {
+    fn from(s: &FlexStr<N, T2>) -> Self {
         s.clone().into()
     }
 }
 
-impl<T> From<String> for FlexStr<T>
+impl<const N: usize, T> From<String> for FlexStr<N, T>
 where
     T: From<String>,
 {
@@ -579,7 +578,7 @@ where
     }
 }
 
-impl<T> From<&String> for FlexStr<T>
+impl<const N: usize, T> From<&String> for FlexStr<N, T>
 where
     T: for<'a> From<&'a str>,
 {
@@ -602,7 +601,7 @@ where
     }
 }
 
-impl<T> From<&'static str> for FlexStr<T>
+impl<const N: usize, T> From<&'static str> for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -620,7 +619,7 @@ where
     }
 }
 
-impl<T> From<char> for FlexStr<T>
+impl<const N: usize, T> From<char> for FlexStr<N, T>
 where
     T: From<String> + for<'a> From<&'a str> + Deref<Target = str>,
 {
@@ -641,7 +640,7 @@ where
 // *** FromIterator ***
 
 #[inline]
-fn from_iter_str<I, T, U>(iter: I) -> FlexStr<T>
+fn from_iter_str<const N: usize, I, T, U>(iter: I) -> FlexStr<N, T>
 where
     I: IntoIterator<Item = U>,
     T: From<String> + for<'b> From<&'b str>,
@@ -651,7 +650,7 @@ where
 
     // Since `IntoIterator` consumes, we cannot loop over it twice to find lengths of strings
     // for a good capacity # without cloning it (which might be expensive)
-    let mut builder = <builder::FlexStrBuilder>::new();
+    let mut builder = <builder::FlexStrBuilder<N>>::new();
     for s in iter {
         builder.str_write(s.as_ref());
     }
@@ -659,7 +658,7 @@ where
 }
 
 #[inline]
-fn from_iter_char<I, F, T, U>(iter: I, f: F) -> FlexStr<T>
+fn from_iter_char<const N: usize, I, F, T, U>(iter: I, f: F) -> FlexStr<N, T>
 where
     I: IntoIterator<Item = U>,
     F: Fn(U) -> char,
@@ -668,14 +667,14 @@ where
     let iter = iter.into_iter();
     let (lower, _) = iter.size_hint();
 
-    let mut builder = <builder::FlexStrBuilder>::with_capacity(lower);
+    let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(lower);
     for ch in iter {
         builder.char_write(f(ch));
     }
     builder_into!(builder)
 }
 
-impl<T, T2> FromIterator<FlexStr<T2>> for FlexStr<T>
+impl<const N: usize, T, T2> FromIterator<FlexStr<N, T2>> for FlexStr<N, T>
 where
     T: From<String> + for<'b> From<&'b str>,
     T2: Deref<Target = str>,
@@ -689,12 +688,12 @@ where
     /// assert_eq!(s, "testtest");
     /// ```
     #[inline]
-    fn from_iter<I: IntoIterator<Item = FlexStr<T2>>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = FlexStr<N, T2>>>(iter: I) -> Self {
         from_iter_str(iter)
     }
 }
 
-impl<'a, T, T2> FromIterator<&'a FlexStr<T2>> for FlexStr<T>
+impl<'a, const N: usize, T, T2> FromIterator<&'a FlexStr<N, T2>> for FlexStr<N, T>
 where
     T: From<String> + for<'b> From<&'b str>,
     T2: Deref<Target = str> + 'a,
@@ -708,12 +707,12 @@ where
     /// assert_eq!(s, "best");
     /// ```
     #[inline]
-    fn from_iter<I: IntoIterator<Item = &'a FlexStr<T2>>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = &'a FlexStr<N, T2>>>(iter: I) -> Self {
         from_iter_str(iter)
     }
 }
 
-impl<T> FromIterator<String> for FlexStr<T>
+impl<const N: usize, T> FromIterator<String> for FlexStr<N, T>
 where
     T: From<String> + for<'b> From<&'b str>,
 {
@@ -731,7 +730,7 @@ where
     }
 }
 
-impl<'a, T> FromIterator<&'a str> for FlexStr<T>
+impl<'a, const N: usize, T> FromIterator<&'a str> for FlexStr<N, T>
 where
     T: From<String> + for<'b> From<&'b str>,
 {
@@ -749,7 +748,7 @@ where
     }
 }
 
-impl<T> FromIterator<char> for FlexStr<T>
+impl<const N: usize, T> FromIterator<char> for FlexStr<N, T>
 where
     T: From<String> + for<'b> From<&'b str>,
 {
@@ -767,7 +766,7 @@ where
     }
 }
 
-impl<'a, T> FromIterator<&'a char> for FlexStr<T>
+impl<'a, const N: usize, T> FromIterator<&'a char> for FlexStr<N, T>
 where
     T: From<String> + for<'b> From<&'b str>,
 {
@@ -788,7 +787,7 @@ where
 // *** Optional serialization support ***
 
 #[cfg(feature = "serde")]
-impl<T> Serialize for FlexStr<T>
+impl<const N: usize, T> Serialize for FlexStr<N, T>
 where
     T: Deref<Target = str>,
 {
@@ -803,14 +802,14 @@ where
 
 // Uses *const T because we don't want it to actually own a `T`
 #[cfg(feature = "serde")]
-struct FlexStrVisitor<T>(PhantomData<*const T>);
+struct FlexStrVisitor<const N: usize, T>(PhantomData<*const T>);
 
 #[cfg(feature = "serde")]
-impl<'de, T> Visitor<'de> for FlexStrVisitor<T>
+impl<'de, const N: usize, T> Visitor<'de> for FlexStrVisitor<N, T>
 where
     T: From<String> + for<'a> From<&'a str>,
 {
-    type Value = FlexStr<T>;
+    type Value = FlexStr<N, T>;
 
     #[inline]
     fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
@@ -835,7 +834,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T> Deserialize<'de> for FlexStr<T>
+impl<'de, const N: usize, T> Deserialize<'de> for FlexStr<N, T>
 where
     T: From<String> + for<'a> From<&'a str>,
 {
@@ -849,14 +848,14 @@ where
 }
 
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
-pub fn flex_fmt<T>(args: Arguments<'_>) -> FlexStr<T>
+pub fn flex_fmt<const N: usize, T>(args: Arguments<'_>) -> FlexStr<N, T>
 where
     T: From<String> + for<'a> From<&'a str>,
 {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
-    let mut builder = <builder::FlexStrBuilder>::new();
+    let mut builder = <builder::FlexStrBuilder<N>>::new();
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
