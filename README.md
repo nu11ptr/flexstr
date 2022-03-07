@@ -33,7 +33,7 @@ NOTE: The serde feature is optional and only included when specified.
 
 ```toml
 [dependencies]
-flexstr = { version = "0.6", features = ["serde"] }
+flexstr = { version = "0.7", features = ["serde"] }
 ```
 
 ## Examples
@@ -191,7 +191,7 @@ impl MyStruct {
       s.clone()
     } else {
       // Wrapped literal - no copy or allocation
-      "own_me".into()
+      "own me".into()
     };
 
     Self { s }
@@ -215,8 +215,8 @@ fn main() {
 
 All you need to do is pick an inline size (the default `STRING_SIZED_INLINE` 
 will result in a type the same size as a `String`) and a storage type. The 
-storage type must implement `Deref<Target = str>`, `From<String>`, `From<&str>`, and `Clone`. Pretty much all smart 
-pointers do this already.
+storage type must implement `Deref<Target = str>`, `From<String>`, `From<&str>`, 
+and `Clone`. Pretty much all smart pointers do this already.
 
 ```rust
 use flexstr::{FlexStr, STRING_SIZED_INLINE, Repeat, ToFlex};
