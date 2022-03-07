@@ -51,6 +51,7 @@
 
 extern crate alloc;
 
+#[macro_use]
 mod builder;
 mod inline;
 mod traits;
@@ -456,10 +457,10 @@ fn concat<T>(s1: &str, s2: &str) -> FlexStr<T>
 where
     T: From<String> + for<'a> From<&'a str>,
 {
-    let mut builder = builder::FlexStrBuilder::with_capacity(s1.len() + s2.len());
+    let mut builder = <builder::FlexStrBuilder>::with_capacity(s1.len() + s2.len());
     builder.str_write(s1);
     builder.str_write(s2);
-    builder.into()
+    builder_into!(builder)
 }
 
 impl<T> Add<&str> for FlexStr<T>
@@ -549,26 +550,6 @@ where
     #[inline]
     fn from(s: &FlexStr<T2>) -> Self {
         s.clone().into()
-    }
-}
-
-impl<T> From<builder::FlexStrBuilder> for FlexStr<T>
-where
-    T: From<String> + for<'a> From<&'a str>,
-{
-    #[inline]
-    fn from(builder: builder::FlexStrBuilder) -> Self {
-        match builder {
-            builder::FlexStrBuilder::Small(buffer) => {
-                let len: u8 = buffer.len() as u8;
-                FlexStr(FlexStrInner::Inlined(inline::InlineFlexStr::from_array(
-                    buffer.into_inner(),
-                    len,
-                )))
-            }
-            builder::FlexStrBuilder::Regular(buffer) => buffer.to_flex(),
-            builder::FlexStrBuilder::Large(s) => s.into(),
-        }
     }
 }
 
@@ -670,11 +651,11 @@ where
 
     // Since `IntoIterator` consumes, we cannot loop over it twice to find lengths of strings
     // for a good capacity # without cloning it (which might be expensive)
-    let mut builder = builder::FlexStrBuilder::new();
+    let mut builder = <builder::FlexStrBuilder>::new();
     for s in iter {
         builder.str_write(s.as_ref());
     }
-    builder.into()
+    builder_into!(builder)
 }
 
 #[inline]
@@ -687,11 +668,11 @@ where
     let iter = iter.into_iter();
     let (lower, _) = iter.size_hint();
 
-    let mut builder = builder::FlexStrBuilder::with_capacity(lower);
+    let mut builder = <builder::FlexStrBuilder>::with_capacity(lower);
     for ch in iter {
         builder.char_write(f(ch));
     }
-    builder.into()
+    builder_into!(builder)
 }
 
 impl<T, T2> FromIterator<FlexStr<T2>> for FlexStr<T>
@@ -875,11 +856,11 @@ where
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
-    let mut builder = builder::FlexStrBuilder::new();
+    let mut builder = <builder::FlexStrBuilder>::new();
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder.into()
+    builder_into!(builder)
 }
 
 /// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`

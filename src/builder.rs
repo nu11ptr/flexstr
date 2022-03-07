@@ -208,6 +208,26 @@ impl<const N: usize, const N2: usize> Write for FlexStrBuilder<N, N2> {
     }
 }
 
+// NOTE: This is a macro because one of the variants is HUGE and we can't take a chance that the
+// optimizer won't inline the call as that will copy a LOT of data unnecessarily (since we are
+// copying it again regardless for `Regular` and `Large` variants)
+macro_rules! builder_into {
+    ($builder:ident) => {
+        match $builder {
+            $crate::builder::FlexStrBuilder::Small(buffer) => {
+                let len: u8 = buffer.len() as u8;
+                FlexStr($crate::FlexStrInner::Inlined(
+                    $crate::inline::InlineFlexStr::from_array(buffer.into_inner(), len),
+                ))
+            }
+            $crate::builder::FlexStrBuilder::Regular(buffer) => {
+                $crate::traits::ToFlex::to_flex(&*buffer)
+            }
+            $crate::builder::FlexStrBuilder::Large(s) => s.into(),
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::string::ToString;
@@ -264,7 +284,7 @@ mod tests {
     fn flex_str_builder_promotion() {
         // Write 1 - verify inline buffer size
         let write1 = "test";
-        let mut builder = FlexStrBuilder::new();
+        let mut builder = <FlexStrBuilder>::new();
         assert!(matches!(builder, FlexStrBuilder::Small(_)));
         assert!(builder.write_str(write1).is_ok());
         assert!(matches!(builder, FlexStrBuilder::Small(_)));
@@ -278,7 +298,7 @@ mod tests {
         let write3 = "x".repeat(BUFFER_SIZE);
         assert!(builder.write_str(&write3).is_ok());
         assert!(matches!(builder, FlexStrBuilder::Large(_)));
-        let s: FlexStr = builder.into();
+        let s: FlexStr = builder_into!(builder);
         assert_eq!(s, write1.to_string() + write2 + &write3);
     }
 }

@@ -102,16 +102,16 @@ be looked at for optimizations. Heap additions are somewhat slower as well.
 Repetition of strings is more or less the same.
 
 ```
-format_inline_short      time:   [47.185 ns 47.502 ns 47.824 ns]
-format_heap_rc_long      time:   [81.865 ns 82.100 ns 82.424 ns]
-format_heap_arc_long     time:   [92.182 ns 92.439 ns 92.750 ns]
-add_static_small         time:   [36.137 ns 36.197 ns 36.245 ns]
-add_inline_small         time:   [9.6935 ns 9.6993 ns 9.7047 ns]
-add_heap_rc_normal       time:   [56.524 ns 56.572 ns 56.618 ns]
-add_heap_arc_normal      time:   [59.094 ns 59.126 ns 59.158 ns]
-repeat_inline_tiny10     time:   [26.938 ns 27.074 ns 27.221 ns]
-repeat_heap_rc_normal10  time:   [46.060 ns 46.300 ns 46.634 ns]
-repeat_heap_arc_normal10 time:   [44.603 ns 44.683 ns 44.766 ns]
+format_inline_short      time:   [45.732 ns 46.003 ns 46.319 ns]
+format_heap_rc_long      time:   [74.316 ns 74.830 ns 75.465 ns]
+format_heap_arc_long     time:   [81.270 ns 81.643 ns 82.075 ns]
+add_static_small         time:   [22.510 ns 22.664 ns 22.802 ns]
+add_inline_small         time:   [9.7264 ns 9.7341 ns 9.7435 ns]
+add_heap_rc_normal       time:   [42.141 ns 42.194 ns 42.248 ns]
+add_heap_arc_normal      time:   [44.334 ns 44.369 ns 44.405 ns]
+repeat_inline_tiny10     time:   [26.059 ns 26.106 ns 26.156 ns]
+repeat_heap_rc_normal10  time:   [44.281 ns 44.320 ns 44.361 ns]
+repeat_heap_arc_normal10 time:   [43.694 ns 43.766 ns 43.840 ns]
 ```
 
 ### Comparables
