@@ -1,8 +1,7 @@
 use alloc::string::String;
 use core::ops::Deref;
 
-use crate::builder::FlexStrBuilder;
-use crate::{builder, AFlexStr, FlexStr, FlexStrInner, STRING_SIZED_INLINE};
+use crate::{AFlexStr, FlexStr, FlexStrInner, STRING_SIZED_INLINE};
 
 // *** Repeat custom trait ***
 
@@ -33,23 +32,17 @@ impl<const N: usize, T> Repeat<N, T> for str
 where
     T: From<String> + for<'a> From<&'a str>,
 {
-    /// ```
-    /// use flexstr::{FlexStr, IntoFlexStr, Repeat};
-    ///
-    /// let s: FlexStr = "a".repeat_n(10);
-    /// assert!(s.is_inlined());
-    /// assert_eq!(s, "a".repeat(10));
-    /// ```
     #[inline]
     fn repeat_n(&self, n: usize) -> FlexStr<N, T> {
         let cap = self.len() * n;
-        let mut builder = <FlexStrBuilder<N>>::with_capacity(cap);
+        let mut buffer = buffer_new!(N);
+        let mut builder = builder_new!(buffer, cap);
 
         for _ in 0..n {
             builder.str_write(self);
         }
 
-        builder_into!(builder)
+        builder_into!(builder, buffer)
     }
 }
 
@@ -131,7 +124,8 @@ where
     /// ```
     fn to_upper(&self) -> FlexStr<N, T> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
-        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
+        let mut buffer = buffer_new!(N);
+        let mut builder = builder_new!(buffer, self.len());
 
         for ch in self.chars() {
             let upper_chars = ch.to_uppercase();
@@ -140,7 +134,7 @@ where
             }
         }
 
-        builder_into!(builder)
+        builder_into!(builder, buffer)
     }
 
     /// ```
@@ -151,7 +145,8 @@ where
     /// ```
     fn to_lower(&self) -> FlexStr<N, T> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
-        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
+        let mut buffer = buffer_new!(N);
+        let mut builder = builder_new!(buffer, self.len());
 
         for ch in self.chars() {
             let lower_chars = ch.to_lowercase();
@@ -160,7 +155,7 @@ where
             }
         }
 
-        builder_into!(builder)
+        builder_into!(builder, buffer)
     }
 
     /// ```
@@ -170,14 +165,15 @@ where
     /// assert_eq!(a, "TEST");
     /// ```
     fn to_ascii_upper(&self) -> FlexStr<N, T> {
-        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
+        let mut buffer = buffer_new!(N);
+        let mut builder = builder_new!(buffer, self.len());
 
         for mut ch in self.chars() {
             char::make_ascii_uppercase(&mut ch);
             builder.char_write(ch);
         }
 
-        builder_into!(builder)
+        builder_into!(builder, buffer)
     }
 
     /// ```
@@ -187,14 +183,15 @@ where
     /// assert_eq!(a, "test");
     /// ```
     fn to_ascii_lower(&self) -> FlexStr<N, T> {
-        let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(self.len());
+        let mut buffer = buffer_new!(N);
+        let mut builder = builder_new!(buffer, self.len());
 
         for mut ch in self.chars() {
             char::make_ascii_lowercase(&mut ch);
             builder.char_write(ch);
         }
 
-        builder_into!(builder)
+        builder_into!(builder, buffer)
     }
 }
 

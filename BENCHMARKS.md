@@ -92,26 +92,26 @@ convert_string_f64      time:   [179.86 ns 180.00 ns 180.14 ns]
 
 ### FlexStr
 
-Formatting is a little faster with inline and a little slower with heap 
-based, but roughly the same. I suspect `format_args!` dominates the time
-and is known to be slow, and they both use it.
+Formatting is slightly faster than `String`, but most of the time is 
+dominated by `format_args!`. `format_inline_short` seems a bit too slow yet.
 
-Addition is surprisingly slow on static strings. That code path will need to 
-be looked at for optimizations. Heap additions are somewhat slower as well.
+`add_static_small` is 2x as slow as `String` and should be solidly faster 
+than `String` since inlined. This needs to be looked into.
 
-Repetition of strings is more or less the same.
+`repeat_inline_tiny10` should be faster, but instead it is the same speed as 
+`String`. Hmm...
 
 ```
-format_inline_short      time:   [45.732 ns 46.003 ns 46.319 ns]
-format_heap_rc_long      time:   [74.316 ns 74.830 ns 75.465 ns]
-format_heap_arc_long     time:   [81.270 ns 81.643 ns 82.075 ns]
-add_static_small         time:   [22.510 ns 22.664 ns 22.802 ns]
-add_inline_small         time:   [9.7264 ns 9.7341 ns 9.7435 ns]
-add_heap_rc_normal       time:   [42.141 ns 42.194 ns 42.248 ns]
-add_heap_arc_normal      time:   [44.334 ns 44.369 ns 44.405 ns]
-repeat_inline_tiny10     time:   [26.059 ns 26.106 ns 26.156 ns]
-repeat_heap_rc_normal10  time:   [44.281 ns 44.320 ns 44.361 ns]
-repeat_heap_arc_normal10 time:   [43.694 ns 43.766 ns 43.840 ns]
+format_inline_short      time:   [50.569 ns 50.881 ns 51.250 ns]
+format_heap_rc_long      time:   [54.744 ns 55.712 ns 56.780 ns]
+format_heap_arc_long     time:   [56.545 ns 56.764 ns 57.076 ns]
+add_static_small         time:   [30.595 ns 30.612 ns 30.629 ns]
+add_inline_small         time:   [9.6457 ns 9.6629 ns 9.6838 ns]
+add_heap_rc_normal       time:   [33.325 ns 33.357 ns 33.393 ns]
+add_heap_arc_normal      time:   [32.760 ns 32.893 ns 33.066 ns]
+repeat_inline_tiny10     time:   [26.838 ns 26.906 ns 26.995 ns]
+repeat_heap_rc_normal10  time:   [46.363 ns 46.408 ns 46.452 ns]
+repeat_heap_arc_normal10 time:   [46.958 ns 47.017 ns 47.079 ns]
 ```
 
 ### Comparables

@@ -163,6 +163,12 @@ where
         FlexStr(FlexStrInner::Heap(s.into()))
     }
 
+    /// Returns the size of the maximum possible inline length for this type
+    #[inline]
+    pub fn inline_capacity() -> usize {
+        N
+    }
+
     /// Returns true if this `FlexStr` is empty
     /// ```
     /// use flexstr::ToFlexStr;
@@ -469,10 +475,11 @@ fn concat<const N: usize, T>(s1: &str, s2: &str) -> FlexStr<N, T>
 where
     T: From<String> + for<'a> From<&'a str>,
 {
-    let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(s1.len() + s2.len());
+    let mut buffer = buffer_new!(N);
+    let mut builder = builder_new!(buffer, s1.len() + s2.len());
     builder.str_write(s1);
     builder.str_write(s2);
-    builder_into!(builder)
+    builder_into!(builder, buffer)
 }
 
 impl<const N: usize, T> Add<&str> for FlexStr<N, T>
@@ -663,11 +670,12 @@ where
 
     // Since `IntoIterator` consumes, we cannot loop over it twice to find lengths of strings
     // for a good capacity # without cloning it (which might be expensive)
-    let mut builder = <builder::FlexStrBuilder<N>>::new();
+    let mut buffer = buffer_new!(N);
+    let mut builder = builder_new!(buffer);
     for s in iter {
         builder.str_write(s.as_ref());
     }
-    builder_into!(builder)
+    builder_into!(builder, buffer)
 }
 
 #[inline]
@@ -680,11 +688,12 @@ where
     let iter = iter.into_iter();
     let (lower, _) = iter.size_hint();
 
-    let mut builder = <builder::FlexStrBuilder<N>>::with_capacity(lower);
+    let mut buffer = buffer_new!(N);
+    let mut builder = builder_new!(buffer, lower);
     for ch in iter {
         builder.char_write(f(ch));
     }
-    builder_into!(builder)
+    builder_into!(builder, buffer)
 }
 
 impl<const N: usize, T, T2> FromIterator<FlexStr<N, T2>> for FlexStr<N, T>
@@ -868,11 +877,12 @@ where
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
-    let mut builder = <builder::FlexStrBuilder<N>>::new();
+    let mut buffer = buffer_new!(N);
+    let mut builder = builder_new!(buffer);
     builder
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
-    builder_into!(builder)
+    builder_into!(builder, buffer)
 }
 
 /// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`

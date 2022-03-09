@@ -186,7 +186,7 @@ struct MyStruct {
 
 impl MyStruct {
   fn to_own_or_not_to_own(s: &FlexStr) -> Self {
-    let s = if s == "own_me" {
+    let s = if s == "own me" {
       // Since a wrapped literal, no copy or allocation
       s.clone()
     } else {
@@ -255,8 +255,10 @@ fn main() {
 
 ## Benchmarks
 
-In general, creates are somewhat slower than `String`, but clones and 
-conversions from primitive types are vastly faster.
+In general, inline/static creates are fast but heap creates are somewhat slower 
+than `String`. Clones and conversions from primitive types are much faster. 
+Other operations (repeat, additions, etc.) tend to be about the same 
+performance, but with some nuance.
 
 [Full benchmarks](BENCHMARKS.md)
 
