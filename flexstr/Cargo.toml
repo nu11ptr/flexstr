@@ -1,0 +1,24 @@
+[package]
+name = "flexstr"
+version = "0.7.2"
+authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust"
+repository = "https://github.com/nu11ptr/flexstr"
+documentation = "https://docs.rs/flexstr"
+keywords = ["string", "rc_str", "arc_str", "refcount", "inline"]
+categories = ["data-structures", "memory-management", "no-std", "text-processing"]
+readme = "README.md"
+edition = "2021"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dependencies]
+itoa = "1"
+ryu = "1"
+serde = { version = "1", optional = true }
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0"
