@@ -23,4 +23,4 @@ harness = false
 
 [dev-dependencies]
 criterion = "0.3"
-flexstr = { path = "../flexstr" }
+flexstr = { path = "../flexstr", features = ["fp_convert", "int_convert"] }

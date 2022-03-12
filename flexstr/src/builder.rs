@@ -195,7 +195,7 @@ macro_rules! builder_into {
             $crate::builder::FlexStrBuilder::InlineBuffer(_) => {
                 if $buffer.is_inline_candidate() {
                     let len = $buffer.len() as u8;
-                    FlexStr($crate::FlexStrInner::Inlined(
+                    $crate::Flex($crate::FlexInner::Inlined(
                         $crate::inline::InlineFlexStr::from_array($buffer.into_inner(), len),
                     ))
                 } else {

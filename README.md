@@ -222,9 +222,9 @@ storage type must implement `Deref<Target = str>`, `From<String>`, `From<&str>`,
 and `Clone`. Pretty much all smart pointers do this already.
 
 ```rust
-use flexstr::{FlexStr, STRING_SIZED_INLINE, Repeat, ToFlex};
+use flexstr::{Flex, STRING_SIZED_INLINE, Repeat, ToFlex};
 
-type BoxFlexStr = FlexStr<STRING_SIZED_INLINE, Box<str>>;
+type BoxFlexStr = Flex<STRING_SIZED_INLINE, Box<str>>;
 
 fn main() {
   // This will be allocated in a box instead of the default `Rc`

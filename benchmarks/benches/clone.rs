@@ -26,7 +26,7 @@ static_clone!(
     "AFlexStr",
     AFlexStr::from_static(STR),
     "FlexStr",
-    <FlexStr>::from_static(STR)
+    FlexStr::from_static(STR)
 );
 
 macro_rules! clone {

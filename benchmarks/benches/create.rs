@@ -15,7 +15,7 @@ fn static_create(c: &mut Criterion) {
     group.bench_function(id, |b| b.iter(|| AFlexStr::from_static(STRING)));
 
     let id = BenchmarkId::new("FlexStr", STRING.len());
-    group.bench_function(id, |b| b.iter(|| <FlexStr>::from_static(STRING)));
+    group.bench_function(id, |b| b.iter(|| FlexStr::from_static(STRING)));
 
     group.finish();
 }
