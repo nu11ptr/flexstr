@@ -1,6 +1,6 @@
 [package]
 name = "flexstr"
-version = "0.7.2"
+version = "0.8.0"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust"
@@ -14,9 +14,13 @@ edition = "2021"
 [package.metadata.docs.rs]
 all-features = true
 
+[features]
+int_convert = ["itoa"]
+fp_convert = ["ryu"]
+
 [dependencies]
-itoa = "1"
-ryu = "1"
+itoa = { version = "1", optional = true }
+ryu = { version = "1", optional = true }
 serde = { version = "1", optional = true }
 
 [dev-dependencies]

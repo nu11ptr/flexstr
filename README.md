@@ -29,11 +29,14 @@ multi ownership) whereas `String` works better in "string buffer" use cases
 
 ## Installation
 
-NOTE: The serde feature is optional and only included when specified.
+Optional features:
+* `fp_convert` = Convert floating point types directly into a `FlexStr`
+* `int_convert` = Convert integer types directly into a `FlexStr`
+* `serde` = Serialization support for `FlexStr`
 
 ```toml
 [dependencies]
-flexstr = { version = "0.7", features = ["serde"] }
+flexstr = { version = "0.8", features = ["fp_convert", "int_convert", "serde"] }
 ```
 
 ## Examples

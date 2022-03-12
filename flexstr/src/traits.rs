@@ -284,6 +284,7 @@ where
     }
 }
 
+#[cfg(feature = "int_convert")]
 macro_rules! impl_int_flex {
     ($($type:ty),+) => {
         $(impl<const N: usize, T> ToFlex<N, T> for $type
@@ -306,8 +307,10 @@ macro_rules! impl_int_flex {
     };
 }
 
+#[cfg(feature = "int_convert")]
 impl_int_flex!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
 
+#[cfg(feature = "fp_convert")]
 macro_rules! impl_float_flex {
     ($($type:ty),+) => {
         $(impl<const N: usize, T> ToFlex<N, T> for $type
@@ -330,6 +333,7 @@ macro_rules! impl_float_flex {
     };
 }
 
+#[cfg(feature = "fp_convert")]
 impl_float_flex!(f32, f64);
 
 // *** Generic `Into` Custom Traits ***
@@ -497,6 +501,7 @@ impl ToFlexStr for char {
     }
 }
 
+#[cfg(feature = "int_convert")]
 macro_rules! impl_int_flex_str {
     ($($type:ty),+) => {
         $(impl ToFlexStr for $type
@@ -516,8 +521,10 @@ macro_rules! impl_int_flex_str {
     };
 }
 
+#[cfg(feature = "int_convert")]
 impl_int_flex_str!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
 
+#[cfg(feature = "fp_convert")]
 macro_rules! impl_float_flex_str {
     ($($type:ty),+) => {
         $(impl ToFlexStr for $type
@@ -537,6 +544,7 @@ macro_rules! impl_float_flex_str {
     };
 }
 
+#[cfg(feature = "fp_convert")]
 impl_float_flex_str!(f32, f64);
 
 // *** AFlexStr `To` Traits ***
@@ -612,6 +620,7 @@ impl ToAFlexStr for char {
     }
 }
 
+#[cfg(feature = "int_convert")]
 macro_rules! impl_int_a_flex_str {
     ($($type:ty),+) => {
         $(impl ToAFlexStr for $type
@@ -631,8 +640,10 @@ macro_rules! impl_int_a_flex_str {
     };
 }
 
+#[cfg(feature = "int_convert")]
 impl_int_a_flex_str!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
 
+#[cfg(feature = "fp_convert")]
 macro_rules! impl_float_a_flex_str {
     ($($type:ty),+) => {
         $(impl ToAFlexStr for $type
@@ -652,6 +663,7 @@ macro_rules! impl_float_a_flex_str {
     };
 }
 
+#[cfg(feature = "fp_convert")]
 impl_float_a_flex_str!(f32, f64);
 
 // *** FlexStr `Into` Traits ***
