@@ -1,0 +1,29 @@
+[package]
+name = "benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[profile.bench]
+debug = true
+
+[[bench]]
+name = "create"
+harness = false
+
+[[bench]]
+name = "clone"
+harness = false
+
+[[bench]]
+name = "convert"
+harness = false
+
+[[bench]]
+name = "ops"
+harness = false
+
+[dependencies]
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["real_blackbox"] }
+flexstr = { path = "../flexstr" }
