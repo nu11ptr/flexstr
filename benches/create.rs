@@ -1,95 +1,57 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use criterion::{criterion_group, criterion_main, Criterion};
-use flexstr::{IntoFlexStr, ToAFlexStr, ToFlexStr};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use flexstr::{AFlexStr, FlexStr, Repeat, ToAFlexStr, ToFlexStr};
 
-const SMALL_STR: &str = "Inline";
-const NORMAL_STR: &str = "This is a normal type string. It is a typical size for a basic message.";
-// A little over 900 chars
-const LARGE_STR: &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod \
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
-exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in \
-reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint \
-occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. \
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore \
-et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut \
-aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse \
-cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in \
-culpa qui officia deserunt mollit anim id est laborum.";
+fn static_create(c: &mut Criterion) {
+    let mut group = c.benchmark_group("Create and Destroy (Literal)");
 
-pub fn create(c: &mut Criterion) {
-    // Static and Inline
-    c.bench_function("create_static_normal", |b| {
-        b.iter(|| NORMAL_STR.into_flex_str())
-    });
-    c.bench_function("create_inline_small", |b| {
-        b.iter(|| SMALL_STR.to_flex_str())
-    });
+    const STRING: &'static str = "The length of this string is irrelevant!";
+    group.bench_function("String/40", |b| b.iter(|| STRING.to_string()));
+    group.bench_function("FlexStr/40", |b| b.iter(|| <FlexStr>::from_static(STRING)));
+    group.bench_function("AFlexStr/40", |b| b.iter(|| AFlexStr::from_static(STRING)));
 
-    // Heap (Rc)
-    c.bench_function("create_heap_rc_normal", |b| {
-        b.iter(|| NORMAL_STR.to_flex_str())
-    });
-    c.bench_function("create_heap_rc_large", |b| {
-        b.iter(|| LARGE_STR.to_flex_str())
-    });
-
-    // Heap (Arc)
-    c.bench_function("create_heap_arc_normal", |b| {
-        b.iter(|| NORMAL_STR.to_a_flex_str())
-    });
-    c.bench_function("create_heap_arc_large", |b| {
-        b.iter(|| LARGE_STR.to_a_flex_str())
-    });
-
-    // String
-    c.bench_function("create_string_small", |b| b.iter(|| SMALL_STR.to_string()));
-    c.bench_function("create_string_normal", |b| {
-        b.iter(|| NORMAL_STR.to_string())
-    });
-    c.bench_function("create_string_large", |b| b.iter(|| LARGE_STR.to_string()));
-
-    // Rc
-    c.bench_function("create_rc_small", |b| {
-        b.iter(|| {
-            let rc: Rc<str> = Rc::from(SMALL_STR);
-            rc
-        })
-    });
-    c.bench_function("create_rc_normal", |b| {
-        b.iter(|| {
-            let rc: Rc<str> = Rc::from(NORMAL_STR);
-            rc
-        })
-    });
-    c.bench_function("create_rc_large", |b| {
-        b.iter(|| {
-            let rc: Rc<str> = Rc::from(LARGE_STR);
-            rc
-        })
-    });
-
-    // Arc
-    c.bench_function("create_arc_small", |b| {
-        b.iter(|| {
-            let arc: Arc<str> = Arc::from(SMALL_STR);
-            arc
-        })
-    });
-    c.bench_function("create_arc_normal", |b| {
-        b.iter(|| {
-            let arc: Arc<str> = Arc::from(NORMAL_STR);
-            arc
-        })
-    });
-    c.bench_function("create_arc_large", |b| {
-        b.iter(|| {
-            let arc: Arc<str> = Arc::from(LARGE_STR);
-            arc
-        })
-    });
+    group.finish();
 }
 
-criterion_group!(benches, create);
+fn create(c: &mut Criterion) {
+    let mut group = c.benchmark_group("Create and Destroy");
+
+    let strings: Vec<FlexStr> = vec![0usize, 10, 20, 100, 1000, 16384]
+        .into_iter()
+        .map(|n| "x".repeat_n(n))
+        .collect();
+
+    for string in strings {
+        let id = BenchmarkId::new("String", string.len());
+        group.bench_with_input(id, string.as_str(), |b, s| {
+            b.iter(|| String::from(black_box(s)))
+        });
+
+        let id = BenchmarkId::new("Rc<str>", string.len());
+        group.bench_with_input(id, string.as_str(), |b, s| {
+            b.iter(|| <Rc<str>>::from(black_box(s)))
+        });
+
+        let id = BenchmarkId::new("Arc<str>", string.len());
+        group.bench_with_input(id, string.as_str(), |b, s| {
+            b.iter(|| <Arc<str>>::from(black_box(s)))
+        });
+
+        let id = BenchmarkId::new("FlexStr", string.len());
+        group.bench_with_input(id, string.as_str(), |b, s| {
+            b.iter(|| black_box(s).to_flex_str())
+        });
+
+        let id = BenchmarkId::new("AFlexStr", string.len());
+        group.bench_with_input(id, string.as_str(), |b, s| {
+            b.iter(|| black_box(s).to_a_flex_str())
+        });
+    }
+
+    group.finish();
+}
+
+criterion_group!(benches, static_create, create);
 criterion_main!(benches);

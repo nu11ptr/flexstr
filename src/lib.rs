@@ -224,6 +224,23 @@ where
         String::from(&**self)
     }
 
+    /// Attempts to extract a static inline string literal if one is stored inside this `FlexStr`.
+    /// Returns `()` as an `Err` if this is not a static string literal.
+    /// ```
+    /// use flexstr::IntoFlexStr;
+    ///
+    /// let s = "abc";
+    /// let s2 = s.into_flex_str();
+    /// assert_eq!(s2.try_to_static_string().unwrap(), s);
+    /// ```
+    #[inline]
+    pub fn try_to_static_string(&self) -> Result<&'static str, ()> {
+        match self.0 {
+            FlexStrInner::Static(s) => Ok(s),
+            _ => Err(()),
+        }
+    }
+
     /// Returns true if this is a wrapped string literal (`&'static str`)
     /// ```
     /// use flexstr::FlexStr;

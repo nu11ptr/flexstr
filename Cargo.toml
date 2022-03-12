@@ -39,6 +39,6 @@ ryu = "1"
 serde = { version = "1", optional = true }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = { version = "0.3", features = ["real_blackbox"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
