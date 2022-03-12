@@ -3,9 +3,6 @@ name = "benchmarks"
 version = "0.1.0"
 edition = "2021"
 
-[profile.bench]
-debug = true
-
 [[bench]]
 name = "create"
 harness = false

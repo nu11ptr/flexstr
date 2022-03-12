@@ -93,6 +93,10 @@ mod test_readme {
     external_doc_test!(include_str!("../../README.md"));
 }
 
+/// Error type returned from `try_to_static_str` when  this `FlexStr` does not contain a `'static str`
+#[derive(Copy, Clone, Debug)]
+pub struct NotStatic;
+
 #[derive(Clone, Debug)]
 enum FlexStrInner<const N: usize, T> {
     /// A wrapped string literal
@@ -139,7 +143,7 @@ where
     /// assert!(s.is_inlined());
     /// ```
     #[inline]
-    pub fn try_inline(s: &str) -> Result<FlexStr<N, T>, &str> {
+    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<FlexStr<N, T>, S> {
         match inline::InlineFlexStr::try_new(s) {
             Ok(s) => Ok(FlexStr(FlexStrInner::Inlined(s))),
             Err(s) => Err(s),
@@ -156,11 +160,11 @@ where
     /// assert!(s.is_heap());
     /// ```
     #[inline]
-    pub fn heap(s: &str) -> FlexStr<N, T>
+    pub fn heap(s: impl AsRef<str>) -> FlexStr<N, T>
     where
         T: for<'a> From<&'a str>,
     {
-        FlexStr(FlexStrInner::Heap(s.into()))
+        FlexStr(FlexStrInner::Heap(s.as_ref().into()))
     }
 
     /// Returns the size of the maximum possible inline length for this type
@@ -231,13 +235,13 @@ where
     ///
     /// let s = "abc";
     /// let s2 = s.into_flex_str();
-    /// assert_eq!(s2.try_to_static_string().unwrap(), s);
+    /// assert_eq!(s2.try_to_static_str().unwrap(), s);
     /// ```
     #[inline]
-    pub fn try_to_static_string(&self) -> Result<&'static str, ()> {
+    pub fn try_to_static_str(&self) -> Result<&'static str, NotStatic> {
         match self.0 {
             FlexStrInner::Static(s) => Ok(s),
-            _ => Err(()),
+            _ => Err(NotStatic),
         }
     }
 
@@ -884,6 +888,36 @@ where
     {
         deserializer.deserialize_str(FlexStrVisitor(PhantomData))
     }
+}
+
+/// Create compile time constant `FlexStr` (equivalent, but less typing than:
+/// `<FlexStr>::from_static("my_literal")`
+/// ```
+/// use flexstr::{flex_str, FlexStr};
+///
+/// const STR: FlexStr = flex_str!("This is a constant!");
+/// assert!(STR.is_static())
+/// ```
+#[macro_export]
+macro_rules! flex_str {
+    ($str:expr) => {
+        <$crate::FlexStr>::from_static($str)
+    };
+}
+
+/// Create compile time constant `AFlexStr` (equivalent, but less typing than:
+/// `<AFlexStr>::from_static("my_literal")`
+/// ```
+/// use flexstr::{a_flex_str, AFlexStr};
+///
+/// const STR: AFlexStr = a_flex_str!("This is a constant!");
+/// assert!(STR.is_static())
+/// ```
+#[macro_export]
+macro_rules! a_flex_str {
+    ($str:expr) => {
+        <$crate::AFlexStr>::from_static($str)
+    };
 }
 
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
