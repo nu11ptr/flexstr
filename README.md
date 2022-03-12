@@ -260,7 +260,7 @@ than `String`. Clones and conversions from primitive types are much faster.
 Other operations (repeat, additions, etc.) tend to be about the same 
 performance, but with some nuance.
 
-[Full benchmarks](BENCHMARKS.md)
+[Full benchmarks](benchmarks/README.md)
 
 ## Negatives
 

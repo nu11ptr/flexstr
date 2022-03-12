@@ -1,0 +1,19 @@
+comments = """
+The more testing I do, the more I'm convinced that microbenchmarks are nearly impossible to do accurately. I find
+that simply moving the order of the benchmarks can make LARGE differences. I also see sudden large jumps and drop offs
+even without doing anythign at all. Using `black_box` seems just as sketchy, and without writing a book, find it creates
+the same problems just skewed slightly differently. Due to all this, please take these with a grain of salt (maybe 5).
+Many of these are inaccurate or just plaing wrong.
+
+That said, they are not totally worthless. We can look for trends and patterns, and benchmarking has revealed some
+performance surprises that resulted in benefitial code changes. The key things to watch for (these will also give clues
+when benchmarks are impossibly wrong):
+
+* At size 0, we would expect "empty string" detection to kick in - should be as fast as a constant more or less
+* For literal tests, we are just testing how fast we can return the item - all work done at compile time
+* For sizes 22 and under (on 64-bit), these are all inlined - we would expect these to be faster than heap allocations
+* For static and inlining, there zero differences between `FlexStr` and `AFlexStr` and we shouldn't expect any performance
+difference at all (even those large differences are shown at times)
+"""
+
+[table_comments]
