@@ -8,7 +8,7 @@ repository = "https://github.com/nu11ptr/flexstr"
 documentation = "https://docs.rs/flexstr"
 keywords = ["string", "rc_str", "arc_str", "refcount", "inline"]
 categories = ["data-structures", "memory-management", "no-std", "text-processing"]
-readme = "README.md"
+readme = "../README.md"
 edition = "2021"
 
 [package.metadata.docs.rs]
