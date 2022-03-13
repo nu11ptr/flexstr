@@ -7,7 +7,7 @@ use flexstr::{AFlexStr, FlexStr, Repeat};
 macro_rules! static_clone {
     ($($name:expr, $setup:expr),+) => {
         fn static_clone(c: &mut Criterion) {
-            let mut group = c.benchmark_group("Clone (Literal)");
+            let mut group = c.benchmark_group("Clone - Literal");
             const STR: &'static str = "The length of this string is irrelevant!";
 
             $(let id = BenchmarkId::new($name, STR.len());
@@ -32,7 +32,7 @@ static_clone!(
 macro_rules! clone {
     ($($name:expr, $setup:expr),+) => {
         fn clone(c: &mut Criterion) {
-            let mut group = c.benchmark_group("Clone");
+            let mut group = c.benchmark_group("Clone - Computed");
             let lengths = vec![0usize, 10, 20, 100, 1000, 16384];
 
             for len in lengths {

@@ -13,7 +13,7 @@ pub trait Repeat<const N: usize, T> {
 
 impl<const N: usize, T> Repeat<N, T> for Flex<N, T>
 where
-    T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
+    T: Deref<Target = str> + for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::{flex_str, IntoFlexStr, Repeat};
@@ -30,7 +30,7 @@ where
 
 impl<const N: usize, T> Repeat<N, T> for str
 where
-    T: From<String> + for<'a> From<&'a str>,
+    T: for<'a> From<&'a str>,
 {
     #[inline]
     fn repeat_n(&self, n: usize) -> Flex<N, T> {
@@ -65,7 +65,7 @@ pub trait ToCase<const N: usize, T> {
 
 impl<const N: usize, T> ToCase<N, T> for Flex<N, T>
 where
-    T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
+    T: Deref<Target = str> + for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::{flex_str, FlexStr, ToCase};
@@ -114,7 +114,7 @@ where
 
 impl<const N: usize, T> ToCase<N, T> for str
 where
-    T: From<String> + for<'a> From<&'a str>,
+    T: for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::{FlexStr, ToCase};
@@ -243,10 +243,7 @@ where
     /// ```
     #[inline]
     fn to_flex(&self) -> Flex<N, T> {
-        Flex(match self.try_into() {
-            Ok(s) => FlexInner::Inlined(s),
-            Err(_) => FlexInner::Heap(self.into()),
-        })
+        self.into()
     }
 }
 
@@ -269,7 +266,7 @@ where
 
 impl<const N: usize, T> ToFlex<N, T> for char
 where
-    T: for<'a> From<&'a str> + From<String> + Deref<Target = str>,
+    T: for<'a> From<&'a str> + Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{FlexStr, ToFlex};
@@ -394,7 +391,7 @@ where
 
 impl<const N: usize, T> IntoFlex<N, T> for String
 where
-    T: From<String>,
+    T: for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::{AFlexStr, IntoFlex};
@@ -406,7 +403,7 @@ where
     /// ```
     #[inline]
     fn into_flex(self) -> Flex<N, T> {
-        self.into()
+        <Flex<N, T> as From<&str>>::from(&self)
     }
 }
 
@@ -690,7 +687,7 @@ impl IntoFlexStr for String {
     /// ```
     #[inline]
     fn into_flex_str(self) -> FlexStr {
-        self.into()
+        self.into_flex()
     }
 }
 
@@ -736,6 +733,6 @@ impl IntoAFlexStr for String {
     /// ```
     #[inline]
     fn into_a_flex_str(self) -> AFlexStr {
-        self.into()
+        self.into_flex()
     }
 }

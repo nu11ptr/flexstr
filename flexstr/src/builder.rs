@@ -138,11 +138,11 @@ pub enum FlexStrBuilder<
 
 impl<const N: usize, const N2: usize> FlexStrBuilder<'_, N, N2> {
     #[inline]
-    pub fn str_write(&mut self, s: &str) {
+    pub fn str_write(&mut self, s: impl AsRef<str>) {
         // SAFETY: This always succeeds - buffer will be promoted until it eventually becomes a
         // `String` which cannot fail per stdlib docs
         unsafe {
-            <Self as Write>::write_str(self, s).unwrap_unchecked();
+            <Self as Write>::write_str(self, s.as_ref()).unwrap_unchecked();
         }
     }
 

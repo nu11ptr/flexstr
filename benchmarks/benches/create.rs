@@ -5,7 +5,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use flexstr::{AFlexStr, FlexStr, Repeat, ToAFlexStr, ToFlexStr};
 
 fn static_create(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Create and Destroy (Literal)");
+    let mut group = c.benchmark_group("Create and Destroy - Literal");
     const STRING: &'static str = "The length of this string is irrelevant!";
 
     let id = BenchmarkId::new("String", STRING.len());
@@ -21,7 +21,7 @@ fn static_create(c: &mut Criterion) {
 }
 
 fn create(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Create and Destroy (Computed)");
+    let mut group = c.benchmark_group("Create and Destroy - Computed");
 
     let strings: Vec<FlexStr> = vec![0usize, 10, 20, 100, 1000, 16384]
         .into_iter()

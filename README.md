@@ -30,7 +30,7 @@ multi ownership) whereas `String` works better in "string buffer" use cases
 ## Installation
 
 Optional features:
-* `fast_format` = enables `flex_ufmt!` and `a_flex_ufmt!``format!`-like 
+* `fast_format` = enables `flex_ufmt!` and `a_flex_ufmt!` `format!`-like 
   macros for very fast formatting (with some limitations)
 * `fp_convert` = Convert floating point types directly into a `FlexStr`
 * `int_convert` = Convert integer types directly into a `FlexStr`
@@ -116,6 +116,7 @@ interchangeably as a single string type.
   allocation/copying)
 * Both single threaded compatible (`FlexStr`) and multi-thread safe 
   (`AFlexStr`) options
+* All dependencies are optional and based on feature usage
 * It is simple to use!
 
 ## Types
