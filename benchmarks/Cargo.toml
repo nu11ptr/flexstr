@@ -3,6 +3,9 @@ name = "benchmarks"
 version = "0.1.0"
 edition = "2021"
 
+[profile.bench]
+debug = true
+
 [[bench]]
 name = "create"
 harness = false
@@ -22,5 +25,5 @@ harness = false
 [dependencies]
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = { version = "0.3", features = ["real_blackbox"] }
 flexstr = { path = "../flexstr", features = ["fp_convert", "int_convert"] }

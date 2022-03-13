@@ -56,10 +56,11 @@ extern crate alloc;
 pub mod builder;
 #[doc(hidden)]
 pub mod inline;
-/// Various custom traits for `FlexStr` (no need to import from `traits` module, they are reexported at crate root)
+#[doc(hidden)]
 pub mod traits;
 
 pub use inline::STRING_SIZED_INLINE;
+#[doc(inline)]
 pub use traits::*;
 
 use alloc::rc::Rc;
@@ -234,7 +235,7 @@ where
     }
 
     /// Attempts to extract a static inline string literal if one is stored inside this `FlexStr`.
-    /// Returns `()` as an `Err` if this is not a static string literal.
+    /// Returns `NotStatic` as an `Err` if this is not a static string literal.
     /// ```
     /// use flexstr::flex_str;
     ///

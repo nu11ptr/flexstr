@@ -1,19 +1,67 @@
 comments = """
+
+## Environment
+
+Benchmarks were run on:
+
+```bash
+$ cargo +nightly version -v
+cargo 1.61.0-nightly (65c8266 2022-03-09)
+release: 1.61.0-nightly
+commit-hash: 65c82664263feddc5fe2d424be0993c28d46377a
+commit-date: 2022-03-09
+host: x86_64-unknown-linux-gnu
+libgit2: 1.4.1 (sys:0.14.1 vendored)
+libcurl: 7.80.0-DEV (sys:0.4.51+curl-7.80.0 vendored ssl:OpenSSL/1.1.1m)
+os: Pop!_OS 20.04 (focal) [64-bit]
+```
+
+## Benchmark Pitfalls
+
 The more testing I do, the more I'm convinced that microbenchmarks are nearly impossible to do accurately. I find
 that simply moving the order of the benchmarks can make LARGE differences. I also see sudden large jumps and drop offs
-even without doing anythign at all. Using `black_box` seems just as sketchy, and without writing a book, find it creates
-the same problems just skewed slightly differently. Due to all this, please take these with a grain of salt (maybe 5).
-Many of these are inaccurate or just plaing wrong.
+even without doing anything at all. Using `black_box` seems just as sketchy, and without writing a book, find it creates
+the same problems just skewed slightly differently. Nevermind `nightly` vs `stable`. Due to all this, please take these
+with a grain of salt (maybe 5). Many of these are inaccurate or just plain wrong.
 
 That said, they are not totally worthless. We can look for trends and patterns, and benchmarking has revealed some
-performance surprises that resulted in benefitial code changes. The key things to watch for (these will also give clues
+performance surprises that resulted in beneficial code changes. The key things to watch for are (these will also give clues
 when benchmarks are impossibly wrong):
 
 * At size 0, we would expect "empty string" detection to kick in - should be as fast as a constant more or less
 * For literal tests, we are just testing how fast we can return the item - all work done at compile time
 * For sizes 22 and under (on 64-bit), these are all inlined - we would expect these to be faster than heap allocations
-* For static and inlining, there zero differences between `FlexStr` and `AFlexStr` and we shouldn't expect any performance
-difference at all (even those large differences are shown at times)
+* For static and inlining, there are zero code differences between `FlexStr` and `AFlexStr` and we shouldn't expect any
+performance difference at all (even though large differences are shown often!)
+
+## Table of Contents
 """
 
 [table_comments]
+create_and_destroy_-_literal = """
+This just demonstrates the benefits of having a constant vs. heap allocating the constant as `String` is forced to do
+"""
+
+create_and_destroy_-_computed = """
+* String sizes of 10 and 20 are inlining, so gets a boost
+* An ever so slight penalty for the wrapper on heap allocations
+* String sizes of 0 are just empty string constants and any variation here is likely not meaningful
+"""
+
+clone_-_literal = """
+This again just demonstrates the benefits of having a constant vs. heap allocating the constant as `String` is forced to do.
+`AFlexStr` being much slower here is likely not correct in the real world as the code is identical to `FlexStr`
+"""
+
+"clone_-_computed" = """
+* The benefits of simply copying a wrapper and possibly a ref count increment are apparent in `FlexStr`
+* The 10 and 20 sizes being 4x slower makes zero sense - this is compiler derived `Clone` code that literally does one
+less step than `Rc` derived `Clone` code, so we would expect it to be the same or faster. We also don't see this deviation
+ in `AFlexStr`
+* `AFlexStr` is nothing more than an enum wrapper over `Arc<str>` for sizes 100 and above, so it being ~5x slower
+than a plain `Arc<str>` is very odd to say the least
+"""
+
+convert = """
+Thanks mostly to `ryu` and `itoa`, our primitive conversions handily outperforms `String`.
+"""

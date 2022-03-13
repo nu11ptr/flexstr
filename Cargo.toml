@@ -1,5 +1,2 @@
 [workspace]
-members = ["benchmarks", "flexstr"]
-
-[profile.bench]
-debug = true
+members = ["flexstr"]
