@@ -1,5 +1,15 @@
 # Benchmarks
 
+## Table of Contents
+
+- [Environment](#environment)
+- [Benchmark Pitfalls](#benchmark-pitfalls)
+- [Benchmark Results](#benchmark-results)
+    - [Create and Destroy - Literal](#create-and-destroy---literal)
+    - [Create and Destroy - Computed](#create-and-destroy---computed)
+    - [Clone - Literal](#clone---literal)
+    - [Clone - Computed](#clone---computed)
+    - [Convert](#convert)
 
 ## Environment
 
@@ -35,15 +45,9 @@ when benchmarks are impossibly wrong):
 * For static and inlining, there are zero code differences between `FlexStr` and `AFlexStr` and we shouldn't expect any
 performance difference at all (even though large differences are shown often!)
 
-## Table of Contents
+## Benchmark Results
 
-- [Create and Destroy - Literal](#create-and-destroy---literal)
-- [Create and Destroy - Computed](#create-and-destroy---computed)
-- [Clone - Literal](#clone---literal)
-- [Clone - Computed](#clone---computed)
-- [Convert](#convert)
-
-## Create and Destroy - Literal
+### Create and Destroy - Literal
 
 This just demonstrates the benefits of having a constant vs. heap allocating the constant as `String` is forced to do
 
@@ -51,7 +55,7 @@ This just demonstrates the benefits of having a constant vs. heap allocating the
 |:---------|:------------------------|:--------------------------------|:-------------------------------- |
 | **`40`** | `7.58 ns` (1.00x)       | `0.57 ns` (✅ **13.22x faster**) | `0.57 ns` (✅ **13.41x faster**)  |
 
-## Create and Destroy - Computed
+### Create and Destroy - Computed
 
 * String sizes of 10 and 20 are inlining, so gets a boost
 * An ever so slight penalty for the wrapper on heap allocations
@@ -66,7 +70,7 @@ This just demonstrates the benefits of having a constant vs. heap allocating the
 | **`1000`**  | `13.57 ns` (1.00x)        | `14.31 ns` (❌ *1.05x slower*)    | `15.21 ns` (❌ *1.12x slower*)    | `14.74 ns` (❌ *1.09x slower*)    | `14.37 ns` (❌ *1.06x slower*)     |
 | **`16384`** | `138.21 ns` (1.00x)       | `139.61 ns` (❌ *1.01x slower*)   | `189.43 ns` (❌ *1.37x slower*)   | `140.66 ns` (❌ *1.02x slower*)   | `182.79 ns` (❌ *1.32x slower*)    |
 
-## Clone - Literal
+### Clone - Literal
 
 This again just demonstrates the benefits of having a constant vs. heap allocating the constant as `String` is forced to do.
 `AFlexStr` being much slower here is likely not correct in the real world as the code is identical to `FlexStr`
@@ -75,7 +79,7 @@ This again just demonstrates the benefits of having a constant vs. heap allocati
 |:---------|:-------------------------|:--------------------------------|:------------------------------- |
 | **`40`** | `11.52 ns` (1.00x)       | `11.98 ns` (❌ *1.04x slower*)   | `4.26 ns` (✅ **2.70x faster**)  |
 
-## Clone - Computed
+### Clone - Computed
 
 * The benefits of simply copying a wrapper and possibly a ref count increment are apparent in `FlexStr`
 * The 10 and 20 sizes being 4x slower makes zero sense - this is compiler derived `Clone` code that literally does one
@@ -93,7 +97,7 @@ than a plain `Arc<str>` is very odd to say the least
 | **`1000`**  | `55.61 ns` (1.00x)        | `2.75 ns` (✅ **20.24x faster**) | `7.34 ns` (✅ **7.57x faster**)  | `13.10 ns` (✅ **4.24x faster**)  | `2.85 ns` (✅ **19.55x faster**)   |
 | **`16384`** | `458.43 ns` (1.00x)       | `4.91 ns` (✅ **93.30x faster**) | `6.99 ns` (✅ **65.60x faster**) | `13.27 ns` (✅ **34.55x faster**) | `2.55 ns` (✅ **179.86x faster**)  |
 
-## Convert
+### Convert
 
 Thanks mostly to `ryu` and `itoa`, our primitive conversions handily outperforms `String`.
 
@@ -109,5 +113,6 @@ Thanks mostly to `ryu` and `itoa`, our primitive conversions handily outperforms
 | **`f32`**  | `112.65 ns` (1.00x)       | `24.85 ns` (✅ **4.53x faster**) | `25.05 ns` (✅ **4.50x faster**)  |
 | **`f64`**  | `191.50 ns` (1.00x)       | `30.81 ns` (✅ **6.22x faster**) | `30.01 ns` (✅ **6.38x faster**)  |
 
+---
 Made with [criterion-table](https://github.com/nu11ptr/criterion-table)
 

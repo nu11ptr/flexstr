@@ -1,7 +1,6 @@
-comments = """
+[top_comments]
 
-## Environment
-
+Environment = """
 Benchmarks were run on:
 
 ```bash
@@ -15,9 +14,9 @@ libgit2: 1.4.1 (sys:0.14.1 vendored)
 libcurl: 7.80.0-DEV (sys:0.4.51+curl-7.80.0 vendored ssl:OpenSSL/1.1.1m)
 os: Pop!_OS 20.04 (focal) [64-bit]
 ```
+"""
 
-## Benchmark Pitfalls
-
+"Benchmark Pitfalls" = """
 The more testing I do, the more I'm convinced that microbenchmarks are nearly impossible to do accurately. I find
 that simply moving the order of the benchmarks can make LARGE differences. I also see sudden large jumps and drop offs
 even without doing anything at all. Using `black_box` seems just as sketchy, and without writing a book, find it creates
@@ -33,8 +32,6 @@ when benchmarks are impossibly wrong):
 * For sizes 22 and under (on 64-bit), these are all inlined - we would expect these to be faster than heap allocations
 * For static and inlining, there are zero code differences between `FlexStr` and `AFlexStr` and we shouldn't expect any
 performance difference at all (even though large differences are shown often!)
-
-## Table of Contents
 """
 
 [table_comments]
