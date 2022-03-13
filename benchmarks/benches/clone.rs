@@ -1,8 +1,12 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
+use compact_str::CompactStr;
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
 use flexstr::{AFlexStr, FlexStr, Repeat};
+use kstring::KString;
+use smartstring::{LazyCompact, SmartString};
+use smol_str::SmolStr;
 
 macro_rules! static_clone {
     ($($name:expr, $setup:expr),+) => {
@@ -23,10 +27,10 @@ macro_rules! static_clone {
 static_clone!(
     "String",
     STR.to_string(),
-    "AFlexStr",
-    AFlexStr::from_static(STR),
     "FlexStr",
-    FlexStr::from_static(STR)
+    FlexStr::from_static(STR),
+    "AFlexStr",
+    AFlexStr::from_static(STR)
 );
 
 macro_rules! clone {
@@ -54,11 +58,18 @@ clone!(
     |len| -> Rc<str> { "x".repeat(len).into() },
     "Arc<str>",
     |len| -> Arc<str> { "x".repeat(len).into() },
-    // NOTE: AFlexStr is 20% faster when it goes first lol - no idea why..
+    "FlexStr",
+    |len| -> FlexStr { "x".repeat_n(len) },
     "AFlexStr",
     |len| -> AFlexStr { "x".repeat_n(len) },
-    "FlexStr",
-    |len| -> FlexStr { "x".repeat_n(len) }
+    "CompactStr",
+    |len| -> CompactStr { "x".repeat(len).into() },
+    "KString",
+    |len| -> KString { "x".repeat(len).into() },
+    "SmartString",
+    |len| -> SmartString<LazyCompact> { "x".repeat(len).into() },
+    "SmolStr",
+    |len| -> SmolStr { "x".repeat(len).into() }
 );
 
 criterion_group!(benches, static_clone, clone);
