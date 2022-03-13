@@ -8,8 +8,9 @@ pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used
 /// transparently by `FlexStr` and `AFlexStr`
+#[doc(hidden)]
 #[derive(Clone, Copy)]
-pub(crate) struct InlineFlexStr<const N: usize = STRING_SIZED_INLINE> {
+pub struct InlineFlexStr<const N: usize = STRING_SIZED_INLINE> {
     data: [mem::MaybeUninit<u8>; N],
     len: u8,
 }
@@ -46,7 +47,7 @@ impl<const N: usize> InlineFlexStr<N> {
     }
 
     #[inline]
-    pub(crate) fn from_array(data: [mem::MaybeUninit<u8>; N], len: u8) -> Self {
+    pub fn from_array(data: [mem::MaybeUninit<u8>; N], len: u8) -> Self {
         Self { data, len }
     }
 
@@ -93,6 +94,18 @@ impl<const N: usize> Debug for InlineFlexStr<N> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         <str as Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "fast_format")]
+impl<const N: usize> ufmt::uDebug for InlineFlexStr<N> {
+    #[inline]
+    fn fmt<W>(&self, f: &mut ufmt::Formatter<'_, W>) -> Result<(), W::Error>
+    where
+        W: ufmt_write::uWrite + ?Sized,
+    {
+        // uDebug is not implemented for str it seems
+        <str as ufmt::uDisplay>::fmt(self, f)
     }
 }
 

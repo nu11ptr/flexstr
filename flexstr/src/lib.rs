@@ -51,10 +51,13 @@
 
 extern crate alloc;
 
+#[doc(hidden)]
 #[macro_use]
-mod builder;
-mod inline;
-mod traits;
+pub mod builder;
+#[doc(hidden)]
+pub mod inline;
+#[doc(hidden)]
+pub mod traits;
 
 pub use inline::STRING_SIZED_INLINE;
 pub use traits::*;
@@ -97,19 +100,20 @@ mod test_readme {
 #[derive(Copy, Clone, Debug)]
 pub struct NotStatic;
 
+#[doc(hidden)]
 #[derive(Clone, Debug)]
-enum FlexInner<const N: usize, T> {
-    /// A wrapped string literal
+pub enum FlexInner<const N: usize, T> {
+    // A wrapped string literal
     Static(&'static str),
-    /// An inlined string
+    // An inlined string
     Inlined(inline::InlineFlexStr<N>),
-    /// A reference count wrapped `str`
+    // A reference count wrapped `str`
     Heap(T),
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
 #[derive(Clone, Debug)]
-pub struct Flex<const N: usize, T>(FlexInner<N, T>);
+pub struct Flex<const N: usize, T>(#[doc(hidden)] pub FlexInner<N, T>);
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
 pub type FlexStr = Flex<STRING_SIZED_INLINE, Rc<str>>;
@@ -317,6 +321,35 @@ where
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         <str as Display>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "fast_format")]
+impl<const N: usize, T> ufmt::uDisplay for Flex<N, T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn fmt<W>(&self, f: &mut ufmt::Formatter<'_, W>) -> Result<(), W::Error>
+    where
+        W: ufmt_write::uWrite + ?Sized,
+    {
+        <str as ufmt::uDisplay>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "fast_format")]
+impl<const N: usize, T> ufmt::uDebug for Flex<N, T>
+where
+    T: Deref<Target = str>,
+{
+    #[inline]
+    fn fmt<W>(&self, f: &mut ufmt::Formatter<'_, W>) -> Result<(), W::Error>
+    where
+        W: ufmt_write::uWrite + ?Sized,
+    {
+        // uDebug is not implemented for str it seems which means we can't derive
+        <str as ufmt::uDisplay>::fmt(self, f)
     }
 }
 
@@ -937,6 +970,50 @@ where
         .write_fmt(args)
         .expect("a formatting trait implementation returned an error");
     builder_into!(builder, buffer)
+}
+
+/// Equivalent to `flex_fmt` except that it uses `ufmt` which is much faster, but has limitations.
+/// See [ufmt docs](https://docs.rs/ufmt/latest/ufmt/) for more details
+/// ```
+/// use flexstr::{flex_str, flex_ufmt};
+///
+/// let a = flex_ufmt!("Is {}{}", flex_str!("inlined"), "!");
+/// assert!(a.is_inlined());
+/// assert_eq!(a, "Is inlined!");
+/// ```
+#[cfg(feature = "fast_format")]
+#[macro_export(local_inner_macros)]
+macro_rules! flex_ufmt {
+    ($($arg:tt)*) => {{
+        let mut buffer = buffer_new!({ $crate::STRING_SIZED_INLINE });
+        let mut builder = builder_new!(buffer);
+
+        ufmt::uwrite!(&mut builder, $($arg)*).expect("a formatting trait implementation returned an error");
+        let s: $crate::FlexStr = builder_into!(builder, buffer);
+        s
+    }}
+}
+
+/// Equivalent to `a_flex_fmt` except that it uses `ufmt` which is much faster, but has limitations.
+/// See [ufmt docs](https://docs.rs/ufmt/latest/ufmt/) for more details
+/// ```
+/// use flexstr::{a_flex_str, a_flex_ufmt};
+///
+/// let a = a_flex_ufmt!("Is {}{}", a_flex_str!("inlined"), "!");
+/// assert!(a.is_inlined());
+/// assert_eq!(a, "Is inlined!");
+/// ```
+#[cfg(feature = "fast_format")]
+#[macro_export(local_inner_macros)]
+macro_rules! a_flex_ufmt {
+    ($($arg:tt)*) => {{
+        let mut buffer = buffer_new!({ $crate::STRING_SIZED_INLINE });
+        let mut builder = builder_new!(buffer);
+
+        ufmt::uwrite!(&mut builder, $($arg)*).expect("a formatting trait implementation returned an error");
+        let s: $crate::AFlexStr = builder_into!(builder, buffer);
+        s
+    }}
 }
 
 /// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`

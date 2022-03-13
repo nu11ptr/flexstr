@@ -6,19 +6,23 @@ use core::{fmt, mem, ptr, str};
 use crate::inline::STRING_SIZED_INLINE;
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
-pub(crate) const BUFFER_SIZE: usize = 1024;
+#[doc(hidden)]
+pub const BUFFER_SIZE: usize = 1024;
 
 // *** String Buffer ***
 
 // This is used so that if the writes are small enough we can move 'inline' directly out without a copy
-pub(crate) union Buffer<const N: usize = STRING_SIZED_INLINE, const N2: usize = BUFFER_SIZE> {
+#[doc(hidden)]
+pub union Buffer<const N: usize = STRING_SIZED_INLINE, const N2: usize = BUFFER_SIZE> {
     inline: [mem::MaybeUninit<u8>; N],
-    pub(crate) heap: [mem::MaybeUninit<u8>; N2],
+    pub heap: [mem::MaybeUninit<u8>; N2],
 }
 
 // NOTE: This is a macro as the inliner was copying our stack buffer
+#[doc(hidden)]
+#[macro_export]
 macro_rules! buffer_new {
-    ($inline_size:ident) => {
+    ($inline_size:expr) => {
         unsafe {
             const BUF_SIZE: usize = $crate::builder::BUFFER_SIZE;
 
@@ -35,10 +39,10 @@ macro_rules! buffer_new {
 }
 
 // Used to buffer formatting writes before turning into inline string or ref counter string
-pub(crate) struct StringBuffer<const N: usize = STRING_SIZED_INLINE, const N2: usize = BUFFER_SIZE>
-{
-    pub(crate) buffer: Buffer<N, N2>,
-    pub(crate) len: usize,
+#[doc(hidden)]
+pub struct StringBuffer<const N: usize = STRING_SIZED_INLINE, const N2: usize = BUFFER_SIZE> {
+    pub buffer: Buffer<N, N2>,
+    pub len: usize,
 }
 
 impl<const N: usize, const N2: usize> StringBuffer<N, N2> {
@@ -122,7 +126,8 @@ impl<const N: usize, const N2: usize> Deref for StringBuffer<N, N2> {
 
 // *** FlexStr Builder ***
 
-pub(crate) enum FlexStrBuilder<
+#[doc(hidden)]
+pub enum FlexStrBuilder<
     'buffer,
     const N: usize = STRING_SIZED_INLINE,
     const N2: usize = BUFFER_SIZE,
@@ -137,14 +142,14 @@ impl<const N: usize, const N2: usize> FlexStrBuilder<'_, N, N2> {
         // SAFETY: This always succeeds - buffer will be promoted until it eventually becomes a
         // `String` which cannot fail per stdlib docs
         unsafe {
-            self.write_str(s).unwrap_unchecked();
+            <Self as Write>::write_str(self, s).unwrap_unchecked();
         }
     }
 
     #[inline]
     pub fn char_write(&mut self, c: char) {
         // SAFETY: Wraps `write_str` which always succeeds per above
-        unsafe { self.write_char(c).unwrap_unchecked() }
+        unsafe { <Self as Write>::write_char(self, c).unwrap_unchecked() }
     }
 }
 
@@ -174,7 +179,19 @@ impl<const N: usize, const N2: usize> Write for FlexStrBuilder<'_, N, N2> {
     }
 }
 
+#[cfg(feature = "fast_format")]
+impl<const N: usize, const N2: usize> ufmt_write::uWrite for FlexStrBuilder<'_, N, N2> {
+    type Error = core::fmt::Error;
+
+    #[inline]
+    fn write_str(&mut self, s: &str) -> Result<(), Self::Error> {
+        <Self as Write>::write_str(self, s)
+    }
+}
+
 // NOTE: This is a macro as the inliner was copying our stack buffer
+#[doc(hidden)]
+#[macro_export]
 macro_rules! builder_new {
     ($buffer:ident) => {
         $crate::builder::FlexStrBuilder::InlineBuffer(&mut $buffer)
@@ -189,6 +206,8 @@ macro_rules! builder_new {
 }
 
 // NOTE: This is a macro as the inliner was copying our stack buffer
+#[doc(hidden)]
+#[macro_export]
 macro_rules! builder_into {
     ($builder:ident, $buffer: ident) => {
         match $builder {

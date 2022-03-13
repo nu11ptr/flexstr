@@ -30,13 +30,16 @@ multi ownership) whereas `String` works better in "string buffer" use cases
 ## Installation
 
 Optional features:
+* `fast_format` = enables `flex_ufmt!` and `a_flex_ufmt!``format!`-like 
+  macros for very fast formatting (with some limitations)
 * `fp_convert` = Convert floating point types directly into a `FlexStr`
 * `int_convert` = Convert integer types directly into a `FlexStr`
 * `serde` = Serialization support for `FlexStr`
 
 ```toml
-[dependencies]
-flexstr = { version = "0.8", features = ["fp_convert", "int_convert", "serde"] }
+[dependencies.flexstr]
+version = "0.8"
+features = ["fast_format, fp_convert", "int_convert", "serde"]
 ```
 
 ## Examples
