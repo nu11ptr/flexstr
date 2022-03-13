@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use flexstr::{a_flex_fmt, flex_fmt, IntoFlexStr, ToAFlexStr, ToFlexStr};
+use flexstr::{a_flex_fmt, flex_fmt, flex_str, ToAFlexStr, ToFlexStr};
 
 const TINY_STR: &str = "a";
 const SMALL_STR: &str = "Inline";
@@ -18,7 +18,7 @@ pub fn flex_ops(c: &mut Criterion) {
     });
 
     // Add
-    let static_str = SMALL_STR.into_flex_str();
+    let static_str = flex_str!(SMALL_STR);
     c.bench_function("add_static_small", |b| {
         b.iter_batched(|| static_str.clone(), |s| s + "abc", BatchSize::SmallInput)
     });
@@ -47,7 +47,7 @@ pub fn flex_ops(c: &mut Criterion) {
     });
 
     // Repeat
-    let tiny_str = TINY_STR.into_flex_str(); // Starts as static, but ends up inline
+    let tiny_str = flex_str!(TINY_STR); // Starts as static, but ends up inline
     c.bench_function("repeat_inline_tiny10", |b| b.iter(|| tiny_str.repeat(10)));
 
     c.bench_function("repeat_heap_rc_normal10", |b| {

@@ -42,20 +42,20 @@ flexstr = { version = "0.8", features = ["fp_convert", "int_convert", "serde"] }
 ## Examples
 
 ```rust
-use flexstr::{flex_fmt, FlexStr, IntoFlexStr, ToCase, ToFlexStr};
+use flexstr::{flex_fmt, flex_str, FlexStr, IntoFlexStr, ToCase, ToFlexStr};
 
 fn main() {
-  // Use an `into` function to wrap a literal, no allocation or copying
-  let static_str = "This will not allocate or copy".into_flex_str();
-  assert!(static_str.is_static());
+  // Use `flex_str` macro to wrap literals as compile-time constants
+  const STATIC_STR: FlexStr = flex_str!("This will not allocate or copy");
+  assert!(STATIC_STR.is_static());
 
   // Strings up to 22 bytes (on 64-bit) will be inlined automatically 
-  // (demo only, use `into` for literals as above)
+  // (demo only, use macro or `from_static` for literals as above)
   let inline_str = "inlined".to_flex_str();
   assert!(inline_str.is_inlined());
 
   // When a string is too long to be wrapped/inlined, it will heap allocate
-  // (demo only, use `into` for literals as above)
+  // (demo only, use macro or `from_static` for literals as above)
   let rc_str = "This is too long to be inlined".to_flex_str();
   assert!(rc_str.is_heap());
 
@@ -76,14 +76,14 @@ fn main() {
   assert!(inline_str4.is_inlined());
   assert_eq!(inline_str4, "inlined!!!");
   
-  // Clone is almost free, and never allocates
+  // Clone is cheap, and never allocates
   // (at most it is a ref count increment for heap allocated strings)
-  let static_str2 = static_str.clone();
-  assert!(static_str2.is_static());
+  let rc_str2 = rc_str.clone();
+  assert!(rc_str2.is_heap());
 
   // Regardless of storage type, these all operate seamlessly together 
   // and choose storage as required
-  let heap_str2 = static_str2 + &inline_str;
+  let heap_str2 = STATIC_STR + &inline_str;
   assert!(heap_str2.is_heap());
   assert_eq!(heap_str2, "This will not allocate or copyinlined");
 }
@@ -127,11 +127,11 @@ interchangeably as a single string type.
 ### Hello World
 
 ```rust
-use flexstr::IntoFlexStr;
+use flexstr::flex_str;
 
 fn main() {
   // From literal - no copying or allocation
-  let world = "world!".into_flex_str();
+  let world = flex_str!("world!");
 
   println!("Hello {world}");
 }
@@ -140,20 +140,19 @@ fn main() {
 ### Creation Scenarios
 
 ```rust
-use flexstr::{IntoAFlexStr, IntoFlexStr, ToFlexStr};
+use flexstr::{flex_str, FlexStr, IntoAFlexStr, IntoFlexStr, ToFlexStr};
 
 fn main() {
-  // From literal - no copying or allocation
-  // NOTE: `to_flex_str` will copy, so use `into_flex_str` for literals
-  let literal = "literal".into_flex_str();
+  // From literal - no runtime, all compile-time
+  const literal: FlexStr = flex_str!("literal");
 
   // From borrowed string - Copied into inline string
   let owned = "inlined".to_string();
-  let str_to_inlined = (&owned).to_flex_str();
+  let str_to_inlined = owned.to_flex_str();
 
   // From borrowed String - copied into `str` wrapped in `Rc`
   let owned = "A bit too long to be inlined!!!".to_string();
-  let str_to_wrapped = (&owned).to_flex_str();
+  let str_to_wrapped = owned.to_flex_str();
 
   // From String - copied into inline string (`String` storage released)
   let inlined = "inlined".to_string().into_flex_str();
@@ -164,7 +163,7 @@ fn main() {
   // *** If you want a Send/Sync type you need `AFlexStr` instead ***
 
   // From FlexStr wrapped literal - no copying or allocation
-  let literal = literal.into_a_flex_str();
+  let literal2 = literal.into_a_flex_str();
 
   // From FlexStr inlined string - no allocation
   let inlined = inlined.into_a_flex_str();
@@ -181,7 +180,7 @@ This has always been a confusing situation in Rust, but it is easy with
 of `&str`, you retain the option for very fast multi ownership.
 
 ```rust
-use flexstr::{IntoFlexStr, FlexStr};
+use flexstr::{flex_str, IntoFlexStr, FlexStr};
 
 struct MyStruct {
   s: FlexStr
@@ -194,7 +193,7 @@ impl MyStruct {
       s.clone()
     } else {
       // Wrapped literal - no copy or allocation
-      "own me".into()
+      flex_str!("own me")
     };
 
     Self { s }
@@ -202,15 +201,15 @@ impl MyStruct {
 }
 
 fn main() {
-  // Wrapped literals - no copy or allocation
-  let s = "borrow me".into_flex_str();
-  let s2 = "own me".into_flex_str();
+  // Wrapped literals - compile time constant
+  const S: FlexStr = flex_str!("borrow me");
+  const S2: FlexStr = flex_str!("own me");
 
-  let struct1 = MyStruct::to_own_or_not_to_own(&s);
-  let struct2 = MyStruct::to_own_or_not_to_own(&s2);
+  let struct1 = MyStruct::to_own_or_not_to_own(&S);
+  let struct2 = MyStruct::to_own_or_not_to_own(&S2);
 
-  assert_eq!(s2, struct1.s);
-  assert_eq!(s2, struct2.s);
+  assert_eq!(S2, struct1.s);
+  assert_eq!(S2, struct2.s);
 }
 ```
 

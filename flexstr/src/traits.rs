@@ -16,9 +16,9 @@ where
     T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
 {
     /// ```
-    /// use flexstr::{IntoFlexStr, Repeat};
+    /// use flexstr::{flex_str, IntoFlexStr, Repeat};
     ///
-    /// let s = "a".into_flex_str().repeat_n(10);
+    /// let s = flex_str!("a").repeat_n(10);
     /// assert!(s.is_inlined());
     /// assert_eq!(s, "a".repeat(10));
     /// ```
@@ -68,9 +68,9 @@ where
     T: Deref<Target = str> + From<String> + for<'a> From<&'a str>,
 {
     /// ```
-    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    /// use flexstr::{flex_str, FlexStr, ToCase};
     ///
-    /// let a: FlexStr = "test".into_flex_str().to_upper();
+    /// let a: FlexStr = flex_str!("test").to_upper();
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
@@ -79,9 +79,9 @@ where
     }
 
     /// ```
-    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    /// use flexstr::{flex_str, FlexStr, IntoFlexStr, ToCase};
     ///
-    /// let a: FlexStr = "TEST".into_flex_str().to_lower();
+    /// let a: FlexStr = flex_str!("TEST").to_lower();
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
@@ -90,9 +90,9 @@ where
     }
 
     /// ```
-    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    /// use flexstr::{flex_str, FlexStr, IntoFlexStr, ToCase};
     ///
-    /// let a: FlexStr = "test".into_flex_str().to_ascii_upper();
+    /// let a: FlexStr = flex_str!("test").to_ascii_upper();
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
@@ -101,9 +101,9 @@ where
     }
 
     /// ```
-    /// use flexstr::{FlexStr, IntoFlexStr, ToCase};
+    /// use flexstr::{flex_str, FlexStr, IntoFlexStr, ToCase};
     ///
-    /// let a: FlexStr = "TEST".into_flex_str().to_ascii_lower();
+    /// let a: FlexStr = flex_str!("TEST").to_ascii_lower();
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
@@ -252,7 +252,7 @@ where
 
 impl<const N: usize, T> ToFlex<N, T> for bool
 where
-    T: Deref<Target = str>,
+    T: for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::{FlexStr, ToFlex};
@@ -263,7 +263,7 @@ where
     /// ```
     #[inline]
     fn to_flex(&self) -> Flex<N, T> {
-        if *self { "true" } else { "false" }.into()
+        Flex::from_static(if *self { "true" } else { "false" })
     }
 }
 
@@ -340,9 +340,9 @@ impl_float_flex!(f32, f64);
 
 /// A trait that converts the source to a `FlexStr<N, T>` while consuming the original
 /// ```
-/// use flexstr::{FlexStr, IntoFlex};
+/// use flexstr::{flex_str, FlexStr, IntoFlex};
 ///
-/// let a: FlexStr = "This is a wrapped static string literal no matter how long it is!!!!!".into_flex();
+/// let a: FlexStr = flex_str!("This is a wrapped static string literal no matter how long it is!!!!!");
 /// assert!(a.is_static());
 /// ```
 pub trait IntoFlex<const N: usize, T> {
@@ -356,9 +356,9 @@ where
     T2: Deref<Target = str>,
 {
     /// ```
-    /// use flexstr::{AFlexStr, FlexStr, IntoFlex};
+    /// use flexstr::{a_flex_str, AFlexStr, FlexStr, IntoFlex};
     ///
-    /// let a: AFlexStr = "This can be just wrapped as a static string literal!".into_flex();
+    /// const a: AFlexStr = a_flex_str!("This can be just wrapped as a static string literal!");
     /// assert!(a.is_static());
     /// let b: FlexStr = a.clone().into_flex();
     /// assert!(b.is_static());
@@ -389,24 +389,6 @@ where
                 FlexInner::Heap(T::from(&heap))
             }
         })
-    }
-}
-
-impl<const N: usize, T> IntoFlex<N, T> for &'static str
-where
-    T: Deref<Target = str>,
-{
-    /// ```
-    /// use flexstr::{AFlexStr, IntoFlex};
-    ///
-    /// let a = "This can just be wrapped as a static string literal!";
-    /// let b: AFlexStr = a.into_flex();
-    /// assert!(b.is_static());
-    /// assert_eq!(b, a);
-    /// ```
-    #[inline]
-    fn into_flex(self) -> Flex<N, T> {
-        self.into()
     }
 }
 
@@ -670,9 +652,9 @@ impl_float_a_flex_str!(f32, f64);
 
 /// A trait that converts the source to a `FlexStr` while consuming the original
 /// ```
-/// use flexstr::IntoFlexStr;
+/// use flexstr::flex_str;
 ///
-/// let a = "This is a wrapped static string literal no matter how long it is!!!!!".into_flex_str();
+/// let a = flex_str!("This is a wrapped static string literal no matter how long it is!!!!!");
 /// assert!(a.is_static());
 /// ```
 pub trait IntoFlexStr {
@@ -685,9 +667,9 @@ where
     T: Deref<Target = str>,
 {
     /// ```
-    /// use flexstr::{AFlexStr, IntoFlex, IntoFlexStr};
+    /// use flexstr::{a_flex_str, AFlexStr, IntoFlex, IntoFlexStr};
     ///
-    /// let a: AFlexStr = "This can be just wrapped as a static string literal!".into_flex();
+    /// let a: AFlexStr = a_flex_str!("This can be just wrapped as a static string literal!");
     /// assert!(a.is_static());
     /// let b = a.clone().into_flex_str();
     /// assert!(b.is_static());
@@ -696,19 +678,6 @@ where
     #[inline]
     fn into_flex_str(self) -> FlexStr {
         self.into_flex()
-    }
-}
-
-impl IntoFlexStr for &'static str {
-    /// ```
-    /// use flexstr::IntoFlexStr;
-    ///
-    /// let a = "This is a wrapped static string literal no matter how long it is!!!!!".into_flex_str();
-    /// assert!(a.is_static());
-    /// ```
-    #[inline]
-    fn into_flex_str(self) -> FlexStr {
-        self.into()
     }
 }
 
@@ -729,9 +698,9 @@ impl IntoFlexStr for String {
 
 /// A trait that converts the source to a `AFlexStr` while consuming the original
 /// ```
-/// use flexstr::IntoAFlexStr;
+/// use flexstr::a_flex_str;
 ///
-/// let a = "This is a wrapped static string literal no matter how long it is!!!!!".into_a_flex_str();
+/// let a = a_flex_str!("This is a wrapped static string literal no matter how long it is!!!!!");
 /// assert!(a.is_static());
 /// ```
 pub trait IntoAFlexStr {
@@ -744,9 +713,9 @@ where
     T: Deref<Target = str>,
 {
     /// ```
-    /// use flexstr::{AFlexStr, IntoFlex, IntoAFlexStr};
+    /// use flexstr::{AFlexStr, IntoAFlexStr, a_flex_str};
     ///
-    /// let a: AFlexStr = "This can be just wrapped as a static string literal!".into_flex();
+    /// let a: AFlexStr = a_flex_str!("This can be just wrapped as a static string literal!");
     /// assert!(a.is_static());
     /// let b = a.clone().into_a_flex_str();
     /// assert!(b.is_static());
@@ -755,19 +724,6 @@ where
     #[inline]
     fn into_a_flex_str(self) -> AFlexStr {
         self.into_flex()
-    }
-}
-
-impl IntoAFlexStr for &'static str {
-    /// ```
-    /// use flexstr::IntoAFlexStr;
-    ///
-    /// let a = "This is a wrapped static string literal no matter how long it is!!!!!".into_a_flex_str();
-    /// assert!(a.is_static());
-    /// ```
-    #[inline]
-    fn into_a_flex_str(self) -> AFlexStr {
-        self.into()
     }
 }
 

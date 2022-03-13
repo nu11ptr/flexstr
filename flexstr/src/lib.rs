@@ -4,19 +4,19 @@
 //! A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust
 //!
 //! ```
-//! use flexstr::{flex_fmt, FlexStr, IntoFlexStr, ToCase, ToFlexStr};
+//! use flexstr::{flex_fmt, flex_str, FlexStr, IntoFlexStr, ToCase, ToFlexStr};
 //!
-//! // Use an `into` function to wrap a literal, no allocation or copying
-//! let static_str = "This will not allocate or copy".into_flex_str();
-//! assert!(static_str.is_static());
+//! // Use `flex_str` macro to wrap literals as compile-time constants
+//! const STATIC_STR: FlexStr = flex_str!("This will not allocate or copy");
+//! assert!(STATIC_STR.is_static());
 //!
 //! // Strings up to 22 bytes (on 64-bit) will be inlined automatically
-//! // (demo only, use `into` for literals as above)
+//! // (demo only, use macro or `from_static` for literals as above)
 //! let inline_str = "inlined".to_flex_str();
 //! assert!(inline_str.is_inlined());
 //!
 //! // When a string is too long to be wrapped/inlined, it will heap allocate
-//! // (demo only, use `into` for literals as above)
+//! // (demo only, use macro or `from_static` for literals as above)
 //! let rc_str = "This is too long to be inlined".to_flex_str();
 //! assert!(rc_str.is_heap());
 //!
@@ -37,14 +37,14 @@
 //! assert!(inline_str4.is_inlined());
 //! assert_eq!(inline_str4, "inlined!!!");
 //!
-//! // Clone is almost free, and never allocates
+//! // Clone is cheap, and never allocates
 //! // (at most it is a ref count increment for heap allocated strings)
-//! let static_str2 = static_str.clone();
-//! assert!(static_str2.is_static());
+//! let rc_str2 = rc_str.clone();
+//! assert!(rc_str2.is_heap());
 //!
 //! // Regardless of storage type, these all operate seamlessly together
 //! // and choose storage as required
-//! let heap_str2 = static_str2 + &inline_str;
+//! let heap_str2 = STATIC_STR + &inline_str;
 //! assert!(heap_str2.is_heap());
 //! assert_eq!(heap_str2, "This will not allocate or copyinlined");  
 //! ```
@@ -220,9 +220,9 @@ where
     /// trait (which we cannot implement due to a blanket stdlib implementation) as this avoids the
     /// `Display`-based implementation.
     /// ```
-    /// use flexstr::IntoFlexStr;
+    /// use flexstr::flex_str;
     ///
-    /// let s = "abc".into_flex_str().to_string();
+    /// let s = flex_str!("abc").to_string();
     /// assert_eq!(s, "abc");
     /// ```
     #[allow(clippy::inherent_to_string_shadow_display)]
@@ -234,10 +234,10 @@ where
     /// Attempts to extract a static inline string literal if one is stored inside this `FlexStr`.
     /// Returns `()` as an `Err` if this is not a static string literal.
     /// ```
-    /// use flexstr::IntoFlexStr;
+    /// use flexstr::flex_str;
     ///
     /// let s = "abc";
-    /// let s2 = s.into_flex_str();
+    /// let s2 = flex_str!(s);
     /// assert_eq!(s2.try_to_static_str().unwrap(), s);
     /// ```
     #[inline]
@@ -294,10 +294,10 @@ where
     type Target = str;
 
     /// ```
-    /// use flexstr::IntoFlexStr;
+    /// use flexstr::flex_str;
     ///
     /// let a = "test";
-    /// let b = a.into_flex_str();
+    /// let b = flex_str!(a);
     /// assert_eq!(&*b, a);
     /// ```
     #[inline]
@@ -513,9 +513,9 @@ where
     type Output = Flex<N, T>;
 
     /// ```
-    /// use flexstr::IntoFlexStr;
+    /// use flexstr::{flex_str, IntoFlexStr};
     ///
-    /// let a = "in".into_flex_str() + "line";
+    /// let a = flex_str!("in") + "line";
     /// assert!(a.is_inlined());
     /// assert_eq!(a, "inline");
     ///
@@ -645,21 +645,21 @@ where
     }
 }
 
-impl<const N: usize, T> From<&'static str> for Flex<N, T>
+impl<const N: usize, T> From<&str> for Flex<N, T>
 where
-    T: Deref<Target = str>,
+    T: for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
-    /// let lit = "static";
+    /// let lit = "inline";
     /// let s: FlexStr  = lit.into();
-    /// assert!(s.is_static());
+    /// assert!(s.is_inlined());
     /// assert_eq!(&s, lit);
     /// ```
     #[inline]
-    fn from(s: &'static str) -> Self {
-        Self::from_static(s)
+    fn from(s: &str) -> Self {
+        s.to_flex()
     }
 }
 
@@ -994,7 +994,7 @@ mod tests {
 
         // Create our struct and values and verify storage
         let test = Test {
-            a: a.into(),
+            a: flex_str!(a),
             b: b.to_string().into(),
             c: c.to_string().into(),
         };
