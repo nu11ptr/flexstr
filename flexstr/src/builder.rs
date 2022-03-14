@@ -13,6 +13,8 @@ pub const BUFFER_SIZE: usize = 1024;
 
 // This is used so that if the writes are small enough we can move 'inline' directly out without a copy
 #[doc(hidden)]
+#[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+#[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 pub union Buffer<const N: usize = STRING_SIZED_INLINE, const N2: usize = BUFFER_SIZE> {
     inline: [mem::MaybeUninit<u8>; N],
     pub heap: [mem::MaybeUninit<u8>; N2],

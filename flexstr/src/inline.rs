@@ -9,6 +9,8 @@ pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 /// This is the custom inline string type - it is not typically used directly, but instead is used
 /// transparently by `FlexStr` and `AFlexStr`
 #[doc(hidden)]
+#[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+#[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 #[derive(Clone, Copy)]
 pub struct InlineFlexStr<const N: usize = STRING_SIZED_INLINE> {
     data: [mem::MaybeUninit<u8>; N],
