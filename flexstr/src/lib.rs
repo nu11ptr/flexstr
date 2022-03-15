@@ -111,8 +111,6 @@ enum FlexMarker {
     Heap,
 }
 
-#[cfg_attr(target_pointer_width = "64", repr(align(8)))]
-#[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct StaticStr<const N: usize> {
@@ -122,12 +120,7 @@ struct StaticStr<const N: usize> {
 }
 
 impl<const N: usize> StaticStr<N> {
-    const EMPTY: Self = Self {
-        literal: "",
-        // SAFETY: Padding, never actually used
-        pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
-        marker: FlexMarker::Static,
-    };
+    const EMPTY: Self = Self::from_static("");
 
     #[inline]
     const fn from_static(s: &'static str) -> Self {
@@ -168,12 +161,7 @@ where
 {
     #[inline]
     fn from_ref(s: impl AsRef<str>) -> Self {
-        Self {
-            heap: s.as_ref().into(),
-            // SAFETY: Padding, never actually used
-            pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
-            marker: FlexMarker::Heap,
-        }
+        Self::new(s.as_ref().into())
     }
 }
 
@@ -226,12 +214,6 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Drop for Flex_<N, N2, 
     }
 }
 
-impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
-    const EMPTY: Self = Self {
-        literal: StaticStr::EMPTY,
-    };
-}
-
 impl<const N: usize, const N2: usize, const N3: usize, T> From<&str> for Flex_<N, N2, N3, T>
 where
     T: for<'a> From<&'a str>,
@@ -239,7 +221,9 @@ where
     #[inline]
     fn from(s: &str) -> Self {
         if s.is_empty() {
-            Self::EMPTY
+            Flex_ {
+                literal: StaticStr::EMPTY,
+            }
         } else {
             match inline::InlineFlexStr::try_new(s) {
                 Ok(s) => Flex_ { inline: s },
