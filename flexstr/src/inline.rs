@@ -3,6 +3,8 @@ use core::fmt::{Debug, Formatter};
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
+use crate::FlexMarker;
+
 /// Using this inline capacity will result in a type with the same memory size as a builtin `String`
 pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 
@@ -12,15 +14,17 @@ pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 #[derive(Clone, Copy)]
+#[repr(C)]
 pub struct InlineFlexStr<const N: usize = STRING_SIZED_INLINE> {
     data: [mem::MaybeUninit<u8>; N],
     len: u8,
+    marker: FlexMarker,
 }
 
 impl<const N: usize> InlineFlexStr<N> {
     /// Attempts to return a new `InlineFlexStr` if the source string is short enough to be copied.
     /// If not, the source is returned as the error.
-    #[inline]
+    #[inline(always)]
     pub fn try_new<T: AsRef<str>>(s: T) -> Result<Self, T> {
         let s_ref = s.as_ref();
 
@@ -45,12 +49,17 @@ impl<const N: usize> InlineFlexStr<N> {
         Self {
             len: s.len() as u8,
             data,
+            marker: FlexMarker::Inline,
         }
     }
 
     #[inline]
     pub fn from_array(data: [mem::MaybeUninit<u8>; N], len: u8) -> Self {
-        Self { data, len }
+        Self {
+            data,
+            len,
+            marker: FlexMarker::Inline,
+        }
     }
 
     /// Returns the capacity of this inline string

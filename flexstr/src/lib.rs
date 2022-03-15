@@ -68,15 +68,16 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use core::cmp::Ordering;
 use core::convert::Infallible;
-use core::fmt;
 use core::fmt::{Arguments, Debug, Display, Formatter, Write};
 use core::hash::{Hash, Hasher};
 #[cfg(feature = "serde")]
 use core::marker::PhantomData;
+use core::mem::ManuallyDrop;
 use core::ops::{
     Add, Deref, Index, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
 };
 use core::str::FromStr;
+use core::{fmt, mem};
 
 #[cfg(feature = "serde")]
 use serde::de::{Error, Visitor};
@@ -96,9 +97,159 @@ mod test_readme {
     external_doc_test!(include_str!("../../README.md"));
 }
 
+const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
+
 /// Error type returned from `try_to_static_str` when  this `FlexStr` does not contain a `'static str`
 #[derive(Copy, Clone, Debug)]
 pub struct NotStatic;
+
+#[derive(Copy, Clone, Debug)]
+#[repr(u8)]
+enum FlexMarker {
+    Static,
+    Inline,
+    Heap,
+}
+
+#[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+#[cfg_attr(target_pointer_width = "32", repr(align(4)))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct StaticStr<const N: usize> {
+    literal: &'static str,
+    pad: [mem::MaybeUninit<u8>; N],
+    marker: FlexMarker,
+}
+
+impl<const N: usize> StaticStr<N> {
+    const EMPTY: Self = Self {
+        literal: "",
+        // SAFETY: Padding, never actually used
+        pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
+        marker: FlexMarker::Static,
+    };
+
+    #[inline]
+    const fn from_static(s: &'static str) -> Self {
+        Self {
+            literal: s,
+            // SAFETY: Padding, never actually used
+            pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
+            marker: FlexMarker::Static,
+        }
+    }
+}
+
+#[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+#[cfg_attr(target_pointer_width = "32", repr(align(4)))]
+#[repr(C)]
+#[derive(Clone)]
+struct HeapStr<const N: usize, T> {
+    heap: T,
+    pad: [mem::MaybeUninit<u8>; N],
+    marker: FlexMarker,
+}
+
+impl<const N: usize, T> HeapStr<N, T> {
+    #[inline]
+    fn new(t: T) -> Self {
+        Self {
+            heap: t,
+            // SAFETY: Padding, never actually used
+            pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
+            marker: FlexMarker::Heap,
+        }
+    }
+}
+
+impl<const N: usize, T> HeapStr<N, T>
+where
+    T: for<'a> From<&'a str>,
+{
+    #[inline]
+    fn from_ref(s: impl AsRef<str>) -> Self {
+        Self {
+            heap: s.as_ref().into(),
+            // SAFETY: Padding, never actually used
+            pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
+            marker: FlexMarker::Heap,
+        }
+    }
+}
+
+/// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
+pub union Flex_<const N: usize, const N2: usize, const N3: usize, T> {
+    literal: StaticStr<N2>,
+    inline: inline::InlineFlexStr<N>,
+    heap: mem::ManuallyDrop<HeapStr<N3, T>>,
+}
+
+/// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
+pub type FlexStr_ = Flex_<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Rc<str>>;
+
+/// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
+pub type AFlexStr_ = Flex_<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Arc<str>>;
+
+impl<const N: usize, const N2: usize, const N3: usize, T> Clone for Flex_<N, N2, N3, T>
+where
+    T: Clone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            match self.literal.marker {
+                FlexMarker::Static => Flex_ {
+                    literal: self.literal,
+                },
+                FlexMarker::Inline => Flex_ {
+                    inline: self.inline,
+                },
+                FlexMarker::Heap => Flex_ {
+                    // Recreating vs. calling clone at the top is 30% faster in benchmarks
+                    heap: ManuallyDrop::new(HeapStr::new(self.heap.heap.clone())),
+                },
+            }
+        }
+    }
+}
+
+impl<const N: usize, const N2: usize, const N3: usize, T> Drop for Flex_<N, N2, N3, T> {
+    #[inline]
+    fn drop(&mut self) {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            if let FlexMarker::Heap = self.heap.marker {
+                ManuallyDrop::drop(&mut self.heap);
+            }
+        }
+    }
+}
+
+impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
+    const EMPTY: Self = Self {
+        literal: StaticStr::EMPTY,
+    };
+}
+
+impl<const N: usize, const N2: usize, const N3: usize, T> From<&str> for Flex_<N, N2, N3, T>
+where
+    T: for<'a> From<&'a str>,
+{
+    #[inline]
+    fn from(s: &str) -> Self {
+        if s.is_empty() {
+            Self::EMPTY
+        } else {
+            match inline::InlineFlexStr::try_new(s) {
+                Ok(s) => Flex_ { inline: s },
+                Err(_) => Flex_ {
+                    heap: ManuallyDrop::new(HeapStr::from_ref(s)),
+                },
+            }
+        }
+    }
+}
 
 #[doc(hidden)]
 #[derive(Clone, Debug)]

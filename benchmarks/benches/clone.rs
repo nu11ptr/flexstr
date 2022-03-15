@@ -2,12 +2,15 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use compact_str::CompactStr;
-use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
-use flexstr::{AFlexStr, FlexStr, Repeat};
+use criterion::{black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
+use flexstr::{AFlexStr, AFlexStr_, FlexStr, FlexStr_, Repeat};
 use kstring::KString;
 use smartstring::{LazyCompact, SmartString};
 use smol_str::SmolStr;
 
+const ITERATIONS: usize = 10_000;
+
+// TODO: Add iterations and add back in
 macro_rules! static_clone {
     ($($name:expr, $setup:expr),+) => {
         fn static_clone(c: &mut Criterion) {
@@ -42,7 +45,13 @@ macro_rules! clone {
             for len in lengths {
                 $(let id = BenchmarkId::new($name, len);
                 group.bench_function(id, |b| {
-                    b.iter_batched(|| $setup(len), |s| s.clone(), BatchSize::SmallInput)
+                    b.iter_batched(|| $setup(len), |s| {
+                        for _ in 0..ITERATIONS{
+                            let s2 = s.clone();
+                            black_box(&s);
+                            black_box(&s2);
+                        }
+                    }, BatchSize::SmallInput)
                 });)+
             }
 
@@ -62,6 +71,10 @@ clone!(
     |len| -> FlexStr { "x".repeat_n(len) },
     "AFlexStr",
     |len| -> AFlexStr { "x".repeat_n(len) },
+    "FlexStr_",
+    |len| -> FlexStr_ { (&*"x".repeat(len)).into() },
+    "AFlexStr_",
+    |len| -> AFlexStr_ { (&*"x".repeat(len)).into() },
     "CompactStr",
     |len| -> CompactStr { "x".repeat(len).into() },
     "KString",
@@ -72,5 +85,5 @@ clone!(
     |len| -> SmolStr { "x".repeat(len).into() }
 );
 
-criterion_group!(benches, static_clone, clone);
+criterion_group!(benches, clone);
 criterion_main!(benches);
