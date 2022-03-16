@@ -99,9 +99,13 @@ mod test_readme {
 
 const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 
-/// Error type returned from `try_to_static_str` when  this `FlexStr` does not contain a `'static str`
+/// Error type returned from `try_as_static_str` when  this `FlexStr` does not contain a `'static str`
 #[derive(Copy, Clone, Debug)]
 pub struct NotStatic;
+
+/// Error type returned from `try_into_heap` when  this `FlexStr` does not contain a heap based string
+#[derive(Copy, Clone, Debug)]
+pub struct NotHeap;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(u8)]
@@ -133,6 +137,7 @@ impl<const N: usize> StaticStr<N> {
     }
 }
 
+// T will likely align this just fine, but since we don't know the size, this is safest
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 #[repr(C)]
@@ -145,7 +150,7 @@ struct HeapStr<const N: usize, T> {
 
 impl<const N: usize, T> HeapStr<N, T> {
     #[inline]
-    fn new(t: T) -> Self {
+    fn from_heap(t: T) -> Self {
         Self {
             heap: t,
             // SAFETY: Padding, never actually used
@@ -153,23 +158,21 @@ impl<const N: usize, T> HeapStr<N, T> {
             marker: FlexMarker::Heap,
         }
     }
-}
 
-impl<const N: usize, T> HeapStr<N, T>
-where
-    T: for<'a> From<&'a str>,
-{
     #[inline]
-    fn from_ref(s: impl AsRef<str>) -> Self {
-        Self::new(s.as_ref().into())
+    fn from_ref(s: impl AsRef<str>) -> Self
+    where
+        T: for<'a> From<&'a str>,
+    {
+        Self::from_heap(s.as_ref().into())
     }
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
 pub union Flex_<const N: usize, const N2: usize, const N3: usize, T> {
-    literal: StaticStr<N2>,
-    inline: inline::InlineFlexStr<N>,
-    heap: mem::ManuallyDrop<HeapStr<N3, T>>,
+    static_str: StaticStr<N2>,
+    inline_str: inline::InlineFlexStr<N>,
+    heap_str: mem::ManuallyDrop<HeapStr<N3, T>>,
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
@@ -177,6 +180,8 @@ pub type FlexStr_ = Flex_<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Rc<
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
 pub type AFlexStr_ = Flex_<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Arc<str>>;
+
+// *** Clone ***
 
 impl<const N: usize, const N2: usize, const N3: usize, T> Clone for Flex_<N, N2, N3, T>
 where
@@ -186,33 +191,308 @@ where
     fn clone(&self) -> Self {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
-            match self.literal.marker {
+            match self.static_str.marker {
                 FlexMarker::Static => Flex_ {
-                    literal: self.literal,
+                    static_str: self.static_str,
                 },
                 FlexMarker::Inline => Flex_ {
-                    inline: self.inline,
+                    inline_str: self.inline_str,
                 },
                 FlexMarker::Heap => Flex_ {
                     // Recreating vs. calling clone at the top is 30% faster in benchmarks
-                    heap: ManuallyDrop::new(HeapStr::new(self.heap.heap.clone())),
+                    heap_str: ManuallyDrop::new(HeapStr::from_heap(self.heap_str.heap.clone())),
                 },
             }
         }
     }
 }
 
+// *** Drop ***
+
 impl<const N: usize, const N2: usize, const N3: usize, T> Drop for Flex_<N, N2, N3, T> {
     #[inline]
     fn drop(&mut self) {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
-            if let FlexMarker::Heap = self.heap.marker {
-                ManuallyDrop::drop(&mut self.heap);
+            if let FlexMarker::Heap = self.heap_str.marker {
+                ManuallyDrop::drop(&mut self.heap_str);
             }
         }
     }
 }
+
+// *** Deref ***
+
+impl<const N: usize, const N2: usize, const N3: usize, T> Deref for Flex_<N, N2, N3, T>
+where
+    T: Deref<Target = str>,
+{
+    type Target = str;
+
+    /// ```
+    /// use flexstr::flex_str;
+    ///
+    /// let a = "test";
+    /// let b = flex_str!(a);
+    /// assert_eq!(&*b, a);
+    /// ```
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            match self.static_str.marker {
+                FlexMarker::Static => self.static_str.literal,
+                FlexMarker::Inline => &self.inline_str,
+                FlexMarker::Heap => &self.heap_str.heap,
+            }
+        }
+    }
+}
+
+// *** Non-trait functions ***
+
+impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
+    /// An empty ("") static constant string
+    pub const EMPTY: Self = Flex_ {
+        static_str: StaticStr::EMPTY,
+    };
+
+    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
+    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// const S: FlexStr = FlexStr::from_static("test");
+    /// assert!(S.is_static());
+    /// ```
+    #[inline]
+    pub const fn from_static(s: &'static str) -> Flex_<N, N2, N3, T> {
+        Flex_ {
+            static_str: StaticStr::from_static(s),
+        }
+    }
+
+    /// Creates a new string from a str reference. If the string is empty, an empty static string
+    /// is returned. If at or under the inline length limit, an inline string will be returned.
+    /// Otherwise, a heap based string will be allocated and returned.
+    #[inline]
+    pub fn from_ref(s: impl AsRef<str>) -> Self
+    where
+        T: for<'a> From<&'a str>,
+    {
+        let s = s.as_ref();
+
+        if s.is_empty() {
+            Self::EMPTY
+        } else {
+            match Self::try_inline(s) {
+                Ok(s) => s,
+                Err(_) => Self::from_ref_heap(s),
+            }
+        }
+    }
+
+    /// Attempts to create an inlined string. Returns a new inline string on success or the original
+    /// source string if it will not fit. Since the to/into/from_ref functions will automatically
+    /// inline when possible, this function is really only for special use cases.
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = FlexStr::try_inline("test").unwrap();
+    /// assert!(s.is_inlined());
+    /// ```
+    #[inline]
+    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<Flex_<N, N2, N3, T>, S> {
+        match inline::InlineFlexStr::try_new(s) {
+            Ok(s) => Ok(Flex_ { inline_str: s }),
+            Err(s) => Err(s),
+        }
+    }
+
+    /// Force the creation of a heap allocated string. Unlike to/into/from_ref functions, this will
+    /// not attempt to inline first even if the string is a candidate for inlining. Using this is
+    /// generally only recommended when using the associated `to_heap` and `try_to_heap` functions.
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = FlexStr::heap("test");
+    /// assert!(s.is_heap());
+    /// ```
+    #[inline]
+    pub fn from_ref_heap(s: impl AsRef<str>) -> Flex_<N, N2, N3, T>
+    where
+        T: for<'a> From<&'a str>,
+    {
+        Flex_ {
+            heap_str: ManuallyDrop::new(HeapStr::from_ref(s)),
+        }
+    }
+
+    /// Create a new heap based string by wrapping the existing user provided heap string type (T).
+    /// For `FlexStr` this will be an `Rc<str>` and for `AFlexStr` it will be an `Arc<str>`.
+    #[inline]
+    pub fn from_heap(t: T) -> Flex_<N, N2, N3, T> {
+        Flex_ {
+            heap_str: ManuallyDrop::new(HeapStr::from_heap(t)),
+        }
+    }
+
+    /// Returns the size of the maximum possible inline length for this type
+    #[inline]
+    pub fn inline_capacity() -> usize {
+        N
+    }
+
+    /// Attempts to extract a static inline string literal if one is stored inside this `FlexStr`.
+    /// Returns `NotStatic` if this is not a static string literal.
+    /// ```
+    /// use flexstr::flex_str;
+    ///
+    /// let s = "abc";
+    /// let s2 = flex_str!(s);
+    /// assert_eq!(s2.try_to_static_str().unwrap(), s);
+    /// ```
+    #[inline]
+    pub fn try_as_static_str(&self) -> Result<&'static str, NotStatic> {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            match self.static_str.marker {
+                FlexMarker::Static => Ok(self.static_str.literal),
+                _ => Err(NotStatic),
+            }
+        }
+    }
+
+    /// Attempts to extract a copy of the heap value (for `FlexStr` this will be an `Rc<str>` and
+    /// for `AFlexStr` an `Arc<str>`) via cloning. If this is not a heap based string, a `NotHeap`
+    /// error will be returned.
+    #[inline]
+    pub fn try_to_heap(&self) -> Result<T, NotHeap>
+    where
+        T: Clone,
+    {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            match self.heap_str.marker {
+                FlexMarker::Heap => Ok(self.heap_str.heap.clone()),
+                _ => Err(NotHeap),
+            }
+        }
+    }
+
+    /// Returns a copy of the heap value (for `FlexStr` this will be an `Rc<str>` and
+    /// for `AFlexStr` an `Arc<str>`). If this is not a heap based string, a new value will be allocated
+    /// and returned
+    #[inline]
+    pub fn to_heap(&self) -> T
+    where
+        T: Clone + for<'a> From<&'a str> + Deref<Target = str>,
+    {
+        match self.try_to_heap() {
+            Ok(heap) => heap,
+            Err(_) => self.as_str().into(),
+        }
+    }
+
+    /// Returns true if this is a wrapped string literal (`&'static str`)
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = FlexStr::from_static("test");
+    /// assert!(s.is_static());
+    /// ```
+    #[inline]
+    pub fn is_static(&self) -> bool {
+        // SAFETY: Marker is identical in all union fields
+        unsafe { matches!(self.static_str.marker, FlexMarker::Static) }
+    }
+
+    /// Returns true if this is an inlined string
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = FlexStr::try_inline("test").unwrap();
+    /// assert!(s.is_inlined());
+    /// ```
+    #[inline]
+    pub fn is_inline(&self) -> bool {
+        // SAFETY: Marker is identical in all union fields
+        unsafe { matches!(self.static_str.marker, FlexMarker::Inline) }
+    }
+
+    /// Returns true if this is a wrapped string using heap storage
+    /// ```
+    /// use flexstr::FlexStr;
+    ///
+    /// let s = FlexStr::heap("test");
+    /// assert!(s.is_heap());
+    /// ```
+    #[inline]
+    pub fn is_heap(&self) -> bool {
+        // SAFETY: Marker is identical in all union fields
+        unsafe { matches!(self.static_str.marker, FlexMarker::Heap) }
+    }
+}
+
+impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T>
+where
+    T: Deref<Target = str>,
+{
+    /// Returns true if this `FlexStr` is empty
+    /// ```
+    /// use flexstr::ToFlexStr;
+    ///
+    /// let inlined = "".to_flex_str();
+    /// assert!(inlined.is_empty());
+    /// ```
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Returns the length of this `FlexStr` in bytes (not chars or graphemes)
+    /// ```
+    /// use flexstr::ToFlexStr;
+    ///
+    /// let inlined = "len".to_flex_str();
+    /// assert_eq!(inlined.len(), 3);
+    /// ```
+    #[inline]
+    pub fn len(&self) -> usize {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            // Due to how inline does deref, I'm guessing this is slightly cheaper by using
+            // inline native len instead of using len() off of `&str` at the top
+            match self.static_str.marker {
+                FlexMarker::Static => self.static_str.literal.len(),
+                FlexMarker::Inline => self.inline_str.len(),
+                FlexMarker::Heap => self.heap_str.heap.len(),
+            }
+        }
+    }
+
+    /// Extracts a string slice containing the entire `FlexStr`
+    #[inline]
+    pub fn as_str(&self) -> &str {
+        self
+    }
+
+    /// Converts this `FlexStr` into a `String`. This should be more efficient than using the `ToString`
+    /// trait (which we cannot implement due to a blanket stdlib implementation) as this avoids the
+    /// `Display`-based implementation.
+    /// ```
+    /// use flexstr::flex_str;
+    ///
+    /// let s = flex_str!("abc").to_std_string();
+    /// assert_eq!(s, "abc");
+    /// ```
+    #[inline]
+    pub fn to_std_string(&self) -> String {
+        String::from(&**self)
+    }
+}
+
+// *** From ***
 
 impl<const N: usize, const N2: usize, const N3: usize, T> From<&str> for Flex_<N, N2, N3, T>
 where
@@ -220,18 +500,7 @@ where
 {
     #[inline]
     fn from(s: &str) -> Self {
-        if s.is_empty() {
-            Flex_ {
-                literal: StaticStr::EMPTY,
-            }
-        } else {
-            match inline::InlineFlexStr::try_new(s) {
-                Ok(s) => Flex_ { inline: s },
-                Err(_) => Flex_ {
-                    heap: ManuallyDrop::new(HeapStr::from_ref(s)),
-                },
-            }
-        }
+        Self::from_ref(s)
     }
 }
 
