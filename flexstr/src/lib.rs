@@ -117,13 +117,13 @@ enum FlexMarker {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
-struct StaticStr<const N: usize> {
+struct StaticStr<const PAD: usize> {
     literal: &'static str,
-    pad: [mem::MaybeUninit<u8>; N],
+    pad: [mem::MaybeUninit<u8>; PAD],
     marker: FlexMarker,
 }
 
-impl<const N: usize> StaticStr<N> {
+impl<const PAD: usize> StaticStr<PAD> {
     const EMPTY: Self = Self::from_static("");
 
     #[inline]
@@ -142,15 +142,15 @@ impl<const N: usize> StaticStr<N> {
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 #[repr(C)]
 #[derive(Clone)]
-struct HeapStr<const N: usize, T> {
-    heap: T,
-    pad: [mem::MaybeUninit<u8>; N],
+struct HeapStr<const PAD: usize, HEAP> {
+    heap: HEAP,
+    pad: [mem::MaybeUninit<u8>; PAD],
     marker: FlexMarker,
 }
 
-impl<const N: usize, T> HeapStr<N, T> {
+impl<const PAD: usize, HEAP> HeapStr<PAD, HEAP> {
     #[inline]
-    fn from_heap(t: T) -> Self {
+    fn from_heap(t: HEAP) -> Self {
         Self {
             heap: t,
             // SAFETY: Padding, never actually used
@@ -162,17 +162,17 @@ impl<const N: usize, T> HeapStr<N, T> {
     #[inline]
     fn from_ref(s: impl AsRef<str>) -> Self
     where
-        T: for<'a> From<&'a str>,
+        HEAP: for<'a> From<&'a str>,
     {
         Self::from_heap(s.as_ref().into())
     }
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
-pub union Flex_<const N: usize, const N2: usize, const N3: usize, T> {
-    static_str: StaticStr<N2>,
-    inline_str: inline::InlineFlexStr<N>,
-    heap_str: mem::ManuallyDrop<HeapStr<N3, T>>,
+pub union Flex_<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+    static_str: StaticStr<PAD1>,
+    inline_str: inline::InlineFlexStr<SIZE>,
+    heap_str: mem::ManuallyDrop<HeapStr<PAD2, HEAP>>,
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
@@ -183,9 +183,10 @@ pub type AFlexStr_ = Flex_<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Ar
 
 // *** Clone ***
 
-impl<const N: usize, const N2: usize, const N3: usize, T> Clone for Flex_<N, N2, N3, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
+    for Flex_<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Clone,
+    HEAP: Clone,
 {
     #[inline]
     fn clone(&self) -> Self {
@@ -209,7 +210,9 @@ where
 
 // *** Drop ***
 
-impl<const N: usize, const N2: usize, const N3: usize, T> Drop for Flex_<N, N2, N3, T> {
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
+    for Flex_<SIZE, PAD1, PAD2, HEAP>
+{
     #[inline]
     fn drop(&mut self) {
         // SAFETY: Marker check is aligned to correct accessed field
@@ -223,9 +226,10 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Drop for Flex_<N, N2, 
 
 // *** Deref ***
 
-impl<const N: usize, const N2: usize, const N3: usize, T> Deref for Flex_<N, N2, N3, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
+    for Flex_<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     type Target = str;
 
@@ -251,7 +255,7 @@ where
 
 // *** Non-trait functions ***
 
-impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, PAD1, PAD2, HEAP> {
     /// An empty ("") static constant string
     pub const EMPTY: Self = Flex_ {
         static_str: StaticStr::EMPTY,
@@ -266,7 +270,7 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     /// assert!(S.is_static());
     /// ```
     #[inline]
-    pub const fn from_static(s: &'static str) -> Flex_<N, N2, N3, T> {
+    pub const fn from_static(s: &'static str) -> Flex_<SIZE, PAD1, PAD2, HEAP> {
         Flex_ {
             static_str: StaticStr::from_static(s),
         }
@@ -278,7 +282,7 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     #[inline]
     pub fn from_ref(s: impl AsRef<str>) -> Self
     where
-        T: for<'a> From<&'a str>,
+        HEAP: for<'a> From<&'a str>,
     {
         let s = s.as_ref();
 
@@ -302,7 +306,7 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     /// assert!(s.is_inlined());
     /// ```
     #[inline]
-    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<Flex_<N, N2, N3, T>, S> {
+    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<Flex_<SIZE, PAD1, PAD2, HEAP>, S> {
         match inline::InlineFlexStr::try_new(s) {
             Ok(s) => Ok(Flex_ { inline_str: s }),
             Err(s) => Err(s),
@@ -319,9 +323,9 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     /// assert!(s.is_heap());
     /// ```
     #[inline]
-    pub fn from_ref_heap(s: impl AsRef<str>) -> Flex_<N, N2, N3, T>
+    pub fn from_ref_heap(s: impl AsRef<str>) -> Flex_<SIZE, PAD1, PAD2, HEAP>
     where
-        T: for<'a> From<&'a str>,
+        HEAP: for<'a> From<&'a str>,
     {
         Flex_ {
             heap_str: ManuallyDrop::new(HeapStr::from_ref(s)),
@@ -331,7 +335,7 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     /// Create a new heap based string by wrapping the existing user provided heap string type (T).
     /// For `FlexStr` this will be an `Rc<str>` and for `AFlexStr` it will be an `Arc<str>`.
     #[inline]
-    pub fn from_heap(t: T) -> Flex_<N, N2, N3, T> {
+    pub fn from_heap(t: HEAP) -> Flex_<SIZE, PAD1, PAD2, HEAP> {
         Flex_ {
             heap_str: ManuallyDrop::new(HeapStr::from_heap(t)),
         }
@@ -340,7 +344,7 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     /// Returns the size of the maximum possible inline length for this type
     #[inline]
     pub fn inline_capacity() -> usize {
-        N
+        SIZE
     }
 
     /// Attempts to extract a static inline string literal if one is stored inside this `FlexStr`.
@@ -367,9 +371,9 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     /// for `AFlexStr` an `Arc<str>`) via cloning. If this is not a heap based string, a `NotHeap`
     /// error will be returned.
     #[inline]
-    pub fn try_to_heap(&self) -> Result<T, NotHeap>
+    pub fn try_to_heap(&self) -> Result<HEAP, NotHeap>
     where
-        T: Clone,
+        HEAP: Clone,
     {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
@@ -384,9 +388,9 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     /// for `AFlexStr` an `Arc<str>`). If this is not a heap based string, a new value will be allocated
     /// and returned
     #[inline]
-    pub fn to_heap(&self) -> T
+    pub fn to_heap(&self) -> HEAP
     where
-        T: Clone + for<'a> From<&'a str> + Deref<Target = str>,
+        HEAP: Clone + for<'a> From<&'a str> + Deref<Target = str>,
     {
         match self.try_to_heap() {
             Ok(heap) => heap,
@@ -434,9 +438,9 @@ impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T> {
     }
 }
 
-impl<const N: usize, const N2: usize, const N3: usize, T> Flex_<N, N2, N3, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     /// Returns true if this `FlexStr` is empty
     /// ```
@@ -494,9 +498,10 @@ where
 
 // *** From ***
 
-impl<const N: usize, const N2: usize, const N3: usize, T> From<&str> for Flex_<N, N2, N3, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<&str>
+    for Flex_<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
     #[inline]
     fn from(s: &str) -> Self {
