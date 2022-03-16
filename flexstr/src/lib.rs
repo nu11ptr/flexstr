@@ -13,7 +13,7 @@
 //! // Strings up to 22 bytes (on 64-bit) will be inlined automatically
 //! // (demo only, use macro or `from_static` for literals as above)
 //! let inline_str = "inlined".to_flex_str();
-//! assert!(inline_str.is_inlined());
+//! assert!(inline_str.is_inline());
 //!
 //! // When a string is too long to be wrapped/inlined, it will heap allocate
 //! // (demo only, use macro or `from_static` for literals as above)
@@ -23,18 +23,18 @@
 //! // You can efficiently create a new `FlexStr` (without creating a `String`)
 //! // This is equivalent to the stdlib `format!` macro
 //! let inline_str2 = flex_fmt!("in{}", "lined");
-//! assert!(inline_str2.is_inlined());
+//! assert!(inline_str2.is_inline());
 //! assert_eq!(inline_str, inline_str2);
 //!
 //! // We can upper/lowercase strings without converting to a `String` first
 //! // This doesn't heap allocate since inlined
 //! let inline_str3: FlexStr = "INLINED".to_ascii_lower();
-//! assert!(inline_str3.is_inlined());
+//! assert!(inline_str3.is_inline());
 //! assert_eq!(inline_str, inline_str3);
 //!
 //! // Concatenation doesn't even copy if we can fit it in the inline string
 //! let inline_str4 = inline_str3 + "!!!";
-//! assert!(inline_str4.is_inlined());
+//! assert!(inline_str4.is_inline());
 //! assert_eq!(inline_str4, "inlined!!!");
 //!
 //! // Clone is cheap, and never allocates
@@ -97,7 +97,8 @@ mod test_readme {
     external_doc_test!(include_str!("../../README.md"));
 }
 
-const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
+/// Padding the size of a pointer for this platform minus one
+pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 
 /// Error type returned from `try_as_static_str` when  this `FlexStr` does not contain a `'static str`
 #[derive(Copy, Clone, Debug)]
@@ -137,6 +138,13 @@ impl<const PAD: usize> StaticStr<PAD> {
     }
 }
 
+impl<const PAD: usize> Debug for StaticStr<PAD> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        <str as Debug>::fmt(self.literal, f)
+    }
+}
+
 // T will likely align this just fine, but since we don't know the size, this is safest
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
@@ -168,23 +176,34 @@ impl<const PAD: usize, HEAP> HeapStr<PAD, HEAP> {
     }
 }
 
+impl<const PAD: usize, HEAP> Debug for HeapStr<PAD, HEAP>
+where
+    HEAP: Deref<Target = str>,
+{
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        <str as Debug>::fmt(&self.heap, f)
+    }
+}
+
 /// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
-pub union Flex_<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+pub union Flex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     static_str: StaticStr<PAD1>,
-    inline_str: inline::InlineFlexStr<SIZE>,
+    #[doc(hidden)]
+    pub inline_str: inline::InlineFlexStr<SIZE>,
     heap_str: mem::ManuallyDrop<HeapStr<PAD2, HEAP>>,
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
-pub type FlexStr_ = Flex_<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Rc<str>>;
+pub type FlexStr = Flex<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Rc<str>>;
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
-pub type AFlexStr_ = Flex_<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Arc<str>>;
+pub type AFlexStr = Flex<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Arc<str>>;
 
 // *** Clone ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
-    for Flex_<SIZE, PAD1, PAD2, HEAP>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Clone,
 {
@@ -193,13 +212,13 @@ where
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.static_str.marker {
-                FlexMarker::Static => Flex_ {
+                FlexMarker::Static => Flex {
                     static_str: self.static_str,
                 },
-                FlexMarker::Inline => Flex_ {
+                FlexMarker::Inline => Flex {
                     inline_str: self.inline_str,
                 },
-                FlexMarker::Heap => Flex_ {
+                FlexMarker::Heap => Flex {
                     // Recreating vs. calling clone at the top is 30% faster in benchmarks
                     heap_str: ManuallyDrop::new(HeapStr::from_heap(self.heap_str.heap.clone())),
                 },
@@ -211,7 +230,7 @@ where
 // *** Drop ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
-    for Flex_<SIZE, PAD1, PAD2, HEAP>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 {
     #[inline]
     fn drop(&mut self) {
@@ -227,7 +246,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
 // *** Deref ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
-    for Flex_<SIZE, PAD1, PAD2, HEAP>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -255,9 +274,9 @@ where
 
 // *** Non-trait functions ***
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, PAD1, PAD2, HEAP> {
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex<SIZE, PAD1, PAD2, HEAP> {
     /// An empty ("") static constant string
-    pub const EMPTY: Self = Flex_ {
+    pub const EMPTY: Self = Flex {
         static_str: StaticStr::EMPTY,
     };
 
@@ -270,8 +289,8 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     /// assert!(S.is_static());
     /// ```
     #[inline]
-    pub const fn from_static(s: &'static str) -> Flex_<SIZE, PAD1, PAD2, HEAP> {
-        Flex_ {
+    pub const fn from_static(s: &'static str) -> Flex<SIZE, PAD1, PAD2, HEAP> {
+        Flex {
             static_str: StaticStr::from_static(s),
         }
     }
@@ -303,12 +322,12 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     /// use flexstr::FlexStr;
     ///
     /// let s = FlexStr::try_inline("test").unwrap();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// ```
     #[inline]
-    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<Flex_<SIZE, PAD1, PAD2, HEAP>, S> {
+    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<Flex<SIZE, PAD1, PAD2, HEAP>, S> {
         match inline::InlineFlexStr::try_new(s) {
-            Ok(s) => Ok(Flex_ { inline_str: s }),
+            Ok(s) => Ok(Flex { inline_str: s }),
             Err(s) => Err(s),
         }
     }
@@ -319,15 +338,15 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     /// ```
     /// use flexstr::FlexStr;
     ///
-    /// let s = FlexStr::heap("test");
+    /// let s = FlexStr::from_ref_heap("test");
     /// assert!(s.is_heap());
     /// ```
     #[inline]
-    pub fn from_ref_heap(s: impl AsRef<str>) -> Flex_<SIZE, PAD1, PAD2, HEAP>
+    pub fn from_ref_heap(s: impl AsRef<str>) -> Flex<SIZE, PAD1, PAD2, HEAP>
     where
         HEAP: for<'a> From<&'a str>,
     {
-        Flex_ {
+        Flex {
             heap_str: ManuallyDrop::new(HeapStr::from_ref(s)),
         }
     }
@@ -335,8 +354,8 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     /// Create a new heap based string by wrapping the existing user provided heap string type (T).
     /// For `FlexStr` this will be an `Rc<str>` and for `AFlexStr` it will be an `Arc<str>`.
     #[inline]
-    pub fn from_heap(t: HEAP) -> Flex_<SIZE, PAD1, PAD2, HEAP> {
-        Flex_ {
+    pub fn from_heap(t: HEAP) -> Flex<SIZE, PAD1, PAD2, HEAP> {
+        Flex {
             heap_str: ManuallyDrop::new(HeapStr::from_heap(t)),
         }
     }
@@ -354,7 +373,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     ///
     /// let s = "abc";
     /// let s2 = flex_str!(s);
-    /// assert_eq!(s2.try_to_static_str().unwrap(), s);
+    /// assert_eq!(s2.try_as_static_str().unwrap(), s);
     /// ```
     #[inline]
     pub fn try_as_static_str(&self) -> Result<&'static str, NotStatic> {
@@ -416,7 +435,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     /// use flexstr::FlexStr;
     ///
     /// let s = FlexStr::try_inline("test").unwrap();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// ```
     #[inline]
     pub fn is_inline(&self) -> bool {
@@ -428,7 +447,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     /// ```
     /// use flexstr::FlexStr;
     ///
-    /// let s = FlexStr::heap("test");
+    /// let s = FlexStr::from_ref_heap("test");
     /// assert!(s.is_heap());
     /// ```
     #[inline]
@@ -438,7 +457,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, 
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex_<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Flex<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -496,235 +515,24 @@ where
     }
 }
 
-// *** From ***
+// *** Debug / Display ***
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<&str>
-    for Flex_<SIZE, PAD1, PAD2, HEAP>
+// FIXME: Do we want to do something custom?
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Debug
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    HEAP: for<'a> From<&'a str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
-    fn from(s: &str) -> Self {
-        Self::from_ref(s)
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        <str as Debug>::fmt(self, f)
     }
 }
 
-#[doc(hidden)]
-#[derive(Clone, Debug)]
-pub enum FlexInner<const N: usize, T> {
-    // A wrapped string literal
-    Static(&'static str),
-    // An inlined string
-    Inlined(inline::InlineFlexStr<N>),
-    // A reference count wrapped `str`
-    Heap(T),
-}
-
-/// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
-#[derive(Clone, Debug)]
-pub struct Flex<const N: usize, T>(#[doc(hidden)] pub FlexInner<N, T>);
-
-/// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
-pub type FlexStr = Flex<STRING_SIZED_INLINE, Rc<str>>;
-
-/// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
-pub type AFlexStr = Flex<STRING_SIZED_INLINE, Arc<str>>;
-
-impl<const N: usize, T> Flex<N, T> {
-    /// Creates a wrapped static string literal. This function is equivalent to calling the `into`
-    /// functions on a static string literal, but is `const fn` so can be used to init a constant.
-    /// ```
-    /// use flexstr::FlexStr;
-    ///
-    /// const S: FlexStr = FlexStr::from_static("test");
-    /// assert!(S.is_static());
-    /// ```
-    #[inline]
-    pub const fn from_static(s: &'static str) -> Flex<N, T> {
-        Flex(FlexInner::Static(s))
-    }
-}
-
-impl<const N: usize, T> Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Display
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
-{
-    /// Attempts to create an inlined string. Returns new inline string on success or original source
-    /// string as `Err` if it will not fit. Since the to/into functions will automatically inline when
-    /// possible, this function is really only for special use cases.
-    /// ```
-    /// use flexstr::FlexStr;
-    ///
-    /// let s = FlexStr::try_inline("test").unwrap();
-    /// assert!(s.is_inlined());
-    /// ```
-    #[inline]
-    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<Flex<N, T>, S> {
-        match inline::InlineFlexStr::try_new(s) {
-            Ok(s) => Ok(Flex(FlexInner::Inlined(s))),
-            Err(s) => Err(s),
-        }
-    }
-
-    /// Force the creation of a heap allocated string. Unlike to/into functions, this will not attempt
-    /// to inline first even if the string is a candidate for inlining. Using this is generally not
-    /// recommended, and the to/into conversion functions should be preferred.
-    /// ```
-    /// use flexstr::FlexStr;
-    ///
-    /// let s = FlexStr::heap("test");
-    /// assert!(s.is_heap());
-    /// ```
-    #[inline]
-    pub fn heap(s: impl AsRef<str>) -> Flex<N, T>
-    where
-        T: for<'a> From<&'a str>,
-    {
-        Flex(FlexInner::Heap(s.as_ref().into()))
-    }
-
-    /// Returns the size of the maximum possible inline length for this type
-    #[inline]
-    pub fn inline_capacity() -> usize {
-        N
-    }
-
-    /// Returns true if this `FlexStr` is empty
-    /// ```
-    /// use flexstr::ToFlexStr;
-    ///
-    /// let inlined = "".to_flex_str();
-    /// assert!(inlined.is_empty());
-    /// ```
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        // Due to how inline does deref, I'm guessing this is slightly cheaper by using inline native is_empty
-        match &self.0 {
-            FlexInner::Static(str) => str.is_empty(),
-            FlexInner::Inlined(s) => s.is_empty(),
-            FlexInner::Heap(rc) => rc.is_empty(),
-        }
-    }
-
-    /// Returns the length of this `FlexStr` in bytes (not chars/graphemes)
-    /// ```
-    /// use flexstr::ToFlexStr;
-    ///
-    /// let inlined = "len".to_flex_str();
-    /// assert_eq!(inlined.len(), 3);
-    /// ```
-    #[inline]
-    pub fn len(&self) -> usize {
-        // Due to how inline does deref, I'm guessing this is slightly cheaper by using inline native len
-        match &self.0 {
-            FlexInner::Static(str) => str.len(),
-            FlexInner::Inlined(s) => s.len(),
-            FlexInner::Heap(rc) => rc.len(),
-        }
-    }
-
-    /// Extracts a string slice containing the entire `FlexStr`
-    #[inline]
-    pub fn as_str(&self) -> &str {
-        &**self
-    }
-
-    /// Converts this `FlexStr` into a `String`. This should be more efficient than using the `ToString`
-    /// trait (which we cannot implement due to a blanket stdlib implementation) as this avoids the
-    /// `Display`-based implementation.
-    /// ```
-    /// use flexstr::flex_str;
-    ///
-    /// let s = flex_str!("abc").to_std_string();
-    /// assert_eq!(s, "abc");
-    /// ```
-    #[inline]
-    pub fn to_std_string(&self) -> String {
-        String::from(&**self)
-    }
-
-    /// Attempts to extract a static inline string literal if one is stored inside this `FlexStr`.
-    /// Returns `NotStatic` as an `Err` if this is not a static string literal.
-    /// ```
-    /// use flexstr::flex_str;
-    ///
-    /// let s = "abc";
-    /// let s2 = flex_str!(s);
-    /// assert_eq!(s2.try_to_static_str().unwrap(), s);
-    /// ```
-    #[inline]
-    pub fn try_to_static_str(&self) -> Result<&'static str, NotStatic> {
-        match self.0 {
-            FlexInner::Static(s) => Ok(s),
-            _ => Err(NotStatic),
-        }
-    }
-
-    /// Returns true if this is a wrapped string literal (`&'static str`)
-    /// ```
-    /// use flexstr::FlexStr;
-    ///
-    /// let s = FlexStr::from_static("test");
-    /// assert!(s.is_static());
-    /// ```
-    #[inline]
-    pub fn is_static(&self) -> bool {
-        matches!(self.0, FlexInner::Static(_))
-    }
-
-    /// Returns true if this is an inlined string
-    /// ```
-    /// use flexstr::FlexStr;
-    ///
-    /// let s = FlexStr::try_inline("test").unwrap();
-    /// assert!(s.is_inlined());
-    /// ```
-    #[inline]
-    pub fn is_inlined(&self) -> bool {
-        matches!(self.0, FlexInner::Inlined(_))
-    }
-
-    /// Returns true if this is a wrapped string using heap storage
-    /// ```
-    /// use flexstr::FlexStr;
-    ///
-    /// let s = FlexStr::heap("test");
-    /// assert!(s.is_heap());
-    /// ```
-    #[inline]
-    pub fn is_heap(&self) -> bool {
-        matches!(self.0, FlexInner::Heap(_))
-    }
-}
-
-// *** Deref / Debug / Display ***
-
-impl<const N: usize, T> Deref for Flex<N, T>
-where
-    T: Deref<Target = str>,
-{
-    type Target = str;
-
-    /// ```
-    /// use flexstr::flex_str;
-    ///
-    /// let a = "test";
-    /// let b = flex_str!(a);
-    /// assert_eq!(&*b, a);
-    /// ```
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        match &self.0 {
-            FlexInner::Static(str) => str,
-            FlexInner::Inlined(ss) => ss,
-            FlexInner::Heap(rc) => rc,
-        }
-    }
-}
-
-impl<const N: usize, T> Display for Flex<N, T>
-where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -733,9 +541,10 @@ where
 }
 
 #[cfg(feature = "fast_format")]
-impl<const N: usize, T> ufmt::uDisplay for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ufmt::uDisplay
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn fmt<W>(&self, f: &mut ufmt::Formatter<'_, W>) -> Result<(), W::Error>
@@ -747,9 +556,10 @@ where
 }
 
 #[cfg(feature = "fast_format")]
-impl<const N: usize, T> ufmt::uDebug for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ufmt::uDebug
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn fmt<W>(&self, f: &mut ufmt::Formatter<'_, W>) -> Result<(), W::Error>
@@ -763,9 +573,10 @@ where
 
 // *** Hash, PartialEq, Eq ***
 
-impl<const N: usize, T> Hash for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Hash
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -773,10 +584,11 @@ where
     }
 }
 
-impl<const N: usize, T, T2> PartialEq<Flex<N, T2>> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
+    PartialEq<Flex<SIZE, PAD1, PAD2, HEAP2>> for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
-    T2: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
+    HEAP2: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{AFlexStr, FlexStr, ToFlex};
@@ -787,15 +599,16 @@ where
     /// assert_eq!(s, s2);
     /// ```
     #[inline]
-    fn eq(&self, other: &Flex<N, T2>) -> bool {
+    fn eq(&self, other: &Flex<SIZE, PAD1, PAD2, HEAP2>) -> bool {
         str::eq(self, &**other)
     }
 }
 
-impl<const N: usize, T, T2> PartialEq<Flex<N, T2>> for &Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
+    PartialEq<Flex<SIZE, PAD1, PAD2, HEAP2>> for &Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
-    T2: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
+    HEAP2: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{AFlexStr, FlexStr, ToFlex};
@@ -806,14 +619,15 @@ where
     /// assert_eq!(&s, s2);
     /// ```
     #[inline]
-    fn eq(&self, other: &Flex<N, T2>) -> bool {
+    fn eq(&self, other: &Flex<SIZE, PAD1, PAD2, HEAP2>) -> bool {
         str::eq(self, &**other)
     }
 }
 
-impl<const N: usize, T> PartialEq<&str> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialEq<&str>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{FlexStr, ToFlex};
@@ -828,9 +642,10 @@ where
     }
 }
 
-impl<const N: usize, T> PartialEq<str> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialEq<str>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::{FlexStr, ToFlex};
@@ -845,9 +660,10 @@ where
     }
 }
 
-impl<const N: usize, T> PartialEq<String> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialEq<String>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::FlexStr;
@@ -862,13 +678,19 @@ where
     }
 }
 
-impl<const N: usize, T> Eq for Flex<N, T> where T: Deref<Target = str> {}
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Eq
+    for Flex<SIZE, PAD1, PAD2, HEAP>
+where
+    HEAP: Deref<Target = str>,
+{
+}
 
 // *** PartialOrd / Ord ***
 
-impl<const N: usize, T> PartialOrd for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialOrd
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -876,9 +698,10 @@ where
     }
 }
 
-impl<const N: usize, T> PartialOrd<str> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialOrd<str>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn partial_cmp(&self, other: &str) -> Option<Ordering> {
@@ -886,9 +709,10 @@ where
     }
 }
 
-impl<const N: usize, T> PartialOrd<String> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialOrd<String>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn partial_cmp(&self, other: &String) -> Option<Ordering> {
@@ -896,9 +720,10 @@ where
     }
 }
 
-impl<const N: usize, T> Ord for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Ord
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
@@ -910,9 +735,9 @@ where
 
 macro_rules! impl_ranges {
     ($($type:ty),+) => {
-        $(impl<const N: usize, T> Index<$type> for Flex<N, T>
+        $(impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Index<$type> for Flex<SIZE, PAD1, PAD2, HEAP>
         where
-            T: Deref<Target = str>,
+            HEAP: Deref<Target = str>,
         {
             type Output = str;
 
@@ -936,32 +761,36 @@ impl_ranges!(
 // *** Add ***
 
 #[inline]
-fn concat<const N: usize, T>(s1: &str, s2: &str) -> Flex<N, T>
+fn concat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
+    s1: &str,
+    s2: &str,
+) -> Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
-    let mut buffer = buffer_new!(N);
+    let mut buffer = buffer_new!(SIZE);
     let mut builder = builder_new!(buffer, s1.len() + s2.len());
     builder.str_write(s1);
     builder.str_write(s2);
     builder_into!(builder, buffer)
 }
 
-impl<const N: usize, T> Add<&str> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Add<&str>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str> + Deref<Target = str>,
+    HEAP: for<'a> From<&'a str> + Deref<Target = str>,
 {
-    type Output = Flex<N, T>;
+    type Output = Flex<SIZE, PAD1, PAD2, HEAP>;
 
     /// ```
     /// use flexstr::{flex_str, IntoFlexStr};
     ///
     /// let a = flex_str!("in") + "line";
-    /// assert!(a.is_inlined());
+    /// assert!(a.is_inline());
     /// assert_eq!(a, "inline");
     ///
     /// let a = "in".to_string().into_flex_str() + "line";
-    /// assert!(a.is_inlined());
+    /// assert!(a.is_inline());
     /// assert_eq!(a, "inline");
     /// ```
     #[inline]
@@ -971,16 +800,21 @@ where
         } else if self.is_empty() {
             rhs.into()
         } else {
-            match self.0 {
-                FlexInner::Static(s) => concat(s, rhs),
-                FlexInner::Inlined(ref mut s) => {
-                    if s.try_concat(rhs) {
-                        self
-                    } else {
-                        concat(s, rhs)
+            // SAFETY: Marker check is aligned to correct accessed field
+            unsafe {
+                match self.static_str.marker {
+                    FlexMarker::Static => concat(self.static_str.literal, rhs),
+                    FlexMarker::Inline => {
+                        let s = &mut self.inline_str;
+
+                        if s.try_concat(rhs) {
+                            self
+                        } else {
+                            concat(s, rhs)
+                        }
                     }
+                    FlexMarker::Heap => concat(&self.heap_str.heap, rhs),
                 }
-                FlexInner::Heap(s) => concat(&s, rhs),
             }
         }
     }
@@ -988,9 +822,10 @@ where
 
 // *** Misc. standard traits ***
 
-impl<const N: usize, T> AsRef<str> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> AsRef<str>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn as_ref(&self) -> &str {
@@ -998,16 +833,19 @@ where
     }
 }
 
-impl<const N: usize, T> Default for Flex<N, T> {
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Default
+    for Flex<SIZE, PAD1, PAD2, HEAP>
+{
     #[inline]
     fn default() -> Self {
         Self::from_static("")
     }
 }
 
-impl<const N: usize, T> FromStr for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromStr
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
     type Err = Infallible;
 
@@ -1019,27 +857,29 @@ where
 
 // *** From ***
 
-impl<const N: usize, T, T2> From<&Flex<N, T2>> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
+    From<&Flex<SIZE, PAD1, PAD2, HEAP2>> for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
-    T2: Clone + Deref<Target = str>,
+    HEAP: for<'a> From<&'a str>,
+    HEAP2: Clone + Deref<Target = str>,
 {
     #[inline]
-    fn from(s: &Flex<N, T2>) -> Self {
+    fn from(s: &Flex<SIZE, PAD1, PAD2, HEAP2>) -> Self {
         s.clone().into_flex()
     }
 }
 
-impl<const N: usize, T> From<String> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<String>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let lit = "inlined";
     /// let s: FlexStr = lit.to_string().into();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(&s, lit);
     ///
     /// let lit = "This is too long too be inlined!";
@@ -1053,16 +893,17 @@ where
     }
 }
 
-impl<const N: usize, T> From<&String> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<&String>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let lit = "inlined";
     /// let s: FlexStr = (&lit.to_string()).into();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(&s, lit);
     ///
     /// let lit = "This is too long too be inlined!";
@@ -1076,40 +917,35 @@ where
     }
 }
 
-impl<const N: usize, T> From<&str> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<&str>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let lit = "inline";
     /// let s: FlexStr  = lit.into();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(&s, lit);
     /// ```
     #[inline]
     fn from(s: &str) -> Self {
-        if s.is_empty() {
-            Self::default()
-        } else {
-            Flex(match s.try_into() {
-                Ok(s) => FlexInner::Inlined(s),
-                Err(_) => FlexInner::Heap(s.into()),
-            })
-        }
+        Self::from_ref(s)
     }
 }
 
-impl<const N: usize, T> From<char> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<char>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let s: FlexStr  = 't'.into();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(&s, "t");
     /// ```
     #[inline]
@@ -1122,17 +958,19 @@ where
 // *** FromIterator ***
 
 #[inline]
-fn from_iter_str<const N: usize, I, T, U>(iter: I) -> Flex<N, T>
+fn from_iter_str<const SIZE: usize, const PAD1: usize, const PAD2: usize, I, HEAP, U>(
+    iter: I,
+) -> Flex<SIZE, PAD1, PAD2, HEAP>
 where
     I: IntoIterator<Item = U>,
-    T: for<'b> From<&'b str>,
+    HEAP: for<'b> From<&'b str>,
     U: AsRef<str>,
 {
     let iter = iter.into_iter();
 
     // Since `IntoIterator` consumes, we cannot loop over it twice to find lengths of strings
     // for a good capacity # without cloning it (which might be expensive)
-    let mut buffer = buffer_new!(N);
+    let mut buffer = buffer_new!(SIZE);
     let mut builder = builder_new!(buffer);
     for s in iter {
         builder.str_write(s);
@@ -1141,16 +979,19 @@ where
 }
 
 #[inline]
-fn from_iter_char<const N: usize, I, F, T, U>(iter: I, f: F) -> Flex<N, T>
+fn from_iter_char<const SIZE: usize, const PAD1: usize, const PAD2: usize, I, F, HEAP, U>(
+    iter: I,
+    f: F,
+) -> Flex<SIZE, PAD1, PAD2, HEAP>
 where
     I: IntoIterator<Item = U>,
     F: Fn(U) -> char,
-    T: for<'b> From<&'b str>,
+    HEAP: for<'b> From<&'b str>,
 {
     let iter = iter.into_iter();
     let (lower, _) = iter.size_hint();
 
-    let mut buffer = buffer_new!(N);
+    let mut buffer = buffer_new!(SIZE);
     let mut builder = builder_new!(buffer, lower);
     for ch in iter {
         builder.char_write(f(ch));
@@ -1158,54 +999,57 @@ where
     builder_into!(builder, buffer)
 }
 
-impl<const N: usize, T, T2> FromIterator<Flex<N, T2>> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
+    FromIterator<Flex<SIZE, PAD1, PAD2, HEAP2>> for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'b> From<&'b str>,
-    T2: Deref<Target = str>,
+    HEAP: for<'b> From<&'b str>,
+    HEAP2: Deref<Target = str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let v: Vec<FlexStr> = vec!["best".into(), "test".into()];
     /// let s: FlexStr = v.into_iter().map(|s| if s == "best" { "test".into() } else { s }).collect();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(s, "testtest");
     /// ```
     #[inline]
-    fn from_iter<I: IntoIterator<Item = Flex<N, T2>>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = Flex<SIZE, PAD1, PAD2, HEAP2>>>(iter: I) -> Self {
         from_iter_str(iter)
     }
 }
 
-impl<'a, const N: usize, T, T2> FromIterator<&'a Flex<N, T2>> for Flex<N, T>
+impl<'a, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
+    FromIterator<&'a Flex<SIZE, PAD1, PAD2, HEAP2>> for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'b> From<&'b str>,
-    T2: Deref<Target = str> + 'a,
+    HEAP: for<'b> From<&'b str>,
+    HEAP2: Deref<Target = str> + 'a,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let v: Vec<FlexStr> = vec!["best".into(), "test".into()];
     /// let s: FlexStr = v.iter().filter(|s| *s == "best").collect();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(s, "best");
     /// ```
     #[inline]
-    fn from_iter<I: IntoIterator<Item = &'a Flex<N, T2>>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = &'a Flex<SIZE, PAD1, PAD2, HEAP2>>>(iter: I) -> Self {
         from_iter_str(iter)
     }
 }
 
-impl<const N: usize, T> FromIterator<String> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<String>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'b> From<&'b str>,
+    HEAP: for<'b> From<&'b str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let v = vec!["best".to_string(), "test".to_string()];
     /// let s: FlexStr = v.into_iter().map(|s| if s == "best" { "test".into() } else { s }).collect();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(s, "testtest");
     /// ```
     #[inline]
@@ -1214,16 +1058,17 @@ where
     }
 }
 
-impl<'a, const N: usize, T> FromIterator<&'a str> for Flex<N, T>
+impl<'a, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<&'a str>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'b> From<&'b str>,
+    HEAP: for<'b> From<&'b str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let v = vec!["best", "test"];
     /// let s: FlexStr = v.into_iter().map(|s| if s == "best" { "test" } else { s }).collect();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(s, "testtest");
     /// ```
     #[inline]
@@ -1232,16 +1077,17 @@ where
     }
 }
 
-impl<const N: usize, T> FromIterator<char> for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<char>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'b> From<&'b str>,
+    HEAP: for<'b> From<&'b str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let v = "besttest";
     /// let s: FlexStr = v.chars().map(|c| if c == 'b' { 't' } else { c }).collect();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(s, "testtest");
     /// ```
     #[inline]
@@ -1250,16 +1096,17 @@ where
     }
 }
 
-impl<'a, const N: usize, T> FromIterator<&'a char> for Flex<N, T>
+impl<'a, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<&'a char>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'b> From<&'b str>,
+    HEAP: for<'b> From<&'b str>,
 {
     /// ```
     /// use flexstr::FlexStr;
     ///
     /// let v = vec!['b', 'e', 's', 't', 't', 'e', 's', 't'];
     /// let s: FlexStr = v.iter().filter(|&ch| *ch != 'b').collect();
-    /// assert!(s.is_inlined());
+    /// assert!(s.is_inline());
     /// assert_eq!(s, "esttest");
     /// ```
     #[inline]
@@ -1271,9 +1118,10 @@ where
 // *** Optional serialization support ***
 
 #[cfg(feature = "serde")]
-impl<const N: usize, T> Serialize for Flex<N, T>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Serialize
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: Deref<Target = str>,
+    HEAP: Deref<Target = str>,
 {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -1286,14 +1134,17 @@ where
 
 // Uses *const T because we don't want it to actually own a `T`
 #[cfg(feature = "serde")]
-struct FlexStrVisitor<const N: usize, T>(PhantomData<*const T>);
+struct FlexStrVisitor<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
+    PhantomData<*const HEAP>,
+);
 
 #[cfg(feature = "serde")]
-impl<'de, const N: usize, T> Visitor<'de> for FlexStrVisitor<N, T>
+impl<'de, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Visitor<'de>
+    for FlexStrVisitor<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
-    type Value = Flex<N, T>;
+    type Value = Flex<SIZE, PAD1, PAD2, HEAP>;
 
     #[inline]
     fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
@@ -1318,9 +1169,10 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, const N: usize, T> Deserialize<'de> for Flex<N, T>
+impl<'de, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deserialize<'de>
+    for Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
     #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -1362,14 +1214,16 @@ macro_rules! a_flex_str {
 }
 
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
-pub fn flex_fmt<const N: usize, T>(args: Arguments<'_>) -> Flex<N, T>
+pub fn flex_fmt<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
+    args: Arguments<'_>,
+) -> Flex<SIZE, PAD1, PAD2, HEAP>
 where
-    T: for<'a> From<&'a str>,
+    HEAP: for<'a> From<&'a str>,
 {
     // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
-    let mut buffer = buffer_new!(N);
+    let mut buffer = buffer_new!(SIZE);
     let mut builder = builder_new!(buffer);
     builder
         .write_fmt(args)
@@ -1383,7 +1237,7 @@ where
 /// use flexstr::{flex_str, flex_ufmt};
 ///
 /// let a = flex_ufmt!("Is {}{}", flex_str!("inlined"), "!");
-/// assert!(a.is_inlined());
+/// assert!(a.is_inline());
 /// assert_eq!(a, "Is inlined!");
 /// ```
 #[cfg(feature = "fast_format")]
@@ -1405,7 +1259,7 @@ macro_rules! flex_ufmt {
 /// use flexstr::{a_flex_str, a_flex_ufmt};
 ///
 /// let a = a_flex_ufmt!("Is {}{}", a_flex_str!("inlined"), "!");
-/// assert!(a.is_inlined());
+/// assert!(a.is_inline());
 /// assert_eq!(a, "Is inlined!");
 /// ```
 #[cfg(feature = "fast_format")]
@@ -1426,7 +1280,7 @@ macro_rules! a_flex_ufmt {
 /// use flexstr::flex_fmt;
 ///
 /// let a = flex_fmt!("Is {}", "inlined");
-/// assert!(a.is_inlined());
+/// assert!(a.is_inline());
 /// assert_eq!(a, "Is inlined")
 /// ```
 #[macro_export]
@@ -1442,7 +1296,7 @@ macro_rules! flex_fmt {
 /// use flexstr::a_flex_fmt;
 ///
 /// let a = a_flex_fmt!("Is {}", "inlined");
-/// assert!(a.is_inlined());
+/// assert!(a.is_inline());
 /// assert_eq!(a, "Is inlined")
 /// ```
 
@@ -1481,7 +1335,7 @@ mod tests {
             c: c.to_string().into(),
         };
         assert!(test.a.is_static());
-        assert!(test.b.is_inlined());
+        assert!(test.b.is_inline());
         assert!(test.c.is_heap());
 
         // Serialize and ensure our JSON value actually matches
@@ -1490,8 +1344,8 @@ mod tests {
 
         // Deserialize and validate storage and contents
         let test2: Test = serde_json::from_value(val).unwrap();
-        assert!(test2.a.is_inlined());
-        assert!(test2.b.is_inlined());
+        assert!(test2.a.is_inline());
+        assert!(test2.b.is_inline());
         assert!(test2.c.is_heap());
 
         assert_eq!(&test, &test2);

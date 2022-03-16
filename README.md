@@ -55,7 +55,7 @@ fn main() {
   // Strings up to 22 bytes (on 64-bit) will be inlined automatically 
   // (demo only, use macro or `from_static` for literals as above)
   let inline_str = "inlined".to_flex_str();
-  assert!(inline_str.is_inlined());
+  assert!(inline_str.is_inline());
 
   // When a string is too long to be wrapped/inlined, it will heap allocate
   // (demo only, use macro or `from_static` for literals as above)
@@ -65,18 +65,18 @@ fn main() {
   // You can efficiently create a new `FlexStr` (without creating a `String`)
   // This is equivalent to the stdlib `format!` macro
   let inline_str2 = flex_fmt!("in{}", "lined");
-  assert!(inline_str2.is_inlined());
+  assert!(inline_str2.is_inline());
   assert_eq!(inline_str, inline_str2);
 
   // We can upper/lowercase strings without converting to a `String`
   // This doesn't heap allocate
   let inline_str3: FlexStr = "INLINED".to_ascii_lower();
-  assert!(inline_str3.is_inlined());
+  assert!(inline_str3.is_inline());
   assert_eq!(inline_str, inline_str3);
 
   // Concatenation doesn't even copy if we can fit it in the inline string
   let inline_str4 = inline_str3 + "!!!";
-  assert!(inline_str4.is_inlined());
+  assert!(inline_str4.is_inline());
   assert_eq!(inline_str4, "inlined!!!");
   
   // Clone is cheap, and never allocates
@@ -225,9 +225,9 @@ storage type must implement `Deref<Target = str>`, `From<String>`, `From<&str>`,
 and `Clone`. Pretty much all smart pointers do this already.
 
 ```rust
-use flexstr::{Flex, STRING_SIZED_INLINE, Repeat, ToFlex};
+use flexstr::{Flex, PTR_SIZED_PAD, Repeat, STRING_SIZED_INLINE, ToFlex};
 
-type BoxFlexStr = Flex<STRING_SIZED_INLINE, Box<str>>;
+type BoxFlexStr = Flex<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Box<str>>;
 
 fn main() {
   // This will be allocated in a box instead of the default `Rc`
