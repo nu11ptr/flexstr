@@ -126,7 +126,7 @@ impl<const N: usize, const N2: usize> Deref for StringBuffer<N, N2> {
     }
 }
 
-// *** FlexStr Builder ***
+// *** LocalStr Builder ***
 
 #[doc(hidden)]
 pub enum FlexStrBuilder<
@@ -216,7 +216,7 @@ macro_rules! builder_into {
             $crate::builder::FlexStrBuilder::InlineBuffer(_) => {
                 if $buffer.is_inline_candidate() {
                     let len = $buffer.len() as u8;
-                    $crate::Flex {
+                    $crate::FlexStrWrapper {
                         inline_str: $crate::inline::InlineFlexStr::from_array(
                             $buffer.into_inner(),
                             len,
@@ -238,7 +238,7 @@ mod tests {
 
     use crate::builder::{FlexStrBuilder, BUFFER_SIZE};
     use crate::inline::STRING_SIZED_INLINE;
-    use crate::FlexStr;
+    use crate::LocalStr;
 
     #[test]
     fn string_buffer() {
@@ -281,7 +281,7 @@ mod tests {
         let write2 = "x".repeat(BUFFER_SIZE);
         assert!(builder.write_str(&write2).is_ok());
         assert!(matches!(builder, FlexStrBuilder::StringBuffer(_)));
-        let s: FlexStr = builder_into!(builder, buffer);
+        let s: LocalStr = builder_into!(builder, buffer);
         assert_eq!(s, write.to_string() + &write2);
     }
 }

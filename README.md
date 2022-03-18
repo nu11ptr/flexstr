@@ -30,7 +30,7 @@ multi ownership) whereas `String` works better in "string buffer" use cases
 ## Installation
 
 Optional features:
-* `fast_format` = enables `flex_ufmt!` and `a_flex_ufmt!` `format!`-like 
+* `fast_format` = enables `local_ufmt!` and `shared_ufmt!` `format!`-like 
   macros for very fast formatting (with some limitations)
 * `fp_convert` = Convert floating point types directly into a `FlexStr`
 * `int_convert` = Convert integer types directly into a `FlexStr`
@@ -45,32 +45,32 @@ features = ["fast_format, fp_convert", "int_convert", "serde"]
 ## Examples
 
 ```rust
-use flexstr::{flex_fmt, flex_str, FlexStr, IntoFlexStr, ToCase, ToFlexStr};
+use flexstr::{local_fmt, local_str, LocalStr, IntoLocalStr, ToCase, ToLocalStr};
 
 fn main() {
-  // Use `flex_str` macro to wrap literals as compile-time constants
-  const STATIC_STR: FlexStr = flex_str!("This will not allocate or copy");
+  // Use `local_str` macro to wrap literals as compile-time constants
+  const STATIC_STR: LocalStr = local_str!("This will not allocate or copy");
   assert!(STATIC_STR.is_static());
 
   // Strings up to 22 bytes (on 64-bit) will be inlined automatically 
   // (demo only, use macro or `from_static` for literals as above)
-  let inline_str = "inlined".to_flex_str();
+  let inline_str = "inlined".to_local_str();
   assert!(inline_str.is_inline());
 
   // When a string is too long to be wrapped/inlined, it will heap allocate
   // (demo only, use macro or `from_static` for literals as above)
-  let rc_str = "This is too long to be inlined".to_flex_str();
+  let rc_str = "This is too long to be inlined".to_local_str();
   assert!(rc_str.is_heap());
 
-  // You can efficiently create a new `FlexStr` (without creating a `String`)
+  // You can efficiently create a new `LocalStr` (without creating a `String`)
   // This is equivalent to the stdlib `format!` macro
-  let inline_str2 = flex_fmt!("in{}", "lined");
+  let inline_str2 = local_fmt!("in{}", "lined");
   assert!(inline_str2.is_inline());
   assert_eq!(inline_str, inline_str2);
 
   // We can upper/lowercase strings without converting to a `String`
   // This doesn't heap allocate
-  let inline_str3: FlexStr = "INLINED".to_ascii_lower();
+  let inline_str3: LocalStr = "INLINED".to_ascii_lower();
   assert!(inline_str3.is_inline());
   assert_eq!(inline_str, inline_str3);
 
@@ -114,16 +114,16 @@ interchangeably as a single string type.
 * Compatible with embedded systems (doesn't use `std`)
 * Efficient conditional ownership (borrows can take ownership without 
   allocation/copying)
-* Both single threaded compatible (`FlexStr`) and multi-thread safe 
-  (`AFlexStr`) options
+* Both single threaded compatible (`LocalStr`) and multi-thread safe 
+  (`SharedStr`) options
 * All dependencies are optional and based on feature usage
 * It is simple to use!
 
 ## Types
 
-* `FlexStr` - regular usage 
+* `LocalStr` - regular usage 
     * `Heap` storage based on `Rc`
-* `AFlexStr`- provides `Send` / `Sync` for multi-threaded use
+* `SharedStr`- provides `Send` / `Sync` for multi-threaded use
     * `Heap` storage based on `Arc` 
 
 ## Usage
@@ -131,11 +131,11 @@ interchangeably as a single string type.
 ### Hello World
 
 ```rust
-use flexstr::flex_str;
+use flexstr::local_str;
 
 fn main() {
   // From literal - no copying or allocation
-  let world = flex_str!("world!");
+  let world = local_str!("world!");
 
   println!("Hello {world}");
 }
@@ -144,60 +144,60 @@ fn main() {
 ### Creation Scenarios
 
 ```rust
-use flexstr::{flex_str, FlexStr, IntoAFlexStr, IntoFlexStr, ToFlexStr};
+use flexstr::{local_str, LocalStr, IntoSharedStr, IntoLocalStr, ToLocalStr};
 
 fn main() {
   // From literal - no runtime, all compile-time
-  const literal: FlexStr = flex_str!("literal");
+  const literal: LocalStr = local_str!("literal");
 
   // From borrowed string - Copied into inline string
   let owned = "inlined".to_string();
-  let str_to_inlined = owned.to_flex_str();
+  let str_to_inlined = owned.to_local_str();
 
   // From borrowed String - copied into `str` wrapped in `Rc`
   let owned = "A bit too long to be inlined!!!".to_string();
-  let str_to_wrapped = owned.to_flex_str();
+  let str_to_wrapped = owned.to_local_str();
 
   // From String - copied into inline string (`String` storage released)
-  let inlined = "inlined".to_string().into_flex_str();
+  let inlined = "inlined".to_string().into_local_str();
 
   // From String - `str` wrapped in `Rc` (`String` storage released)
-  let counted = "A bit too long to be inlined!!!".to_string().into_flex_str();
+  let counted = "A bit too long to be inlined!!!".to_string().into_local_str();
 
-  // *** If you want a Send/Sync type you need `AFlexStr` instead ***
+  // *** If you want a Send/Sync type you need `SharedStr` instead ***
 
-  // From FlexStr wrapped literal - no copying or allocation
-  let literal2 = literal.into_a_flex_str();
+  // From LocalStr wrapped literal - no copying or allocation
+  let literal2 = literal.into_shared_str();
 
-  // From FlexStr inlined string - no allocation
-  let inlined = inlined.into_a_flex_str();
+  // From LocalStr inlined string - no allocation
+  let inlined = inlined.into_shared_str();
 
-  // From FlexStr `Rc` wrapped `str` - copies into `str` wrapped in `Arc`
-  let counted = counted.into_a_flex_str();
+  // From LocalStr `Rc` wrapped `str` - copies into `str` wrapped in `Arc`
+  let counted = counted.into_shared_str();
 }
 ```
 
 ### Passing FlexStr to Conditional Ownership Functions
 
 This has always been a confusing situation in Rust, but it is easy with 
-`FlexStr` since multi ownership is cheap. By passing as `&FlexStr` instead 
+`FlexStr` since multi ownership is cheap. By passing as `&LocalStr` instead 
 of `&str`, you retain the option for very fast multi ownership.
 
 ```rust
-use flexstr::{flex_str, IntoFlexStr, FlexStr};
+use flexstr::{local_str, IntoLocalStr, LocalStr};
 
 struct MyStruct {
-  s: FlexStr
+  s: LocalStr
 }
 
 impl MyStruct {
-  fn to_own_or_not_to_own(s: &FlexStr) -> Self {
+  fn to_own_or_not_to_own(s: &LocalStr) -> Self {
     let s = if s == "own me" {
       // Since a wrapped literal, no copy or allocation
       s.clone()
     } else {
       // Wrapped literal - no copy or allocation
-      flex_str!("own me")
+      local_str!("own me")
     };
 
     Self { s }
@@ -206,8 +206,8 @@ impl MyStruct {
 
 fn main() {
   // Wrapped literals - compile time constant
-  const S: FlexStr = flex_str!("borrow me");
-  const S2: FlexStr = flex_str!("own me");
+  const S: LocalStr = local_str!("borrow me");
+  const S2: LocalStr = local_str!("own me");
 
   let struct1 = MyStruct::to_own_or_not_to_own(&S);
   let struct2 = MyStruct::to_own_or_not_to_own(&S2);
@@ -246,14 +246,14 @@ fn main() {
 * Calling `into()` on a `String` will result in an inline string (if 
   short) otherwise copied into a `str` wrapped in `Rc`/`Arc` 
   (which will allocate, copy, and then release original `String` storage)
-* `into_flex_str()` and `into_a_flex_str()` are equivalent to calling `into()` 
+* `into_local_str()` and `into_shared_str()` are equivalent to calling `into()` 
   on both literals and `String` (they are present primarily for `let` 
   bindings so there is no need to declare a type)
-* `to_flex_str()` and `to_a_flex_str()` are meant for taking ownership of 
+* `to_local_str()` and `to_shared_str()` are meant for taking ownership of 
   borrowed strings and always copy into either an inline string (for short strings) or 
   an `Rc`/`Arc` wrapped `str` (which will allocate)
 * `to_string` always copies into a new `String`
-* Conversions back and forth between `AFlexStr` and `FlexStr` using `into()` 
+* Conversions back and forth between `SharedStr` and `LocalStr` using `into()` 
   are cheap when using wrapped literals or inlined strings
     * Inlined strings and wrapped literals just create a new enum wrapper
     * Reference counted wrapped strings will always require an allocation 
@@ -276,8 +276,8 @@ There is no free lunch:
   reallocate and copy
 * Due to the enum wrapper, every string operation has the overhead of an extra
   branching operation
-* Since `FlexStr` is not `Send` or `Sync`, there is a need to consider 
-  single-threaded   (`FlexStr`) and multi-threaded (`AFlexStr`) use cases and 
+* Since `LocalStr` is not `Send` or `Sync`, there is a need to consider 
+  single-threaded   (`LocalStr`) and multi-threaded (`SharedStr`) use cases and 
   convert accordingly
 
 ## Status
