@@ -83,7 +83,7 @@ use core::{fmt, mem};
 use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use static_assertions::{assert_eq_align, assert_eq_size};
+use static_assertions::{assert_eq_align, assert_eq_size, assert_impl_all, assert_not_impl_any};
 
 // Trick to test README samples (from: https://github.com/rust-lang/cargo/issues/383#issuecomment-720873790)
 #[cfg(doctest)]
@@ -100,6 +100,9 @@ mod test_readme {
 
 assert_eq_size!(LocalStr, String);
 assert_eq_size!(SharedStr, String);
+assert_not_impl_any!(LocalStr: Send, Sync);
+assert_impl_all!(SharedStr: Send, Sync);
+
 assert_eq_size!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr);
 assert_eq_size!(StaticStr<PTR_SIZED_PAD>, inline::InlineFlexStr);
 assert_eq_align!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr);

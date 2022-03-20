@@ -16,9 +16,9 @@ all-features = true
 
 [features]
 default = ["std"]
-int_convert = ["itoa"]
 fast_format = ["ufmt", "ufmt-write"]
 fp_convert = ["ryu"]
+int_convert = ["itoa"]
 std = []
 
 [dependencies]
