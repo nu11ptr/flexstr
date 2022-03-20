@@ -219,20 +219,19 @@ fn main() {
 
 ### Make Your Own String Type
 
-All you need to do is pick an inline size (the default `STRING_SIZED_INLINE` 
-will result in a type the same size as a `String`) and a storage type. The 
-storage type must implement `Deref<Target = str>`, `From<String>`, `From<&str>`, 
-and `Clone`. Pretty much all smart pointers do this already.
+All you need to do is pick a storage type. The storage type must implement 
+`Deref<Target = str>`, `From<&str>`, and `Clone`. Pretty much all smart 
+pointers do this already.
 
 ```rust
-use flexstr::{Flex, PTR_SIZED_PAD, Repeat, STRING_SIZED_INLINE, ToFlex};
+use flexstr::{FlexStrBase, Repeat, ToFlex};
 
-type BoxFlexStr = Flex<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, Box<str>>;
+type BoxStr = FlexStrBase<Box<str>>;
 
 fn main() {
-  // This will be allocated in a box instead of the default `Rc`
-  // Demo only: normally use `into_flex` with literals just to wrap them
-  let my_str: BoxFlexStr = "cool!".to_flex().repeat_n(3);
+  // Any need for a heap string will now be allocated in a `Box` instead of `Rc`
+  // However, the below uses static and inline storage...because we can!
+  let my_str = BoxStr::from_static("cool!").repeat_n(3);
   assert_eq!(my_str, "cool!cool!cool!");
 }
 ```

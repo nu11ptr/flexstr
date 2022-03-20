@@ -3,7 +3,7 @@ use core::mem::ManuallyDrop;
 use core::ops::Deref;
 
 use crate::{
-    FlexStrWrapper, HeapStr, LocalStr, SharedStr, StorageType, PTR_SIZED_PAD, STRING_SIZED_INLINE,
+    FlexStr, HeapStr, LocalStr, SharedStr, StorageType, PTR_SIZED_PAD, STRING_SIZED_INLINE,
 };
 
 // *** Repeat custom trait ***
@@ -11,11 +11,11 @@ use crate::{
 /// Trait that can repeat a given `LocalStr` "n" times efficiently
 pub trait Repeat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     /// Repeats a given `LocalStr` "n" times efficiently and returns a new `LocalStr`
-    fn repeat_n(&self, n: usize) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Repeat<SIZE, PAD1, PAD2, HEAP>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str> + for<'a> From<&'a str>,
 {
@@ -27,7 +27,7 @@ where
     /// assert_eq!(s, "a".repeat(10));
     /// ```
     #[inline]
-    fn repeat_n(&self, n: usize) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         str::repeat_n(self, n)
     }
 }
@@ -38,7 +38,7 @@ where
     HEAP: for<'a> From<&'a str>,
 {
     #[inline]
-    fn repeat_n(&self, n: usize) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         let cap = self.len() * n;
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, cap);
@@ -56,20 +56,20 @@ where
 /// Trait that provides uppercase/lowercase conversion functions for `LocalStr`
 pub trait ToCase<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     /// Converts string to uppercase and returns a `LocalStr`
-    fn to_upper(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
     /// Converts string to lowercase and returns a `LocalStr`
-    fn to_lower(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
     /// Converts string to ASCII uppercase and returns a `LocalStr`
-    fn to_ascii_upper(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
     /// Converts string to ASCII lowercase and returns a `LocalStr`
-    fn to_ascii_lower(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToCase<SIZE, PAD1, PAD2, HEAP>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str> + for<'a> From<&'a str>,
 {
@@ -80,7 +80,7 @@ where
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
-    fn to_upper(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         str::to_upper(self)
     }
 
@@ -91,7 +91,7 @@ where
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
-    fn to_lower(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         str::to_lower(self)
     }
 
@@ -102,7 +102,7 @@ where
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
-    fn to_ascii_upper(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         str::to_ascii_upper(self)
     }
 
@@ -113,7 +113,7 @@ where
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
-    fn to_ascii_lower(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         str::to_ascii_lower(self)
     }
 }
@@ -129,7 +129,7 @@ where
     /// let a: LocalStr = "test".to_upper();
     /// assert_eq!(a, "TEST");
     /// ```
-    fn to_upper(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
@@ -150,7 +150,7 @@ where
     /// let a: LocalStr = "TEST".to_lower();
     /// assert_eq!(a, "test");
     /// ```
-    fn to_lower(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
@@ -171,7 +171,7 @@ where
     /// let a: LocalStr = "test".to_ascii_upper();
     /// assert_eq!(a, "TEST");
     /// ```
-    fn to_ascii_upper(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
 
@@ -189,7 +189,7 @@ where
     /// let a: LocalStr = "TEST".to_ascii_lower();
     /// assert_eq!(a, "test");
     /// ```
-    fn to_ascii_lower(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
 
@@ -213,11 +213,11 @@ where
 /// ```
 pub trait ToFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     /// Converts the source to a `Flex<SIZE, PAD1, PAD2, HEAP>` without consuming it
-    fn to_flex(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    ToFlex<SIZE, PAD1, PAD2, HEAP> for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>
+    ToFlex<SIZE, PAD1, PAD2, HEAP> for FlexStr<SIZE, PAD1, PAD2, HEAP2>
 where
     HEAP: for<'a> From<&'a str>,
     HEAP2: Clone + Deref<Target = str>,
@@ -230,7 +230,7 @@ where
     /// assert_eq!(a, b);
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         self.clone().into_flex()
     }
 }
@@ -251,7 +251,7 @@ where
     /// assert!(b.is_heap())
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         self.into()
     }
 }
@@ -269,8 +269,8 @@ where
     /// assert_eq!(s, "false");
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
-        FlexStrWrapper::from_static(if *self { "true" } else { "false" })
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+        FlexStr::from_static(if *self { "true" } else { "false" })
     }
 }
 
@@ -287,7 +287,7 @@ where
     /// assert_eq!(s, "☺");
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         (*self).into()
     }
 }
@@ -307,7 +307,7 @@ macro_rules! impl_int_flex {
             /// assert_eq!(s, "123");
             /// ```
             #[inline]
-            fn to_flex(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+            fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
                 let mut buffer = itoa::Buffer::new();
                 buffer.format(*self).to_flex()
             }
@@ -333,7 +333,7 @@ macro_rules! impl_float_flex {
             /// assert_eq!(s, "123.456");
             /// ```
             #[inline]
-            fn to_flex(&self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+            fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
                 let mut buffer = ryu::Buffer::new();
                 buffer.format(*self).to_flex()
             }
@@ -355,11 +355,11 @@ impl_float_flex!(f32, f64);
 /// ```
 pub trait IntoFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     /// Converts the source to a `FlexStr<SIZE, PAD1, PAD2, HEAP>` while consuming the original
-    fn into_flex(self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    IntoFlex<SIZE, PAD1, PAD2, HEAP> for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>
+    IntoFlex<SIZE, PAD1, PAD2, HEAP> for FlexStr<SIZE, PAD1, PAD2, HEAP2>
 where
     HEAP: for<'a> From<&'a str>,
     HEAP2: Deref<Target = str>,
@@ -386,14 +386,14 @@ where
     /// assert_eq!(e, f);
     /// ```
     #[inline]
-    fn into_flex(self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
+    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.static_str.marker {
-                StorageType::Static => FlexStrWrapper {
+                StorageType::Static => FlexStr {
                     static_str: self.static_str,
                 },
-                StorageType::Inline => FlexStrWrapper {
+                StorageType::Inline => FlexStr {
                     inline_str: self.inline_str,
                 },
                 StorageType::Heap => {
@@ -401,7 +401,7 @@ where
                     // Would like to use `from_raw` and `into_raw`, but need to ensure
                     // exclusive ownership for this to be safe. For `Rc` that might be possible,
                     // but `Arc` could be multi-threaded so needs to be atomic
-                    FlexStrWrapper {
+                    FlexStr {
                         heap_str: ManuallyDrop::new(HeapStr::from_heap(HEAP::from(
                             &self.heap_str.heap,
                         ))),
@@ -426,8 +426,8 @@ where
     /// assert_eq!(b, a);
     /// ```
     #[inline]
-    fn into_flex(self) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
-        <FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> as From<&str>>::from(&self)
+    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+        <FlexStr<SIZE, PAD1, PAD2, HEAP> as From<&str>>::from(&self)
     }
 }
 
@@ -445,7 +445,7 @@ pub trait ToLocalStr {
     fn to_local_str(&self) -> LocalStr;
 }
 
-impl<HEAP> ToLocalStr for FlexStrWrapper<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> ToLocalStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
 where
     HEAP: Clone + Deref<Target = str>,
 {
@@ -564,7 +564,7 @@ pub trait ToSharedStr {
     fn to_shared_str(&self) -> SharedStr;
 }
 
-impl<HEAP> ToSharedStr for FlexStrWrapper<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> ToSharedStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
 where
     HEAP: Clone + Deref<Target = str>,
 {
@@ -683,7 +683,7 @@ pub trait IntoLocalStr {
     fn into_local_str(self) -> LocalStr;
 }
 
-impl<HEAP> IntoLocalStr for FlexStrWrapper<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> IntoLocalStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -729,7 +729,7 @@ pub trait IntoSharedStr {
     fn into_shared_str(self) -> SharedStr;
 }
 
-impl<HEAP> IntoSharedStr for FlexStrWrapper<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> IntoSharedStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
 where
     HEAP: Deref<Target = str>,
 {

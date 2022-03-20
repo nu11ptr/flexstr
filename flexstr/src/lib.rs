@@ -205,26 +205,26 @@ where
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
-pub union FlexStrWrapper<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+pub union FlexStr<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     static_str: StaticStr<PAD1>,
     #[doc(hidden)]
     pub inline_str: inline::InlineFlexStr<SIZE>,
     heap_str: mem::ManuallyDrop<HeapStr<PAD2, HEAP>>,
 }
 
-/// A flexible string type that transparently wraps a string literal, inline string, or a HEAP type
-pub type FlexStr<HEAP> = FlexStrWrapper<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
+/// A flexible base string type that transparently wraps a string literal, inline string, or a custom HEAP type
+pub type FlexStrBase<HEAP> = FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
-pub type LocalStr = FlexStr<Rc<str>>;
+pub type LocalStr = FlexStrBase<Rc<str>>;
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
-pub type SharedStr = FlexStr<Arc<str>>;
+pub type SharedStr = FlexStrBase<Arc<str>>;
 
 // *** Clone ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Clone,
 {
@@ -233,13 +233,13 @@ where
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.static_str.marker {
-                StorageType::Static => FlexStrWrapper {
+                StorageType::Static => FlexStr {
                     static_str: self.static_str,
                 },
-                StorageType::Inline => FlexStrWrapper {
+                StorageType::Inline => FlexStr {
                     inline_str: self.inline_str,
                 },
-                StorageType::Heap => FlexStrWrapper {
+                StorageType::Heap => FlexStr {
                     // Recreating vs. calling clone at the top is 30% faster in benchmarks
                     heap_str: ManuallyDrop::new(HeapStr::from_heap(self.heap_str.heap.clone())),
                 },
@@ -251,7 +251,7 @@ where
 // *** Drop ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 {
     #[inline]
     fn drop(&mut self) {
@@ -267,7 +267,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
 // *** Deref ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -296,10 +296,10 @@ where
 // *** Non-trait functions ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
-    FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    FlexStr<SIZE, PAD1, PAD2, HEAP>
 {
     /// An empty ("") static constant string
-    pub const EMPTY: Self = FlexStrWrapper {
+    pub const EMPTY: Self = FlexStr {
         static_str: StaticStr::EMPTY,
     };
 
@@ -312,8 +312,8 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// assert!(S.is_static());
     /// ```
     #[inline]
-    pub const fn from_static(s: &'static str) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
-        FlexStrWrapper {
+    pub const fn from_static(s: &'static str) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+        FlexStr {
             static_str: StaticStr::from_static(s),
         }
     }
@@ -348,9 +348,9 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// assert!(s.is_inline());
     /// ```
     #[inline]
-    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>, S> {
+    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<FlexStr<SIZE, PAD1, PAD2, HEAP>, S> {
         match inline::InlineFlexStr::try_new(s) {
-            Ok(s) => Ok(FlexStrWrapper { inline_str: s }),
+            Ok(s) => Ok(FlexStr { inline_str: s }),
             Err(s) => Err(s),
         }
     }
@@ -365,11 +365,11 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// assert!(s.is_heap());
     /// ```
     #[inline]
-    pub fn from_ref_heap(s: impl AsRef<str>) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    pub fn from_ref_heap(s: impl AsRef<str>) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
     where
         HEAP: for<'a> From<&'a str>,
     {
-        FlexStrWrapper {
+        FlexStr {
             heap_str: ManuallyDrop::new(HeapStr::from_ref(s)),
         }
     }
@@ -377,8 +377,8 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// Create a new heap based string by wrapping the existing user provided heap string type (T).
     /// For `LocalStr` this will be an `Rc<str>` and for `SharedStr` it will be an `Arc<str>`.
     #[inline]
-    pub fn from_heap(t: HEAP) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP> {
-        FlexStrWrapper {
+    pub fn from_heap(t: HEAP) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+        FlexStr {
             heap_str: ManuallyDrop::new(HeapStr::from_heap(t)),
         }
     }
@@ -486,8 +486,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
-    FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -549,7 +548,7 @@ where
 
 // FIXME: Do we want to do something custom?
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Debug
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -560,7 +559,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Display
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -572,7 +571,7 @@ where
 
 #[cfg(feature = "fast_format")]
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ufmt::uDisplay
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -587,7 +586,7 @@ where
 
 #[cfg(feature = "fast_format")]
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ufmt::uDebug
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -604,7 +603,7 @@ where
 // *** Hash, PartialEq, Eq ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Hash
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -615,7 +614,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    PartialEq<FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>> for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    PartialEq<FlexStr<SIZE, PAD1, PAD2, HEAP2>> for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
     HEAP2: Deref<Target = str>,
@@ -629,13 +628,13 @@ where
     /// assert_eq!(s, s2);
     /// ```
     #[inline]
-    fn eq(&self, other: &FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>) -> bool {
+    fn eq(&self, other: &FlexStr<SIZE, PAD1, PAD2, HEAP2>) -> bool {
         str::eq(self, &**other)
     }
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    PartialEq<FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>> for &FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    PartialEq<FlexStr<SIZE, PAD1, PAD2, HEAP2>> for &FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
     HEAP2: Deref<Target = str>,
@@ -649,13 +648,13 @@ where
     /// assert_eq!(&s, s2);
     /// ```
     #[inline]
-    fn eq(&self, other: &FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>) -> bool {
+    fn eq(&self, other: &FlexStr<SIZE, PAD1, PAD2, HEAP2>) -> bool {
         str::eq(self, &**other)
     }
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialEq<&str>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -673,7 +672,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialEq<str>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -691,7 +690,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialEq<String>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -709,7 +708,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Eq
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -718,7 +717,7 @@ where
 // *** PartialOrd / Ord ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialOrd
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -729,7 +728,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialOrd<str>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -740,7 +739,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> PartialOrd<String>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -751,7 +750,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Ord
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -765,7 +764,7 @@ where
 
 macro_rules! impl_ranges {
     ($($type:ty),+) => {
-        $(impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Index<$type> for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+        $(impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Index<$type> for FlexStr<SIZE, PAD1, PAD2, HEAP>
         where
             HEAP: Deref<Target = str>,
         {
@@ -794,7 +793,7 @@ impl_ranges!(
 fn concat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
     s1: &str,
     s2: &str,
-) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
@@ -806,11 +805,11 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Add<&str>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str> + Deref<Target = str>,
 {
-    type Output = FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    type Output = FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
     /// ```
     /// use flexstr::{local_str, IntoLocalStr};
@@ -853,7 +852,7 @@ where
 // *** Misc. standard traits ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> AsRef<str>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -864,7 +863,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Default
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 {
     #[inline]
     fn default() -> Self {
@@ -873,7 +872,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Default
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromStr
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
@@ -888,19 +887,19 @@ where
 // *** From ***
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    From<&FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>> for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    From<&FlexStr<SIZE, PAD1, PAD2, HEAP2>> for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
     HEAP2: Clone + Deref<Target = str>,
 {
     #[inline]
-    fn from(s: &FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>) -> Self {
+    fn from(s: &FlexStr<SIZE, PAD1, PAD2, HEAP2>) -> Self {
         s.clone().into_flex()
     }
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<String>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
@@ -924,7 +923,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<&String>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
@@ -948,7 +947,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<&str>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
@@ -967,7 +966,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> From<char>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -990,7 +989,7 @@ where
 #[inline]
 fn from_iter_str<const SIZE: usize, const PAD1: usize, const PAD2: usize, I, HEAP, U>(
     iter: I,
-) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     I: IntoIterator<Item = U>,
     HEAP: for<'b> From<&'b str>,
@@ -1012,7 +1011,7 @@ where
 fn from_iter_char<const SIZE: usize, const PAD1: usize, const PAD2: usize, I, F, HEAP, U>(
     iter: I,
     f: F,
-) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     I: IntoIterator<Item = U>,
     F: Fn(U) -> char,
@@ -1030,7 +1029,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    FromIterator<FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>> for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    FromIterator<FlexStr<SIZE, PAD1, PAD2, HEAP2>> for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'b> From<&'b str>,
     HEAP2: Deref<Target = str>,
@@ -1044,14 +1043,13 @@ where
     /// assert_eq!(s, "testtest");
     /// ```
     #[inline]
-    fn from_iter<I: IntoIterator<Item = FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = FlexStr<SIZE, PAD1, PAD2, HEAP2>>>(iter: I) -> Self {
         from_iter_str(iter)
     }
 }
 
 impl<'a, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    FromIterator<&'a FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    FromIterator<&'a FlexStr<SIZE, PAD1, PAD2, HEAP2>> for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'b> From<&'b str>,
     HEAP2: Deref<Target = str> + 'a,
@@ -1065,15 +1063,13 @@ where
     /// assert_eq!(s, "best");
     /// ```
     #[inline]
-    fn from_iter<I: IntoIterator<Item = &'a FlexStrWrapper<SIZE, PAD1, PAD2, HEAP2>>>(
-        iter: I,
-    ) -> Self {
+    fn from_iter<I: IntoIterator<Item = &'a FlexStr<SIZE, PAD1, PAD2, HEAP2>>>(iter: I) -> Self {
         from_iter_str(iter)
     }
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<String>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'b> From<&'b str>,
 {
@@ -1092,7 +1088,7 @@ where
 }
 
 impl<'a, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<&'a str>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'b> From<&'b str>,
 {
@@ -1111,7 +1107,7 @@ where
 }
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<char>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'b> From<&'b str>,
 {
@@ -1130,7 +1126,7 @@ where
 }
 
 impl<'a, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FromIterator<&'a char>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'b> From<&'b str>,
 {
@@ -1152,7 +1148,7 @@ where
 
 #[cfg(feature = "serde")]
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Serialize
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -1177,7 +1173,7 @@ impl<'de, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Visitor
 where
     HEAP: for<'a> From<&'a str>,
 {
-    type Value = FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>;
+    type Value = FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
     #[inline]
     fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
@@ -1203,7 +1199,7 @@ where
 
 #[cfg(feature = "serde")]
 impl<'de, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deserialize<'de>
-    for FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
@@ -1249,7 +1245,7 @@ macro_rules! shared_str {
 /// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
 pub fn flex_fmt<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
     args: Arguments<'_>,
-) -> FlexStrWrapper<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
