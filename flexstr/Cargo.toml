@@ -25,6 +25,7 @@ std = []
 itoa = { version = "1", optional = true }
 ryu = { version = "1", optional = true }
 serde = { version = "1", optional = true }
+static_assertions = "1"
 ufmt = { version = "0.1", optional = true }
 ufmt-write = { version = "0.1", optional = true }
 

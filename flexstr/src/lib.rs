@@ -83,6 +83,7 @@ use core::{fmt, mem};
 use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use static_assertions::{assert_eq_align, assert_eq_size};
 
 // Trick to test README samples (from: https://github.com/rust-lang/cargo/issues/383#issuecomment-720873790)
 #[cfg(doctest)]
@@ -97,10 +98,17 @@ mod test_readme {
     external_doc_test!(include_str!("../../README.md"));
 }
 
+assert_eq_size!(LocalStr, String);
+assert_eq_size!(SharedStr, String);
+assert_eq_size!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr);
+assert_eq_size!(StaticStr<PTR_SIZED_PAD>, inline::InlineFlexStr);
+assert_eq_align!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr);
+assert_eq_align!(StaticStr<PTR_SIZED_PAD>, inline::InlineFlexStr);
+
 /// Padding the size of a pointer for this platform minus one
 pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 
-/// Error type returned from [try_as_static_str] or [try_into_heap] when  this [FlexStr] does not contain a `'static str`
+/// Error type returned from [FlexStr::try_as_static_str] or [FlexStr::try_to_heap] when  this [FlexStr] does not contain a `'static str`
 #[derive(Copy, Clone, Debug)]
 pub struct WrongStorageType {
     /// The expected storage type of the string
