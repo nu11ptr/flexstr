@@ -3,7 +3,7 @@ use core::mem::ManuallyDrop;
 use core::ops::Deref;
 
 use crate::{
-    FlexMarker, FlexStrWrapper, HeapStr, LocalStr, SharedStr, PTR_SIZED_PAD, STRING_SIZED_INLINE,
+    FlexStrWrapper, HeapStr, LocalStr, SharedStr, StorageType, PTR_SIZED_PAD, STRING_SIZED_INLINE,
 };
 
 // *** Repeat custom trait ***
@@ -390,13 +390,13 @@ where
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.static_str.marker {
-                FlexMarker::Static => FlexStrWrapper {
+                StorageType::Static => FlexStrWrapper {
                     static_str: self.static_str,
                 },
-                FlexMarker::Inline => FlexStrWrapper {
+                StorageType::Inline => FlexStrWrapper {
                     inline_str: self.inline_str,
                 },
-                FlexMarker::Heap => {
+                StorageType::Heap => {
                     // TODO: Any more efficient way to do this?
                     // Would like to use `from_raw` and `into_raw`, but need to ensure
                     // exclusive ownership for this to be safe. For `Rc` that might be possible,

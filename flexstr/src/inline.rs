@@ -3,7 +3,7 @@ use core::fmt::{Debug, Formatter};
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
-use crate::FlexMarker;
+use crate::StorageType;
 
 /// Using this inline capacity will result in a type with the same memory size as a builtin `String`
 pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
@@ -18,7 +18,7 @@ pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 pub struct InlineFlexStr<const N: usize = STRING_SIZED_INLINE> {
     data: [mem::MaybeUninit<u8>; N],
     len: u8,
-    marker: FlexMarker,
+    marker: StorageType,
 }
 
 impl<const N: usize> InlineFlexStr<N> {
@@ -49,7 +49,7 @@ impl<const N: usize> InlineFlexStr<N> {
         Self {
             len: s.len() as u8,
             data,
-            marker: FlexMarker::Inline,
+            marker: StorageType::Inline,
         }
     }
 
@@ -58,7 +58,7 @@ impl<const N: usize> InlineFlexStr<N> {
         Self {
             data,
             len,
-            marker: FlexMarker::Inline,
+            marker: StorageType::Inline,
         }
     }
 

@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
 //! A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust
@@ -100,19 +100,37 @@ mod test_readme {
 /// Padding the size of a pointer for this platform minus one
 pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 
-/// Error type returned from `try_as_static_str` when  this `LocalStr` does not contain a `'static str`
+/// Error type returned from [try_as_static_str] or [try_into_heap] when  this [FlexStr] does not contain a `'static str`
 #[derive(Copy, Clone, Debug)]
-pub struct NotStatic;
+pub struct WrongStorageType {
+    /// The expected storage type of the string
+    pub expected: StorageType,
+    /// The actual storage type of the string
+    pub actual: StorageType,
+}
 
-/// Error type returned from `try_into_heap` when  this `LocalStr` does not contain a heap based string
-#[derive(Copy, Clone, Debug)]
-pub struct NotHeap;
+impl Display for WrongStorageType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("The FlexStr did no use the storage type expected (expected: ")?;
+        self.expected.fmt(f)?;
+        f.write_str(", actual: ")?;
+        self.actual.fmt(f)?;
+        f.write_str(")")
+    }
+}
 
+#[cfg(feature = "std")]
+impl std::error::Error for WrongStorageType {}
+
+/// Represents the storage type used by a particular [FlexStr]
 #[derive(Copy, Clone, Debug)]
 #[repr(u8)]
-enum FlexMarker {
+pub enum StorageType {
+    /// Denotes that this [FlexStr] is a wrapper string literal
     Static,
+    /// Denotes that this [FlexStr] is inlined
     Inline,
+    /// Denotes that this [FlexStr] uses heap-based storage
     Heap,
 }
 
@@ -121,7 +139,7 @@ enum FlexMarker {
 struct StaticStr<const PAD: usize> {
     literal: &'static str,
     pad: [mem::MaybeUninit<u8>; PAD],
-    marker: FlexMarker,
+    marker: StorageType,
 }
 
 impl<const PAD: usize> StaticStr<PAD> {
@@ -133,7 +151,7 @@ impl<const PAD: usize> StaticStr<PAD> {
             literal: s,
             // SAFETY: Padding, never actually used
             pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
-            marker: FlexMarker::Static,
+            marker: StorageType::Static,
         }
     }
 }
@@ -153,7 +171,7 @@ impl<const PAD: usize> Debug for StaticStr<PAD> {
 struct HeapStr<const PAD: usize, HEAP> {
     heap: HEAP,
     pad: [mem::MaybeUninit<u8>; PAD],
-    marker: FlexMarker,
+    marker: StorageType,
 }
 
 impl<const PAD: usize, HEAP> HeapStr<PAD, HEAP> {
@@ -163,7 +181,7 @@ impl<const PAD: usize, HEAP> HeapStr<PAD, HEAP> {
             heap: t,
             // SAFETY: Padding, never actually used
             pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
-            marker: FlexMarker::Heap,
+            marker: StorageType::Heap,
         }
     }
 
@@ -215,13 +233,13 @@ where
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.static_str.marker {
-                FlexMarker::Static => FlexStrWrapper {
+                StorageType::Static => FlexStrWrapper {
                     static_str: self.static_str,
                 },
-                FlexMarker::Inline => FlexStrWrapper {
+                StorageType::Inline => FlexStrWrapper {
                     inline_str: self.inline_str,
                 },
-                FlexMarker::Heap => FlexStrWrapper {
+                StorageType::Heap => FlexStrWrapper {
                     // Recreating vs. calling clone at the top is 30% faster in benchmarks
                     heap_str: ManuallyDrop::new(HeapStr::from_heap(self.heap_str.heap.clone())),
                 },
@@ -239,7 +257,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
     fn drop(&mut self) {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
-            if let FlexMarker::Heap = self.heap_str.marker {
+            if let StorageType::Heap = self.heap_str.marker {
                 ManuallyDrop::drop(&mut self.heap_str);
             }
         }
@@ -267,9 +285,9 @@ where
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.static_str.marker {
-                FlexMarker::Static => self.static_str.literal,
-                FlexMarker::Inline => &self.inline_str,
-                FlexMarker::Heap => &self.heap_str.heap,
+                StorageType::Static => self.static_str.literal,
+                StorageType::Inline => &self.inline_str,
+                StorageType::Heap => &self.heap_str.heap,
             }
         }
     }
@@ -372,7 +390,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     }
 
     /// Attempts to extract a static inline string literal if one is stored inside this `LocalStr`.
-    /// Returns `NotStatic` if this is not a static string literal.
+    /// Returns `WrongStorageType` if this is not a static string literal.
     /// ```
     /// use flexstr::local_str;
     ///
@@ -381,29 +399,35 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// assert_eq!(s2.try_as_static_str().unwrap(), s);
     /// ```
     #[inline]
-    pub fn try_as_static_str(&self) -> Result<&'static str, NotStatic> {
+    pub fn try_as_static_str(&self) -> Result<&'static str, WrongStorageType> {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.static_str.marker {
-                FlexMarker::Static => Ok(self.static_str.literal),
-                _ => Err(NotStatic),
+                StorageType::Static => Ok(self.static_str.literal),
+                actual => Err(WrongStorageType {
+                    expected: StorageType::Static,
+                    actual,
+                }),
             }
         }
     }
 
     /// Attempts to extract a copy of the heap value (for `LocalStr` this will be an `Rc<str>` and
-    /// for `SharedStr` an `Arc<str>`) via cloning. If this is not a heap based string, a `NotHeap`
+    /// for `SharedStr` an `Arc<str>`) via cloning. If this is not a heap based string, a `WrongStorageType`
     /// error will be returned.
     #[inline]
-    pub fn try_to_heap(&self) -> Result<HEAP, NotHeap>
+    pub fn try_to_heap(&self) -> Result<HEAP, WrongStorageType>
     where
         HEAP: Clone,
     {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             match self.heap_str.marker {
-                FlexMarker::Heap => Ok(self.heap_str.heap.clone()),
-                _ => Err(NotHeap),
+                StorageType::Heap => Ok(self.heap_str.heap.clone()),
+                actual => Err(WrongStorageType {
+                    expected: StorageType::Heap,
+                    actual,
+                }),
             }
         }
     }
@@ -432,7 +456,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     #[inline]
     pub fn is_static(&self) -> bool {
         // SAFETY: Marker is identical in all union fields
-        unsafe { matches!(self.static_str.marker, FlexMarker::Static) }
+        unsafe { matches!(self.static_str.marker, StorageType::Static) }
     }
 
     /// Returns true if this is an inlined string
@@ -445,7 +469,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     #[inline]
     pub fn is_inline(&self) -> bool {
         // SAFETY: Marker is identical in all union fields
-        unsafe { matches!(self.static_str.marker, FlexMarker::Inline) }
+        unsafe { matches!(self.static_str.marker, StorageType::Inline) }
     }
 
     /// Returns true if this is a wrapped string using heap storage
@@ -458,7 +482,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     #[inline]
     pub fn is_heap(&self) -> bool {
         // SAFETY: Marker is identical in all union fields
-        unsafe { matches!(self.static_str.marker, FlexMarker::Heap) }
+        unsafe { matches!(self.static_str.marker, StorageType::Heap) }
     }
 }
 
@@ -493,9 +517,9 @@ where
             // Due to how inline does deref, I'm guessing this is slightly cheaper by using
             // inline native len instead of using len() off of `&str` at the top
             match self.static_str.marker {
-                FlexMarker::Static => self.static_str.literal.len(),
-                FlexMarker::Inline => self.inline_str.len(),
-                FlexMarker::Heap => self.heap_str.heap.len(),
+                StorageType::Static => self.static_str.literal.len(),
+                StorageType::Inline => self.inline_str.len(),
+                StorageType::Heap => self.heap_str.heap.len(),
             }
         }
     }
@@ -809,8 +833,8 @@ where
             // SAFETY: Marker check is aligned to correct accessed field
             unsafe {
                 match self.static_str.marker {
-                    FlexMarker::Static => concat(self.static_str.literal, rhs),
-                    FlexMarker::Inline => {
+                    StorageType::Static => concat(self.static_str.literal, rhs),
+                    StorageType::Inline => {
                         let s = &mut self.inline_str;
 
                         if s.try_concat(rhs) {
@@ -819,7 +843,7 @@ where
                             concat(s, rhs)
                         }
                     }
-                    FlexMarker::Heap => concat(&self.heap_str.heap, rhs),
+                    StorageType::Heap => concat(&self.heap_str.heap, rhs),
                 }
             }
         }

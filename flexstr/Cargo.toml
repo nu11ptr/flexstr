@@ -15,9 +15,11 @@ edition = "2021"
 all-features = true
 
 [features]
+default = ["std"]
 int_convert = ["itoa"]
 fast_format = ["ufmt", "ufmt-write"]
 fp_convert = ["ryu"]
+std = []
 
 [dependencies]
 itoa = { version = "1", optional = true }
