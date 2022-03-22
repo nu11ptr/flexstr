@@ -6,11 +6,8 @@
 - [Third Party Crates](#third-party-crates)
 - [Benchmark Pitfalls](#benchmark-pitfalls)
 - [Benchmark Results](#benchmark-results)
-    - [Create and Destroy - Literal](#create-and-destroy---literal)
     - [Create and Destroy - Computed](#create-and-destroy---computed)
-    - [Clone - Literal](#clone---literal)
     - [Clone - Computed](#clone---computed)
-    - [Convert](#convert)
 
 ## Environment
 
@@ -65,14 +62,6 @@ performance difference at all (even though large differences are shown often!)
 
 ## Benchmark Results
 
-### Create and Destroy - Literal
-
-This just demonstrates the benefits of having a constant vs. heap allocating the constant as `String` is forced to do
-
-|          | `String`                | `AFlexStr`                     | `FlexStr`                        |
-|:---------|:------------------------|:-------------------------------|:-------------------------------- |
-| **`40`** | `8.21 ns` (1.00x)       | `1.06 ns` (✅ **7.74x faster**) | `0.57 ns` (✅ **14.31x faster**)  |
-
 ### Create and Destroy - Computed
 
 * String sizes of 10 and 20 are inlining, so gets a boost
@@ -81,23 +70,14 @@ This just demonstrates the benefits of having a constant vs. heap allocating the
 * Overall I'm happy with how `FlexStr` performs here on inline string creation. I suspect the difference, however, to
  `CompactStr` and probably `SmartString` is just noise
 
-|             | `String`                  | `Rc<str>`                        | `Arc<str>`                       | `FlexStr`                        | `AFlexStr`                       | `CompactStr`                     | `KString`                        | `SmartString`                    | `SmolStr`                         |
-|:------------|:--------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:--------------------------------- |
-| **`0`**     | `0.43 ns` (1.00x)         | `10.15 ns` (❌ *23.78x slower*)   | `10.62 ns` (❌ *24.87x slower*)   | `1.05 ns` (❌ *2.47x slower*)     | `0.64 ns` (❌ *1.50x slower*)     | `1.27 ns` (❌ *2.99x slower*)     | `6.79 ns` (❌ *15.91x slower*)    | `7.19 ns` (❌ *16.84x slower*)    | `11.02 ns` (❌ *25.82x slower*)    |
-| **`10`**    | `9.47 ns` (1.00x)         | `9.96 ns` (❌ *1.05x slower*)     | `10.58 ns` (❌ *1.12x slower*)    | `4.87 ns` (✅ **1.94x faster**)   | `6.59 ns` (✅ **1.44x faster**)   | `7.15 ns` (✅ **1.32x faster**)   | `7.46 ns` (✅ **1.27x faster**)   | `9.33 ns` (✅ **1.02x faster**)   | `13.59 ns` (❌ *1.43x slower*)     |
-| **`20`**    | `9.38 ns` (1.00x)         | `9.70 ns` (❌ *1.03x slower*)     | `10.35 ns` (❌ *1.10x slower*)    | `6.27 ns` (✅ **1.49x faster**)   | `6.57 ns` (✅ **1.43x faster**)   | `6.27 ns` (✅ **1.50x faster**)   | `9.79 ns` (❌ *1.04x slower*)     | `9.20 ns` (✅ **1.02x faster**)   | `13.83 ns` (❌ *1.47x slower*)     |
-| **`100`**   | `9.81 ns` (1.00x)         | `10.21 ns` (❌ *1.04x slower*)    | `10.99 ns` (❌ *1.12x slower*)    | `10.55 ns` (❌ *1.08x slower*)    | `10.76 ns` (❌ *1.10x slower*)    | `12.40 ns` (❌ *1.26x slower*)    | `10.42 ns` (❌ *1.06x slower*)    | `16.40 ns` (❌ *1.67x slower*)    | `20.04 ns` (❌ *2.04x slower*)     |
-| **`1000`**  | `13.28 ns` (1.00x)        | `13.94 ns` (❌ *1.05x slower*)    | `14.40 ns` (❌ *1.08x slower*)    | `14.24 ns` (❌ *1.07x slower*)    | `14.34 ns` (❌ *1.08x slower*)    | `14.97 ns` (❌ *1.13x slower*)    | `13.70 ns` (❌ *1.03x slower*)    | `22.58 ns` (❌ *1.70x slower*)    | `25.00 ns` (❌ *1.88x slower*)     |
-| **`16384`** | `135.56 ns` (1.00x)       | `136.80 ns` (❌ *1.01x slower*)   | `316.11 ns` (❌ *2.33x slower*)   | `142.12 ns` (❌ *1.05x slower*)   | `194.22 ns` (❌ *1.43x slower*)   | `188.73 ns` (❌ *1.39x slower*)   | `136.72 ns` (❌ *1.01x slower*)   | `197.77 ns` (❌ *1.46x slower*)   | `200.70 ns` (❌ *1.48x slower*)    |
-
-### Clone - Literal
-
-This again just demonstrates the benefits of having a constant vs. heap allocating the constant as `String` is forced to do.
-`AFlexStr` being much slower here is likely not correct in the real world as the code is identical to `FlexStr`
-
-|          | `String`                 | `FlexStr`                      | `AFlexStr`                       |
-|:---------|:-------------------------|:-------------------------------|:-------------------------------- |
-| **`40`** | `11.85 ns` (1.00x)       | `4.29 ns` (✅ **2.76x faster**) | `11.93 ns` (❌ *1.01x slower*)    |
+|             | `String`                  | `FlexStr 0.8.0`                  | `AFlexStr 0.8.0`                 | `FlexStr 0.8.1`                  | `AFlexStr 0.8.1`                 | `FlexStr 0.9.0`                  | `AFlexStr 0.9.0`                  |
+|:------------|:--------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:--------------------------------- |
+| **`0`**     | `6.40 us` (✅ **1.00x**)   | `10.68 us` (❌ *1.67x slower*)    | `10.67 us` (❌ *1.67x slower*)    | `6.44 us` (✅ **1.01x slower**)   | `6.39 us` (✅ **1.00x faster**)   | `6.41 us` (✅ **1.00x slower**)   | `6.37 us` (✅ **1.00x faster**)    |
+| **`10`**    | `97.94 us` (✅ **1.00x**)  | `66.79 us` (✅ **1.47x faster**)  | `64.98 us` (✅ **1.51x faster**)  | `62.65 us` (✅ **1.56x faster**)  | `61.26 us` (✅ **1.60x faster**)  | `62.47 us` (✅ **1.57x faster**)  | `61.21 us` (✅ **1.60x faster**)   |
+| **`20`**    | `95.23 us` (✅ **1.00x**)  | `101.27 us` (✅ **1.06x slower**) | `82.77 us` (✅ **1.15x faster**)  | `49.29 us` (🚀 **1.93x faster**)  | `46.59 us` (🚀 **2.04x faster**)  | `49.84 us` (🚀 **1.91x faster**)  | `47.01 us` (🚀 **2.03x faster**)   |
+| **`100`**   | `101.38 us` (✅ **1.00x**) | `110.16 us` (✅ **1.09x slower**) | `121.07 us` (❌ *1.19x slower*)   | `110.21 us` (✅ **1.09x slower**) | `116.63 us` (❌ *1.15x slower*)   | `110.07 us` (✅ **1.09x slower**) | `116.61 us` (❌ *1.15x slower*)    |
+| **`1000`**  | `136.76 us` (✅ **1.00x**) | `152.01 us` (❌ *1.11x slower*)   | `158.50 us` (❌ *1.16x slower*)   | `146.89 us` (✅ **1.07x slower**) | `154.38 us` (❌ *1.13x slower*)   | `145.83 us` (✅ **1.07x slower**) | `155.54 us` (❌ *1.14x slower*)    |
+| **`16384`** | `1.85 ms` (✅ **1.00x**)   | `1.41 ms` (✅ **1.32x faster**)   | `1.46 ms` (✅ **1.27x faster**)   | `1.41 ms` (✅ **1.31x faster**)   | `1.46 ms` (✅ **1.27x faster**)   | `1.41 ms` (✅ **1.31x faster**)   | `1.45 ms` (✅ **1.28x faster**)    |
 
 ### Clone - Computed
 
@@ -111,30 +91,14 @@ than a plain `Arc<str>` is very odd to say the least
 into this
 * At higher string sizes, the benefits of `Rc` and `Arc` used in `FlexStr` is very benefitical
 
-|             | `String`                  | `Rc<str>`                       | `Arc<str>`                      | `FlexStr`                        | `AFlexStr`                       | `CompactStr`                     | `KString`                        | `SmartString`                    | `SmolStr`                         |
-|:------------|:--------------------------|:--------------------------------|:--------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:---------------------------------|:--------------------------------- |
-| **`0`**     | `5.83 ns` (1.00x)         | `0.69 ns` (✅ **8.47x faster**)  | `4.46 ns` (✅ **1.31x faster**)  | `8.01 ns` (❌ *1.37x slower*)     | `12.33 ns` (❌ *2.12x slower*)    | `3.56 ns` (✅ **1.64x faster**)   | `14.96 ns` (❌ *2.57x slower*)    | `3.64 ns` (✅ **1.60x faster**)   | `12.33 ns` (❌ *2.12x slower*)     |
-| **`10`**    | `11.62 ns` (1.00x)        | `0.77 ns` (✅ **15.07x faster**) | `4.84 ns` (✅ **2.40x faster**)  | `8.12 ns` (✅ **1.43x faster**)   | `12.40 ns` (❌ *1.07x slower*)    | `3.50 ns` (✅ **3.32x faster**)   | `14.99 ns` (❌ *1.29x slower*)    | `2.47 ns` (✅ **4.71x faster**)   | `12.47 ns` (❌ *1.07x slower*)     |
-| **`20`**    | `11.42 ns` (1.00x)        | `0.84 ns` (✅ **13.66x faster**) | `4.78 ns` (✅ **2.39x faster**)  | `8.15 ns` (✅ **1.40x faster**)   | `12.39 ns` (❌ *1.08x slower*)    | `3.49 ns` (✅ **3.27x faster**)   | `15.48 ns` (❌ *1.36x slower*)    | `2.41 ns` (✅ **4.74x faster**)   | `12.42 ns` (❌ *1.09x slower*)     |
-| **`100`**   | `12.61 ns` (1.00x)        | `1.49 ns` (✅ **8.48x faster**)  | `5.11 ns` (✅ **2.47x faster**)  | `2.00 ns` (✅ **6.29x faster**)   | `12.97 ns` (❌ *1.03x slower*)    | `14.63 ns` (❌ *1.16x slower*)    | `17.73 ns` (❌ *1.41x slower*)    | `16.70 ns` (❌ *1.32x slower*)    | `16.76 ns` (❌ *1.33x slower*)     |
-| **`1000`**  | `53.93 ns` (1.00x)        | `3.06 ns` (✅ **17.61x faster**) | `7.52 ns` (✅ **7.17x faster**)  | `2.89 ns` (✅ **18.65x faster**)  | `13.02 ns` (✅ **4.14x faster**)  | `42.74 ns` (✅ **1.26x faster**)  | `56.43 ns` (❌ *1.05x slower*)    | `56.79 ns` (❌ *1.05x slower*)    | `16.79 ns` (✅ **3.21x faster**)   |
-| **`16384`** | `534.58 ns` (1.00x)       | `6.20 ns` (✅ **86.21x faster**) | `7.72 ns` (✅ **69.23x faster**) | `2.60 ns` (✅ **205.65x faster**) | `13.16 ns` (✅ **40.63x faster**) | `467.72 ns` (✅ **1.14x faster**) | `506.98 ns` (✅ **1.05x faster**) | `498.55 ns` (✅ **1.07x faster**) | `18.33 ns` (✅ **29.17x faster**)  |
-
-### Convert
-
-Thanks mostly to `ryu` and `itoa`, our primitive conversions handily outperforms `String`
-
-|            | `String`                  | `AFlexStr`                      | `FlexStr`                        |
-|:-----------|:--------------------------|:--------------------------------|:-------------------------------- |
-| **`bool`** | `16.58 ns` (1.00x)        | `1.06 ns` (✅ **15.63x faster**) | `0.67 ns` (✅ **24.83x faster**)  |
-| **`char`** | `10.67 ns` (1.00x)        | `11.46 ns` (❌ *1.07x slower*)   | `13.45 ns` (❌ *1.26x slower*)    |
-| **`i8`**   | `13.32 ns` (1.00x)        | `8.95 ns` (✅ **1.49x faster**)  | `10.05 ns` (✅ **1.32x faster**)  |
-| **`i16`**  | `20.76 ns` (1.00x)        | `18.05 ns` (✅ **1.15x faster**) | `18.10 ns` (✅ **1.15x faster**)  |
-| **`i32`**  | `31.73 ns` (1.00x)        | `14.64 ns` (✅ **2.17x faster**) | `14.55 ns` (✅ **2.18x faster**)  |
-| **`i64`**  | `38.11 ns` (1.00x)        | `19.27 ns` (✅ **1.98x faster**) | `19.30 ns` (✅ **1.97x faster**)  |
-| **`i128`** | `65.98 ns` (1.00x)        | `37.99 ns` (✅ **1.74x faster**) | `37.86 ns` (✅ **1.74x faster**)  |
-| **`f32`**  | `112.65 ns` (1.00x)       | `24.85 ns` (✅ **4.53x faster**) | `25.05 ns` (✅ **4.50x faster**)  |
-| **`f64`**  | `191.50 ns` (1.00x)       | `30.81 ns` (✅ **6.22x faster**) | `30.01 ns` (✅ **6.38x faster**)  |
+|             | `String`                  | `FlexStr 0.8.0`                   | `AFlexStr 0.8.0`                  | `FlexStr 0.8.1`                   | `AFlexStr 0.8.1`                  | `FlexStr 0.9.0`                   | `AFlexStr 0.9.0`                   |
+|:------------|:--------------------------|:----------------------------------|:----------------------------------|:----------------------------------|:----------------------------------|:----------------------------------|:---------------------------------- |
+| **`0`**     | `40.59 us` (✅ **1.00x**)  | `15.01 us` (🚀 **2.70x faster**)   | `15.03 us` (🚀 **2.70x faster**)   | `10.76 us` (🚀 **3.77x faster**)   | `8.57 us` (🚀 **4.74x faster**)    | `10.65 us` (🚀 **3.81x faster**)   | `8.59 us` (🚀 **4.72x faster**)     |
+| **`10`**    | `121.98 us` (✅ **1.00x**) | `51.83 us` (🚀 **2.35x faster**)   | `52.54 us` (🚀 **2.32x faster**)   | `8.55 us` (🚀 **14.26x faster**)   | `7.42 us` (🚀 **16.44x faster**)   | `8.61 us` (🚀 **14.17x faster**)   | `7.50 us` (🚀 **16.26x faster**)    |
+| **`20`**    | `116.69 us` (✅ **1.00x**) | `53.67 us` (🚀 **2.17x faster**)   | `52.78 us` (🚀 **2.21x faster**)   | `8.54 us` (🚀 **13.67x faster**)   | `7.52 us` (🚀 **15.52x faster**)   | `8.70 us` (🚀 **13.42x faster**)   | `7.49 us` (🚀 **15.57x faster**)    |
+| **`100`**   | `123.02 us` (✅ **1.00x**) | `17.24 us` (🚀 **7.13x faster**)   | `27.34 us` (🚀 **4.50x faster**)   | `12.92 us` (🚀 **9.52x faster**)   | `31.83 us` (🚀 **3.87x faster**)   | `12.91 us` (🚀 **9.53x faster**)   | `31.66 us` (🚀 **3.89x faster**)    |
+| **`1000`**  | `151.23 us` (✅ **1.00x**) | `17.16 us` (🚀 **8.81x faster**)   | `27.36 us` (🚀 **5.53x faster**)   | `13.17 us` (🚀 **11.48x faster**)  | `27.75 us` (🚀 **5.45x faster**)   | `13.13 us` (🚀 **11.52x faster**)  | `27.76 us` (🚀 **5.45x faster**)    |
+| **`16384`** | `3.21 ms` (✅ **1.00x**)   | `17.45 us` (🚀 **184.15x faster**) | `27.45 us` (🚀 **117.08x faster**) | `13.48 us` (🚀 **238.45x faster**) | `29.13 us` (🚀 **110.32x faster**) | `13.41 us` (🚀 **239.64x faster**) | `28.15 us` (🚀 **114.16x faster**)  |
 
 ---
 Made with [criterion-table](https://github.com/nu11ptr/criterion-table)
