@@ -42,17 +42,20 @@ version = "0.8"
 features = ["fast_format, fp_convert", "int_convert", "serde"]
 ```
 
-## Examples
+## Example
+
+String constants are easily wrapped into the unified string type. String contents are inlined
+when possible otherwise allocated on the heap.
 
 ```rust
-use flexstr::{local_fmt, local_str, LocalStr, IntoLocalStr, ToCase, ToLocalStr};
+use flexstr::{local_str, LocalStr, ToLocalStr};
 
 fn main() {
   // Use `local_str` macro to wrap literals as compile-time constants
   const STATIC_STR: LocalStr = local_str!("This will not allocate or copy");
   assert!(STATIC_STR.is_static());
 
-  // Strings up to 22 bytes (on 64-bit) will be inlined automatically 
+  // Strings up to 22 bytes (on 64-bit) will be inlined automatically
   // (demo only, use macro or `from_static` for literals as above)
   let inline_str = "inlined".to_local_str();
   assert!(inline_str.is_inline());
@@ -61,40 +64,12 @@ fn main() {
   // (demo only, use macro or `from_static` for literals as above)
   let rc_str = "This is too long to be inlined".to_local_str();
   assert!(rc_str.is_heap());
-
-  // You can efficiently create a new `LocalStr` (without creating a `String`)
-  // This is equivalent to the stdlib `format!` macro
-  let inline_str2 = local_fmt!("in{}", "lined");
-  assert!(inline_str2.is_inline());
-  assert_eq!(inline_str, inline_str2);
-
-  // We can upper/lowercase strings without converting to a `String`
-  // This doesn't heap allocate
-  let inline_str3: LocalStr = "INLINED".to_ascii_lower();
-  assert!(inline_str3.is_inline());
-  assert_eq!(inline_str, inline_str3);
-
-  // Concatenation doesn't even copy if we can fit it in the inline string
-  let inline_str4 = inline_str3 + "!!!";
-  assert!(inline_str4.is_inline());
-  assert_eq!(inline_str4, "inlined!!!");
-  
-  // Clone is cheap, and never allocates
-  // (at most it is a ref count increment for heap allocated strings)
-  let rc_str2 = rc_str.clone();
-  assert!(rc_str2.is_heap());
-
-  // Regardless of storage type, these all operate seamlessly together 
-  // and choose storage as required
-  let heap_str2 = STATIC_STR + &inline_str;
-  assert!(heap_str2.is_heap());
-  assert_eq!(heap_str2, "This will not allocate or copyinlined");
 }
 ```
 
 ## How Does It Work?
 
-Internally, `FlexStr` uses an enum with these variants:
+Internally, `FlexStr` uses a union with these variants:
 
 * `Static` - A simple wrapper around a static string literal (`&'static str`)
 * `Inlined` - An inlined string (no heap allocation for small strings)

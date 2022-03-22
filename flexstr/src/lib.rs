@@ -3,8 +3,13 @@
 
 //! A flexible, simple to use, immutable, clone-efficient [String] replacement for Rust
 //!
+//! ## String Creation from Literals
+//!
+//! String constants are easily wrapped into the unified string type. String contents are inlined
+//! when possible otherwise allocated on the heap.
+//!
 //! ```
-//! use flexstr::{local_fmt, local_str, LocalStr, IntoLocalStr, ToCase, ToLocalStr};
+//! use flexstr::{local_str, LocalStr, ToLocalStr};
 //!
 //! // Use `local_str` macro to wrap literals as compile-time constants
 //! const STATIC_STR: LocalStr = local_str!("This will not allocate or copy");
@@ -19,34 +24,55 @@
 //! // (demo only, use macro or `from_static` for literals as above)
 //! let rc_str = "This is too long to be inlined".to_local_str();
 //! assert!(rc_str.is_heap());
+//! ```
+//!
+//! ## String Creation and Manipulation
+//!
+//! The stdlib [format] macro equivalent is used to create brand new strings. String operations like
+//! changing case and concatenation are efficiently supported (inlining when possible).
+//!
+//! ```
+//! use flexstr::{local_fmt, LocalStr, ToCase};
 //!
 //! // You can efficiently create a new `LocalStr` (without creating a `String`)
 //! // This is equivalent to the stdlib `format!` macro
-//! let inline_str2 = local_fmt!("in{}", "lined");
-//! assert!(inline_str2.is_inline());
-//! assert_eq!(inline_str, inline_str2);
+//! let inline_str = local_fmt!("in{}", "lined");
+//! assert!(inline_str.is_inline());
 //!
 //! // We can upper/lowercase strings without converting to a `String` first
 //! // This doesn't heap allocate since inlined
-//! let inline_str3: LocalStr = "INLINED".to_ascii_lower();
-//! assert!(inline_str3.is_inline());
-//! assert_eq!(inline_str, inline_str3);
+//! let inline_str2: LocalStr = "INLINED".to_ascii_lower();
+//! assert!(inline_str2.is_inline());
+//! assert_eq!(inline_str, inline_str2);
 //!
 //! // Concatenation doesn't even copy if we can fit it in the inline string
-//! let inline_str4 = inline_str3 + "!!!";
-//! assert!(inline_str4.is_inline());
-//! assert_eq!(inline_str4, "inlined!!!");
+//! let inline_str3 = inline_str2 + "!!!";
+//! assert!(inline_str3.is_inline());
+//! assert_eq!(inline_str3, "inlined!!!");
+//! ```
+//!
+//! ## Efficient, Universal String Type
+//!
+//! Clones never copy or allocate and are very fast. Regardless
+//! of underlying storage type, all strings work together and resulting strings automatically
+//! choose the best storage.
+//!
+//! ```
+//! use flexstr::{local_str, LocalStr, ToLocalStr};
 //!
 //! // Clone is cheap, and never allocates
 //! // (at most it is a ref count increment for heap allocated strings)
-//! let rc_str2 = rc_str.clone();
-//! assert!(rc_str2.is_heap());
+//! let rc_str = "This is too long to be inlined".to_local_str().clone();
+//! assert!(rc_str.is_heap());
 //!
 //! // Regardless of storage type, these all operate seamlessly together
 //! // and choose storage as required
+//! const STATIC_STR: LocalStr = local_str!("This will eventually end up on the ");
+//! let inline_str = "heap".to_local_str();
+//!
 //! let heap_str2 = STATIC_STR + &inline_str;
 //! assert!(heap_str2.is_heap());
-//! assert_eq!(heap_str2, "This will not allocate or copyinlined");  
+//! assert_eq!(heap_str2, "This will eventually end up on the heap");  
 //! ```
 
 extern crate alloc;
