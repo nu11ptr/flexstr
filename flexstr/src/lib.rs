@@ -341,7 +341,20 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
 
     /// Creates a new string from a [str] reference. If the string is empty, an empty static string
     /// is returned. If at or under the inline length limit, an inline string will be returned.
-    /// Otherwise, a heap based string will be allocated and returned.
+    /// Otherwise, a heap based string will be allocated and returned. This is typically used to
+    /// create strings from a non-static borrowed [str] where you don't have ownership.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s: LocalStr = LocalStr::from_ref("");
+    /// assert!(s.is_static());
+    ///
+    /// let s: LocalStr = LocalStr::from_ref("test");
+    /// assert!(s.is_inline());
+    ///
+    /// let s: LocalStr = LocalStr::from_ref("This is too long to be inlined!!!!!!!");
+    /// assert!(s.is_heap());
+    /// ```
     #[inline]
     pub fn from_ref(s: impl AsRef<str>) -> Self
     where
@@ -398,6 +411,14 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
 
     /// Create a new heap based string by wrapping the existing user provided heap string type (T).
     /// For [LocalStr] this will be an [`Rc<str>`] and for [SharedStr] it will be an [`Arc<str>`].
+    /// This would typically only be used if efficient unwrapping of heap based data is needed at
+    /// a later time.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::from_heap("test".into());
+    /// assert!(s.is_heap());
+    /// ```
     #[inline]
     pub fn from_heap(t: HEAP) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         FlexStr {
@@ -406,6 +427,11 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     }
 
     /// Returns the size of the maximum possible inline length for this type
+    /// ```
+    /// use flexstr::{LocalStr, STRING_SIZED_INLINE};
+    ///
+    /// assert_eq!(LocalStr::inline_capacity(), STRING_SIZED_INLINE);
+    /// ```
     #[inline]
     pub fn inline_capacity() -> usize {
         SIZE
@@ -437,6 +463,13 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// Attempts to extract a copy of the heap value (for [LocalStr] this will be an [`Rc<str>`] and
     /// for [SharedStr] an [`Arc<str>`]) via cloning. If this is not a heap based string, a
     /// [WrongStorageType] error will be returned.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::from_heap("test".into());
+    /// assert!(s.is_heap());
+    /// assert_eq!(s.try_to_heap().unwrap(), "test".into());
+    /// ```
     #[inline]
     pub fn try_to_heap(&self) -> Result<HEAP, WrongStorageType>
     where
@@ -457,6 +490,13 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// Returns a copy of the heap value (for [FlexStr] this will be an [`Rc<str>`] and
     /// for [SharedStr] an [`Arc<str>`]). If this is not a heap based string, a new value will be allocated
     /// and returned
+    /// ```
+    /// use flexstr::{local_str, LocalStr};
+    ///
+    /// const S: LocalStr = local_str!("static");
+    /// assert!(S.is_static());
+    /// assert_eq!(S.to_heap(), "static".into());
+    /// ```
     #[inline]
     pub fn to_heap(&self) -> HEAP
     where
@@ -546,6 +586,12 @@ where
     }
 
     /// Extracts a string slice containing the entire [FlexStr]
+    /// ```
+    /// use flexstr::ToLocalStr;
+    ///
+    /// let s = "abc".to_local_str();
+    /// assert_eq!(s.as_str(), "abc");
+    /// ```
     #[inline]
     pub fn as_str(&self) -> &str {
         self
