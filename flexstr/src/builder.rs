@@ -4,6 +4,7 @@ use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
 use crate::inline::STRING_SIZED_INLINE;
+use crate::storage::Writer;
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
 #[doc(hidden)]
@@ -126,7 +127,7 @@ impl<const N: usize, const N2: usize> Deref for StringBuffer<N, N2> {
     }
 }
 
-// *** LocalStr Builder ***
+// *** FlexStr Builder ***
 
 #[doc(hidden)]
 pub enum FlexStrBuilder<
@@ -138,9 +139,9 @@ pub enum FlexStrBuilder<
     StringBuffer(String),
 }
 
-impl<const N: usize, const N2: usize> FlexStrBuilder<'_, N, N2> {
+impl<const N: usize, const N2: usize> Writer for FlexStrBuilder<'_, N, N2> {
     #[inline]
-    pub fn str_write(&mut self, s: impl AsRef<str>) {
+    fn str_write(&mut self, s: impl AsRef<str>) {
         // SAFETY: This always succeeds - buffer will be promoted until it eventually becomes a
         // `String` which cannot fail per stdlib docs
         unsafe {
@@ -149,7 +150,7 @@ impl<const N: usize, const N2: usize> FlexStrBuilder<'_, N, N2> {
     }
 
     #[inline]
-    pub fn char_write(&mut self, c: char) {
+    fn char_write(&mut self, c: char) {
         // SAFETY: Wraps `write_str` which always succeeds per above
         unsafe { <Self as Write>::write_char(self, c).unwrap_unchecked() }
     }

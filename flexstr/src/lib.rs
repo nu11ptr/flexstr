@@ -56,6 +56,7 @@ extern crate alloc;
 pub mod builder;
 #[doc(hidden)]
 pub mod inline;
+mod storage;
 #[doc(hidden)]
 pub mod traits;
 
@@ -84,6 +85,8 @@ use serde::de::{Error, Visitor};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use static_assertions::{assert_eq_align, assert_eq_size, assert_impl_all, assert_not_impl_any};
+
+use crate::storage::{ExactSizedCreate, Writer};
 
 // Trick to test README samples (from: https://github.com/rust-lang/cargo/issues/383#issuecomment-720873790)
 #[cfg(doctest)]
@@ -122,7 +125,7 @@ pub struct WrongStorageType {
 
 impl Display for WrongStorageType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("The FlexStr did no use the storage type expected (expected: ")?;
+        f.write_str("The FlexStr does not use the storage type expected (expected: ")?;
         self.expected.fmt(f)?;
         f.write_str(", actual: ")?;
         self.actual.fmt(f)?;
@@ -494,6 +497,20 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     pub fn is_heap(&self) -> bool {
         // SAFETY: Marker is identical in all union fields
         unsafe { matches!(self.static_str.marker, StorageType::Heap) }
+    }
+
+    #[inline]
+    fn new_exact_sized<F, S, W>(s: S, capacity: usize, f: F) -> Self
+    where
+        F: Fn(S, &W),
+        HEAP: ExactSizedCreate,
+        S: AsRef<str>,
+        W: Writer,
+    {
+        let s = s.as_ref();
+
+        // TODO: Integrate inline into this as first attempt
+        Self::from_heap(HEAP::create_exact_sized(s, capacity, f))
     }
 }
 

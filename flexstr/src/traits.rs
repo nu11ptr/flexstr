@@ -2,6 +2,7 @@ use alloc::string::String;
 use core::mem::ManuallyDrop;
 use core::ops::Deref;
 
+use crate::storage::Writer;
 use crate::{
     FlexStr, HeapStr, LocalStr, SharedStr, StorageType, PTR_SIZED_PAD, STRING_SIZED_INLINE,
 };
