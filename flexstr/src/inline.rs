@@ -5,11 +5,11 @@ use core::{fmt, mem, ptr, str};
 
 use crate::StorageType;
 
-/// Using this inline capacity will result in a type with the same memory size as a builtin `String`
+/// Using this inline capacity will result in a type with the same memory size as a builtin [String]
 pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 
 /// This is the custom inline string type - it is not typically used directly, but instead is used
-/// transparently by `LocalStr` and `SharedStr`
+/// transparently by [LocalStr] and [SharedStr]
 #[doc(hidden)]
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]

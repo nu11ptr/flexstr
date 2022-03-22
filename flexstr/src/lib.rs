@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-//! A flexible, simple to use, immutable, clone-efficient `String` replacement for Rust
+//! A flexible, simple to use, immutable, clone-efficient [String] replacement for Rust
 //!
 //! ```
 //! use flexstr::{local_fmt, local_str, LocalStr, IntoLocalStr, ToCase, ToLocalStr};
@@ -111,7 +111,8 @@ assert_eq_align!(StaticStr<PTR_SIZED_PAD>, inline::InlineFlexStr);
 /// Padding the size of a pointer for this platform minus one
 pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 
-/// Error type returned from [FlexStr::try_as_static_str] or [FlexStr::try_to_heap] when  this [FlexStr] does not contain a `'static str`
+/// Error type returned from [try_as_static_str](FlexStr::try_as_static_str) or
+/// [try_to_heap](FlexStr::try_to_heap) when this [FlexStr] does not contain the expected type of storage
 #[derive(Copy, Clone, Debug)]
 pub struct WrongStorageType {
     /// The expected storage type of the string
@@ -223,13 +224,22 @@ pub union FlexStr<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     heap_str: mem::ManuallyDrop<HeapStr<PAD2, HEAP>>,
 }
 
-/// A flexible base string type that transparently wraps a string literal, inline string, or a custom HEAP type
+/// A flexible base string type that transparently wraps a string literal, inline string, or a custom `HEAP` type
+///
+/// # Note
+/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
 pub type FlexStrBase<HEAP> = FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
 
-/// A flexible string type that transparently wraps a string literal, inline string, or an `Rc<str>`
+/// A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<str>`]
+///
+/// # Note
+/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
 pub type LocalStr = FlexStrBase<Rc<str>>;
 
-/// A flexible string type that transparently wraps a string literal, inline string, or an `Arc<str>`
+/// A flexible string type that transparently wraps a string literal, inline string, or an [`Arc<str>`]
+///
+/// # Note
+/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
 pub type SharedStr = FlexStrBase<Arc<str>>;
 
 // *** Clone ***
@@ -329,7 +339,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
         }
     }
 
-    /// Creates a new string from a str reference. If the string is empty, an empty static string
+    /// Creates a new string from a [str] reference. If the string is empty, an empty static string
     /// is returned. If at or under the inline length limit, an inline string will be returned.
     /// Otherwise, a heap based string will be allocated and returned.
     #[inline]
@@ -350,8 +360,8 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     }
 
     /// Attempts to create an inlined string. Returns a new inline string on success or the original
-    /// source string if it will not fit. Since the to/into/from_ref functions will automatically
-    /// inline when possible, this function is really only for special use cases.
+    /// source string if it will not fit. Since the to/into/[from_ref](FlexStr::from_ref) functions
+    /// will automatically inline when possible, this function is really only for special use cases.
     /// ```
     /// use flexstr::LocalStr;
     ///
@@ -366,9 +376,10 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
         }
     }
 
-    /// Force the creation of a heap allocated string. Unlike to/into/from_ref functions, this will
-    /// not attempt to inline first even if the string is a candidate for inlining. Using this is
-    /// generally only recommended when using the associated `to_heap` and `try_to_heap` functions.
+    /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexStr::from_ref)
+    /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
+    /// Using this is generally only recommended when using the associated [to_heap](FlexStr::to_heap)
+    /// and [try_to_heap](FlexStr::try_to_heap) functions.
     /// ```
     /// use flexstr::LocalStr;
     ///
@@ -386,7 +397,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     }
 
     /// Create a new heap based string by wrapping the existing user provided heap string type (T).
-    /// For `LocalStr` this will be an `Rc<str>` and for `SharedStr` it will be an `Arc<str>`.
+    /// For [LocalStr] this will be an [`Rc<str>`] and for [SharedStr] it will be an [`Arc<str>`].
     #[inline]
     pub fn from_heap(t: HEAP) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         FlexStr {
@@ -400,8 +411,8 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
         SIZE
     }
 
-    /// Attempts to extract a static inline string literal if one is stored inside this `LocalStr`.
-    /// Returns `WrongStorageType` if this is not a static string literal.
+    /// Attempts to extract a static inline string literal if one is stored inside this [LocalStr].
+    /// Returns [WrongStorageType] if this is not a static string literal.
     /// ```
     /// use flexstr::local_str;
     ///
@@ -423,9 +434,9 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
         }
     }
 
-    /// Attempts to extract a copy of the heap value (for `LocalStr` this will be an `Rc<str>` and
-    /// for `SharedStr` an `Arc<str>`) via cloning. If this is not a heap based string, a `WrongStorageType`
-    /// error will be returned.
+    /// Attempts to extract a copy of the heap value (for [LocalStr] this will be an [`Rc<str>`] and
+    /// for [SharedStr] an [`Arc<str>`]) via cloning. If this is not a heap based string, a
+    /// [WrongStorageType] error will be returned.
     #[inline]
     pub fn try_to_heap(&self) -> Result<HEAP, WrongStorageType>
     where
@@ -443,8 +454,8 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
         }
     }
 
-    /// Returns a copy of the heap value (for `FlexStr` this will be an `Rc<str>` and
-    /// for `SharedStr` an `Arc<str>`). If this is not a heap based string, a new value will be allocated
+    /// Returns a copy of the heap value (for [FlexStr] this will be an [`Rc<str>`] and
+    /// for [SharedStr] an [`Arc<str>`]). If this is not a heap based string, a new value will be allocated
     /// and returned
     #[inline]
     pub fn to_heap(&self) -> HEAP
@@ -501,7 +512,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FlexStr<SIZE
 where
     HEAP: Deref<Target = str>,
 {
-    /// Returns true if this `FlexStr` is empty
+    /// Returns true if this [FlexStr] is empty
     /// ```
     /// use flexstr::ToLocalStr;
     ///
@@ -513,7 +524,7 @@ where
         self.len() == 0
     }
 
-    /// Returns the length of this `FlexStr` in bytes (not chars or graphemes)
+    /// Returns the length of this [FlexStr] in bytes (not chars or graphemes)
     /// ```
     /// use flexstr::ToLocalStr;
     ///
@@ -534,15 +545,15 @@ where
         }
     }
 
-    /// Extracts a string slice containing the entire `FlexStr`
+    /// Extracts a string slice containing the entire [FlexStr]
     #[inline]
     pub fn as_str(&self) -> &str {
         self
     }
 
-    /// Converts this `FlexStr` into a `String`. This should be more efficient than using the `ToString`
+    /// Converts this [FlexStr] into a [String]. This should be more efficient than using the [ToString]
     /// trait (which we cannot implement due to a blanket stdlib implementation) as this avoids the
-    /// `Display`-based implementation.
+    /// [Display]-based implementation.
     /// ```
     /// use flexstr::local_str;
     ///
@@ -1223,7 +1234,7 @@ where
     }
 }
 
-/// Create compile time constant `FlexStr` (equivalent, but less typing than:
+/// Create compile time constant [LocalStr] (equivalent, but less typing than:
 /// `LocalStr::from_static("my_literal")`
 /// ```
 /// use flexstr::{local_str, LocalStr};
@@ -1238,8 +1249,8 @@ macro_rules! local_str {
     };
 }
 
-/// Create compile time constant `SharedStr` (equivalent, but less typing than:
-/// `<SharedStr>::from_static("my_literal")`
+/// Create compile time constant [SharedStr] (equivalent, but less typing than:
+/// `SharedStr::from_static("my_literal")`
 /// ```
 /// use flexstr::{shared_str, SharedStr};
 ///
@@ -1253,14 +1264,14 @@ macro_rules! shared_str {
     };
 }
 
-/// `FlexStr` equivalent to `format` function from stdlib. Efficiently creates a native `FlexStr`
+/// Equivalent to the [format](std::fmt::format) function from stdlib. Efficiently creates a native [FlexStr]
 pub fn flex_fmt<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
     args: Arguments<'_>,
 ) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
 where
     HEAP: for<'a> From<&'a str>,
 {
-    // NOTE: We have a disadvantage to `String` because we cannot call `estimated_capacity()` on args
+    // NOTE: We have a disadvantage to [String] because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer
     // and only promote to a heap buffer if a write won't fit
     let mut buffer = buffer_new!(SIZE);
@@ -1271,7 +1282,7 @@ where
     builder_into!(builder, buffer)
 }
 
-/// Equivalent to `local_fmt` except that it uses `ufmt` which is much faster, but has limitations.
+/// Equivalent to [local_fmt] except that it uses `ufmt` which is much faster, but has limitations.
 /// See [ufmt docs](https://docs.rs/ufmt/latest/ufmt/) for more details
 /// ```
 /// use flexstr::{local_str, local_ufmt};
@@ -1293,7 +1304,7 @@ macro_rules! local_ufmt {
     }}
 }
 
-/// Equivalent to `shared_fmt` except that it uses `ufmt` which is much faster, but has limitations.
+/// Equivalent to [shared_fmt] except that it uses `ufmt` which is much faster, but has limitations.
 /// See [ufmt docs](https://docs.rs/ufmt/latest/ufmt/) for more details
 /// ```
 /// use flexstr::{shared_str, shared_ufmt};
@@ -1315,7 +1326,7 @@ macro_rules! shared_ufmt {
     }}
 }
 
-/// `FlexStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `FlexStr`
+/// Equivalent to [format!] macro from stdlib. Efficiently creates a native [LocalStr]
 /// ```
 /// use flexstr::local_fmt;
 ///
@@ -1331,7 +1342,7 @@ macro_rules! local_fmt {
     }}
 }
 
-/// `SharedStr` equivalent to `format!` macro from stdlib. Efficiently creates a native `SharedStr`
+/// Equivalent to [format!] macro from stdlib. Efficiently creates a native [SharedStr]
 /// ```
 /// use flexstr::shared_fmt;
 ///

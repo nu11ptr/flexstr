@@ -8,9 +8,9 @@ use crate::{
 
 // *** Repeat custom trait ***
 
-/// Trait that can repeat a given `LocalStr` "n" times efficiently
+/// Trait that can repeat a given [FlexStr] "n" times efficiently
 pub trait Repeat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
-    /// Repeats a given `LocalStr` "n" times efficiently and returns a new `LocalStr`
+    /// Repeats a given string "n" times efficiently and returns a new [FlexStr]
     fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
@@ -53,18 +53,18 @@ where
 
 // *** ToCase custom trait ***
 
-/// Trait that provides uppercase/lowercase conversion functions for `LocalStr`
+/// Trait that provides uppercase/lowercase conversion functions for [FlexStr]
 pub trait ToCase<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
-    /// Converts string to uppercase and returns a `LocalStr`
+    /// Converts string to uppercase and returns a [FlexStr]
     fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
-    /// Converts string to lowercase and returns a `LocalStr`
+    /// Converts string to lowercase and returns a [FlexStr]
     fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
-    /// Converts string to ASCII uppercase and returns a `LocalStr`
+    /// Converts string to ASCII uppercase and returns a [FlexStr]
     fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 
-    /// Converts string to ASCII lowercase and returns a `LocalStr`
+    /// Converts string to ASCII lowercase and returns a [FlexStr]
     fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
@@ -204,7 +204,7 @@ where
 
 // *** Generic `To` trait ***
 
-/// A trait that converts the source to a `Flex<SIZE, PAD1, PAD2, HEAP>` without consuming it
+/// A trait that converts the source to a [FlexStr] without consuming it
 /// ```
 /// use flexstr::{LocalStr, ToFlex};
 ///
@@ -212,7 +212,7 @@ where
 /// assert!(a.is_heap());
 /// ```
 pub trait ToFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
-    /// Converts the source to a `Flex<SIZE, PAD1, PAD2, HEAP>` without consuming it
+    /// Converts the source to a [FlexStr] without consuming it
     fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
@@ -346,7 +346,7 @@ impl_float_flex!(f32, f64);
 
 // *** Generic `Into` Custom Traits ***
 
-/// A trait that converts the source to a `FlexStr<SIZE, PAD1, PAD2, HEAP>` while consuming the original
+/// A trait that converts the source to a [FlexStr] while consuming the original
 /// ```
 /// use flexstr::{local_str, LocalStr, IntoFlex};
 ///
@@ -354,7 +354,7 @@ impl_float_flex!(f32, f64);
 /// assert!(a.is_static());
 /// ```
 pub trait IntoFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
-    /// Converts the source to a `FlexStr<SIZE, PAD1, PAD2, HEAP>` while consuming the original
+    /// Converts the source to a [FlexStr] while consuming the original
     fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
 }
 
@@ -433,7 +433,7 @@ where
 
 // *** FlexStr `To` Traits ***
 
-/// A trait that converts the source to a `FlexStr` without consuming it
+/// A trait that converts the source to a [LocalStr] without consuming it
 /// ```
 /// use flexstr::ToLocalStr;
 ///
@@ -441,7 +441,7 @@ where
 /// assert!(a.is_heap());
 /// ```
 pub trait ToLocalStr {
-    /// Converts the source to a `FlexStr` without consuming it
+    /// Converts the source to a [LocalStr] without consuming it
     fn to_local_str(&self) -> LocalStr;
 }
 
@@ -552,7 +552,7 @@ impl_float_local_str!(f32, f64);
 
 // *** SharedStr `To` Traits ***
 
-/// A trait that converts the source to an `SharedStr` without consuming it
+/// A trait that converts the source to a [SharedStr] without consuming it
 /// ```
 /// use flexstr::ToSharedStr;
 ///
@@ -560,7 +560,7 @@ impl_float_local_str!(f32, f64);
 /// assert!(a.is_heap());
 /// ```
 pub trait ToSharedStr {
-    /// Converts the source to a `SharedStr` without consuming it
+    /// Converts the source to a [SharedStr] without consuming it
     fn to_shared_str(&self) -> SharedStr;
 }
 
@@ -671,7 +671,7 @@ impl_float_shared_str!(f32, f64);
 
 // *** FlexStr `Into` Traits ***
 
-/// A trait that converts the source to a `FlexStr` while consuming the original
+/// A trait that converts the source to a [LocalStr] while consuming the original
 /// ```
 /// use flexstr::local_str;
 ///
@@ -679,7 +679,7 @@ impl_float_shared_str!(f32, f64);
 /// assert!(a.is_static());
 /// ```
 pub trait IntoLocalStr {
-    /// Converts the source to a `FlexStr` while consuming the original
+    /// Converts the source to a [LocalStr] while consuming the original
     fn into_local_str(self) -> LocalStr;
 }
 
@@ -717,7 +717,7 @@ impl IntoLocalStr for String {
 
 // *** SharedStr `Into` Traits ***
 
-/// A trait that converts the source to a `SharedStr` while consuming the original
+/// A trait that converts the source to a [SharedStr] while consuming the original
 /// ```
 /// use flexstr::shared_str;
 ///
@@ -725,7 +725,7 @@ impl IntoLocalStr for String {
 /// assert!(a.is_static());
 /// ```
 pub trait IntoSharedStr {
-    /// Converts the source to an `SharedStr` while consuming the original
+    /// Converts the source to an [SharedStr] while consuming the original
     fn into_shared_str(self) -> SharedStr;
 }
 
