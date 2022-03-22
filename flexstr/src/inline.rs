@@ -15,7 +15,7 @@ pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 #[derive(Clone, Copy)]
 #[repr(C)]
-pub struct InlineFlexStr<const N: usize = STRING_SIZED_INLINE> {
+pub struct InlineFlexStr<const N: usize> {
     data: [mem::MaybeUninit<u8>; N],
     len: u8,
     marker: StorageType,

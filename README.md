@@ -2,10 +2,30 @@
 
 [![Crate](https://img.shields.io/crates/v/flexstr?style=for-the-badge)](https://crates.io/crates/flexstr)
 [![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)](https://docs.rs/flexstr)
+[![MSRV](https://img.shields.io/badge/msrv-1.56-blue.svg?style=for-the-badge)](https://crates.io/crates/flexstr)
 
 A flexible, simple to use, immutable, clone-efficient `String` replacement for 
 Rust. It unifies literals, inlined, and heap allocated strings into a single 
 type.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Example](#example)
+- [Installation](#installation)
+- [How Does It Work?](#how-does-it-work)
+- [Features](#features)
+- [Types](#types)
+- [Usage](#usage)
+    - [Hello World!](#hello-world)
+    - [Creation Scenarios](#creation-scenarios)
+    - [Passing FlexStr to Conditional Ownership Functions](#passing-flexstr-to-conditional-ownership-functions)
+    - [Make Your Own String Type](#make-your-own-string-type)
+- [Performance Characteristics](#performance-characteristics)
+- [Benchmarks](#benchmarks)
+- [Downsides](#downsides)
+- [Status](#status)
+- [License](#license)
 
 ## Overview
 
@@ -14,38 +34,21 @@ buffer, not for typical string use cases. Most string use cases don't
 modify their contents, often need to copy strings around as if 
 they were cheap like integers, typically concatenate instead of modify, and 
 often end up being cloned with identical contents. Additionally, `String` 
-isn't able to wrap a string literal without additional allocation and copying.
+isn't able to wrap a string literal without additional allocation and 
+copying forcing a choice between efficiency and storing two different types.
 
-Rust needs a new string type to unify usage of both literals and 
-allocated strings in these typical use cases. This crate creates a new string 
-type 
-that is optimized for those use cases, while retaining the usage simplicity of
+I believe Rust needs a new string type to unify usage of both literals and 
+allocated strings for typical string use cases. This crate includes a new 
+string type that is optimized for those use cases, while retaining the usage simplicity of
 `String`.
-
-This type is not inherently "better" than `String`, but different. It 
-works best in 'typical' string use cases (immutability, concatenation, cheap 
-multi ownership) whereas `String` works better in "string buffer" use cases
-(mutability, string building, single ownership).
-
-## Installation
-
-Optional features:
-* `fast_format` = enables `local_ufmt!` and `shared_ufmt!` `format!`-like 
-  macros for very fast formatting (with some limitations)
-* `fp_convert` = Convert floating point types directly into a `FlexStr`
-* `int_convert` = Convert integer types directly into a `FlexStr`
-* `serde` = Serialization support for `FlexStr`
-
-```toml
-[dependencies.flexstr]
-version = "0.8"
-features = ["fast_format, fp_convert", "int_convert", "serde"]
-```
 
 ## Example
 
-String constants are easily wrapped into the unified string type. String contents are inlined
-when possible otherwise allocated on the heap.
+String constants are easily wrapped into the unified string type. String
+data is automatically inlined when possible otherwise allocated on the heap.
+
+See [documentation](https://docs.rs/flexstr) or [Usage](#usage) section for 
+more examples.
 
 ```rust
 use flexstr::{local_str, LocalStr, ToLocalStr};
@@ -67,12 +70,28 @@ fn main() {
 }
 ```
 
+## Installation
+
+Optional features:
+* `fast_format` = enables `local_ufmt!` and `shared_ufmt!` `format!`-like 
+  macros for very fast formatting (with some limitations)
+* `fp_convert` = Convert floating point types directly into a `FlexStr`
+* `int_convert` = Convert integer types directly into a `FlexStr`
+* `serde` = Serialization support for `FlexStr`
+* `std` = enabled by default (use `default-features=false` to enable `#[no_std]`)
+
+```toml
+[dependencies.flexstr]
+version = "0.8"
+features = ["fast_format, fp_convert", "int_convert", "serde"]
+```
+
 ## How Does It Work?
 
 Internally, `FlexStr` uses a union with these variants:
 
 * `Static` - A simple wrapper around a static string literal (`&'static str`)
-* `Inlined` - An inlined string (no heap allocation for small strings)
+* `Inline` - An inlined string (no heap allocation for small strings)
 * `Heap` - A heap allocated (reference counted) string
 
 The type automatically chooses the best storage and allows you to use them 
@@ -84,9 +103,9 @@ interchangeably as a single string type.
 * Allows for multiple ownership of the same string memory contents
 * Serves as a universal string type (unifying literals and allocated strings)
 * Doesn't allocate for literals and short strings (64-bit: up to 22 bytes)
-* The same size as a `String` (64-bit: 24 bytes)
+* The same inline size as a `String` (64-bit: 24 bytes)
 * Optional `serde` serialization support (feature = "serde")
-* Compatible with embedded systems (doesn't use `std`)
+* Compatible with embedded systems (supports `#[no_std]`)
 * Efficient conditional ownership (borrows can take ownership without 
   allocation/copying)
 * Both single threaded compatible (`LocalStr`) and multi-thread safe 
@@ -96,9 +115,12 @@ interchangeably as a single string type.
 
 ## Types
 
-* `LocalStr` - regular usage 
+NOTE: Both types are identical in handling both literals and inline strings.
+The only difference occurs when a heap allocation is required.
+
+* `LocalStr` - ultra-fast usage in the local thread
     * `Heap` storage based on `Rc`
-* `SharedStr`- provides `Send` / `Sync` for multi-threaded use
+* `SharedStr`- provides `Send` / `Sync` for multithreaded use
     * `Heap` storage based on `Arc` 
 
 ## Usage
@@ -235,14 +257,14 @@ fn main() {
 
 ## Benchmarks
 
-In general, inline/static creates are fast but heap creates are somewhat slower 
-than `String`. Clones and conversions from primitive types are much faster. 
-Other operations (repeat, additions, etc.) tend to be about the same 
-performance, but with some nuance.
+In general, inline/static creates are fast but heap creates are a tiny bit 
+slower than `String`. Clones are MUCH faster and don't allocate/copy. Other 
+operations (repeat, additions, etc.) tend to be about the same performance, 
+but with some nuance depending on string size.
 
 [Full benchmarks](benchmarks/README.md)
 
-## Negatives
+## Downsides
 
 There is no free lunch:
 

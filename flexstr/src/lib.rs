@@ -129,10 +129,16 @@ assert_eq_size!(SharedStr, String);
 assert_not_impl_any!(LocalStr: Send, Sync);
 assert_impl_all!(SharedStr: Send, Sync);
 
-assert_eq_size!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr);
-assert_eq_size!(StaticStr<PTR_SIZED_PAD>, inline::InlineFlexStr);
-assert_eq_align!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr);
-assert_eq_align!(StaticStr<PTR_SIZED_PAD>, inline::InlineFlexStr);
+assert_eq_size!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr<STRING_SIZED_INLINE>);
+assert_eq_size!(
+    StaticStr<PTR_SIZED_PAD>,
+    inline::InlineFlexStr<STRING_SIZED_INLINE>
+);
+assert_eq_align!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr<STRING_SIZED_INLINE>);
+assert_eq_align!(
+    StaticStr<PTR_SIZED_PAD>,
+    inline::InlineFlexStr<STRING_SIZED_INLINE>
+);
 
 /// Padding the size of a pointer for this platform minus one
 pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
