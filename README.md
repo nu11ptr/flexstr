@@ -2,7 +2,7 @@
 
 [![Crate](https://img.shields.io/crates/v/flexstr?style=for-the-badge)](https://crates.io/crates/flexstr)
 [![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)](https://docs.rs/flexstr)
-[![MSRV](https://img.shields.io/badge/msrv-1.56-blue.svg?style=for-the-badge)](https://crates.io/crates/flexstr)
+[![MSRV](https://img.shields.io/badge/msrv-1.59-blue.svg?style=for-the-badge)](https://crates.io/crates/flexstr)
 
 A flexible, simple to use, immutable, clone-efficient `String` replacement for 
 Rust. It unifies literals, inlined, and heap allocated strings into a single 
@@ -82,7 +82,7 @@ Optional features:
 
 ```toml
 [dependencies.flexstr]
-version = "0.8"
+version = "0.9"
 features = ["fast_format, fp_convert", "int_convert", "serde"]
 ```
 
