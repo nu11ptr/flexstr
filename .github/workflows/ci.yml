@@ -20,6 +20,7 @@ jobs:
     env:
       CARGO: cargo
       TARGET: ""
+      DOCTEST: ""
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +36,7 @@ jobs:
           - linux32
           - linux-arm32
           - linux-arm64
-          - linux-wasm
+          #- linux-wasm
           - linux-mips32
           - linux-mips64
           - android-arm32
@@ -131,20 +132,22 @@ jobs:
           cargo install cross
           echo "CARGO=cross" >> $GITHUB_ENV
           echo "TARGET=--target ${{ matrix.target }}" >> $GITHUB_ENV
+          echo "DOCTEST=-Zdoctest-xcompile" >> $GITHUB_ENV
 
       - name: Display Cargo Info
         run: |
           echo "cargo command: ${{ env.CARGO }}"
           echo "target flag: ${{ env.TARGET }}"
+          echo "doctest flag: ${{ env.DOCTEST }}"
 
       - name: Test
-        run: ${{ env.CARGO }} test --verbose  ${{ env.TARGET }}
+        run: ${{ env.CARGO }} test --verbose  ${{ env.TARGET }} ${{ env.DOCTEST }}
 
       - name: Test (--no-default-features)
-        run: ${{ env.CARGO }} test --no-default-features --verbose ${{ env.TARGET }}
+        run: ${{ env.CARGO }} test --no-default-features --verbose ${{ env.TARGET }} ${{ env.DOCTEST }}
 
       - name: Test (--all-features)
-        run: ${{ env.CARGO }} test --all-features --verbose ${{ env.TARGET }}
+        run: ${{ env.CARGO }} test --all-features --verbose ${{ env.TARGET }} ${{ env.DOCTEST }}
 
   miri:
     name: Miri
