@@ -1367,7 +1367,7 @@ where
 ///
 /// let a = local_ufmt!("Is {}{}", local_str!("inline"), "!");
 /// assert!(a.is_inline());
-/// assert_eq!(a, "Is inlined!");
+/// assert_eq!(a, "Is inline!");
 /// ```
 #[cfg(feature = "fast_format")]
 #[macro_export(local_inner_macros)]
@@ -1389,7 +1389,7 @@ macro_rules! local_ufmt {
 ///
 /// let a = shared_ufmt!("Is {}{}", shared_str!("inline"), "!");
 /// assert!(a.is_inline());
-/// assert_eq!(a, "Is inlined!");
+/// assert_eq!(a, "Is inline!");
 /// ```
 #[cfg(feature = "fast_format")]
 #[macro_export(local_inner_macros)]
@@ -1408,9 +1408,9 @@ macro_rules! shared_ufmt {
 /// ```
 /// use flexstr::local_fmt;
 ///
-/// let a = local_fmt!("Is {}", "inlined");
+/// let a = local_fmt!("Is {}", "inline");
 /// assert!(a.is_inline());
-/// assert_eq!(a, "Is inlined")
+/// assert_eq!(a, "Is inline")
 /// ```
 #[macro_export]
 macro_rules! local_fmt {
@@ -1424,9 +1424,9 @@ macro_rules! local_fmt {
 /// ```
 /// use flexstr::shared_fmt;
 ///
-/// let a = shared_fmt!("Is {}", "inlined");
+/// let a = shared_fmt!("Is {}", "inline");
 /// assert!(a.is_inline());
-/// assert_eq!(a, "Is inlined")
+/// assert_eq!(a, "Is inline")
 /// ```
 
 #[macro_export]
