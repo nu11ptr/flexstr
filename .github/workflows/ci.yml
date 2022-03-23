@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "00 02 * * *"
+
+env:
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test - ${{ matrix.build }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO: cargo
+      TARGET: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - linux
+          - linux-beta
+          - linux-nightly
+          - macos
+          - win64-msvc
+          - win64-gnu
+          - win32-msvc
+          - win32-gnu
+          - linux32
+          - linux-arm32
+          - linux-arm64
+          - linux-wasm
+          - linux-mips32
+          - linux-mips64
+          - android-arm32
+          - android-arm64
+        include:
+          # *** Native on Runners ***
+          # Linux
+          - build: linux
+            os: ubuntu-latest
+            rust: stable
+          # Linux - Beta and Nightly
+          - build: linux-beta
+            os: ubuntu-latest
+            rust: beta
+          - build: linux-nightly
+            os: ubuntu-latest
+            rust: linux-nightly
+
+          # Mac
+          - build: macos
+            os: macos-latest
+            rust: stable
+
+          # Windows
+          - build: win64-msvc
+            os: windows-2019
+            rust: stable
+          - build: win64-gnu
+            os: windows-2019
+            rust: stable-x86_64-gnu
+          - build: win32-msvc
+            os: windows-2019
+            rust: stable-i686-msvc
+          - build: win32-gnu
+            os: windows-2019
+            rust: stable-i686-gnu
+
+          # *** Using Cross ***
+          # Various Linux
+          - build: linux32
+            os: ubuntu-latest
+            rust: stable
+            target: i686-unknown-linux-gnu
+          # ARM
+          - build: linux-arm32
+            os: ubuntu-latest
+            rust: stable
+            target: armv7-unknown-linux-gnueabihf
+          - build: linux-arm64
+            os: ubuntu-latest
+            rust: stable
+            target: aarch64-unknown-linux-gnu
+
+          # WASM
+          - build: linux-wasm
+            os: ubuntu-latest
+            rust: stable
+            target: wasm32-unknown-emscripten
+
+          # Big endian testing
+          - build: linux-mips32
+            os: ubuntu-latest
+            rust: stable
+            target: mips-unknown-linux-gnu
+          - build: linux-mips64
+            os: ubuntu-latest
+            rust: stable
+            target: mips64-unknown-linux-gnuabi64
+
+          # Android
+          - build: android-arm32
+            os: ubuntu-latest
+            rust: stable
+            target: armv7-linux-androideabi
+          - build: android-arm64
+            os: ubuntu-latest
+            rust: stable
+            target: aarch64-linux-android
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
+
+      - name: Setup Cross (if required)
+        if: matrix.target != ''
+        run: |
+          cargo install cross
+          echo "CARGO=cross" >> $GITHUB_ENV
+          echo "TARGET=--target ${{ matrix.target }}" >> $GITHUB_ENV
+
+      - name: Display Cargo Info
+        run: |
+          echo "cargo command: ${{ env.CARGO }}"
+          echo "target flag: ${{ env.TARGET }}"
+
+      - name: Test
+        run: ${{ env.CARGO }} test --verbose  ${{ env.TARGET }}
+
+      - name: Test (--no-default-features)
+        run: ${{ env.CARGO }} test --no-default-features --verbose ${{ env.TARGET }}
+
+      - name: Test (--all-features)
+        run: ${{ env.CARGO }} test --all-features --verbose ${{ env.TARGET }}
+
+  miri:
+    name: Miri
+    runs-on: ubuntu-latest
+    env:
+      MIRIFLAGS: -Zmiri-tag-raw-pointers
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: nightly
+          components: miri
+
+      - name: Test
+        run: cargo miri test
+
+      - name: Test (--no-default-features)
+        run: cargo miri test --no-default-features
+
+      - name: Test (--all-features)
+        run: cargo miri test --all-features
+
+  clippy:
+    name: Clippy Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --verbose
+
+      - name: Run Clippy (--all-features)
+        run: cargo clippy --workspace --all-targets --verbose --all-features
+
+      - name: Run Clippy (--no-default-features)
+        run: cargo clippy --workspace --all-targets --verbose --no-default-features
+
+  tarpaulin:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Run Tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          run-types: Doctests Tests
+          args: '-- --all-features'
+
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v2
