@@ -196,7 +196,8 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          # Fails with stable - nightly needed for doctests I think?
+          toolchain: nightly
           profile: minimal
           override: true
 
