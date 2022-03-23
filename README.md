@@ -2,7 +2,10 @@
 
 [![Crate](https://img.shields.io/crates/v/flexstr?style=for-the-badge)](https://crates.io/crates/flexstr)
 [![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)](https://docs.rs/flexstr)
+[![Tests](https://img.shields.io/github/workflow/status/nu11ptr/flexstr/CI/flexstr?style=for-the-badge)](https://github.com/nu11ptr/flexstr/actions)
+[![Coverage](https://img.shields.io/codecov/c/gh/nu11ptr/flexstr?style=for-the-badge)](https://codecov.io/gh/nu11ptr/flexstr)
 [![MSRV](https://img.shields.io/badge/msrv-1.59-blue.svg?style=for-the-badge)](https://crates.io/crates/flexstr)
+
 
 A flexible, simple to use, immutable, clone-efficient `String` replacement for 
 Rust. It unifies literals, inlined, and heap allocated strings into a single 
