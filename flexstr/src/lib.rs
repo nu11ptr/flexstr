@@ -1365,7 +1365,7 @@ where
 /// ```
 /// use flexstr::{local_str, local_ufmt};
 ///
-/// let a = local_ufmt!("Is {}{}", local_str!("inlined"), "!");
+/// let a = local_ufmt!("Is {}{}", local_str!("inline"), "!");
 /// assert!(a.is_inline());
 /// assert_eq!(a, "Is inlined!");
 /// ```
@@ -1387,7 +1387,7 @@ macro_rules! local_ufmt {
 /// ```
 /// use flexstr::{shared_str, shared_ufmt};
 ///
-/// let a = shared_ufmt!("Is {}{}", shared_str!("inlined"), "!");
+/// let a = shared_ufmt!("Is {}{}", shared_str!("inline"), "!");
 /// assert!(a.is_inline());
 /// assert_eq!(a, "Is inlined!");
 /// ```

@@ -52,7 +52,7 @@ jobs:
             rust: beta
           - build: linux-nightly
             os: ubuntu-latest
-            rust: linux-nightly
+            rust: nightly
 
           # Mac
           - build: macos
@@ -73,46 +73,46 @@ jobs:
             os: windows-2019
             rust: stable-i686-gnu
 
-          # *** Using Cross ***
+          # *** Using Cross (Nightly needed for doctests) ***
           # Various Linux
           - build: linux32
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: i686-unknown-linux-gnu
           # ARM
           - build: linux-arm32
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: armv7-unknown-linux-gnueabihf
           - build: linux-arm64
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: aarch64-unknown-linux-gnu
 
-          # WASM
-          - build: linux-wasm
-            os: ubuntu-latest
-            rust: stable
-            target: wasm32-unknown-emscripten
+          # WASM (broken - fails with link error)
+#          - build: linux-wasm
+#            os: ubuntu-latest
+#            rust: stable
+#            target: wasm32-unknown-emscripten
 
           # Big endian testing
           - build: linux-mips32
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: mips-unknown-linux-gnu
           - build: linux-mips64
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: mips64-unknown-linux-gnuabi64
 
           # Android
           - build: android-arm32
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: armv7-linux-androideabi
           - build: android-arm64
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: aarch64-linux-android
 
     steps:
@@ -130,7 +130,7 @@ jobs:
         run: |
           cargo install cross
           echo "CARGO=cross" >> $GITHUB_ENV
-          echo "TARGET=--target ${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=--target ${{ matrix.target }} -Zdoctest-xcompile" >> $GITHUB_ENV
 
       - name: Display Cargo Info
         run: |
@@ -203,6 +203,7 @@ jobs:
       - name: Run Tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
+          version: 0.18.2
           run-types: Doctests Tests
           args: '-- --all-features'
 
