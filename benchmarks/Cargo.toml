@@ -28,6 +28,8 @@ harness = false
 compact_str = "0.3"
 criterion = { version = "0.3", features = ["real_blackbox"] }
 flexstr = { path = "../flexstr", features = ["fp_convert", "int_convert"] }
+flexstr_080 = { package = "flexstr", version = "0.8.0" }
+flexstr_081 = { package = "flexstr", git = "https://github.com/nu11ptr/flexstr", commit = "09d2fb80f839014a5a5eb1175b8e21f5e5e4fab9" }
 kstring = "1"
 smartstring = "1"
 smol_str = "0.1"
