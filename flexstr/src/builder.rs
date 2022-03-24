@@ -3,7 +3,7 @@ use core::fmt::Write;
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
-use crate::inline::STRING_SIZED_INLINE;
+use crate::storage::inline::STRING_SIZED_INLINE;
 
 // The size of internal buffer for formatting (if larger needed we punt and just use a heap allocated String)
 #[doc(hidden)]
@@ -216,10 +216,12 @@ macro_rules! builder_into {
             $crate::builder::FlexStrBuilder::InlineBuffer(_) => {
                 if $buffer.is_inline_candidate() {
                     let len = $buffer.len() as u8;
-                    $crate::FlexStr::from_inline($crate::inline::InlineFlexStr::from_array(
-                        $buffer.into_inner(),
-                        len,
-                    ))
+                    $crate::FlexStr::from_inline(
+                        $crate::storage::inline::InlineFlexStr::from_array(
+                            $buffer.into_inner(),
+                            len,
+                        ),
+                    )
                 } else {
                     $crate::traits::ToFlex::to_flex(&*$buffer)
                 }
@@ -235,8 +237,8 @@ mod tests {
     use core::fmt::Write;
 
     use crate::builder::{FlexStrBuilder, BUFFER_SIZE};
-    use crate::inline::STRING_SIZED_INLINE;
     use crate::LocalStr;
+    use crate::STRING_SIZED_INLINE;
 
     #[test]
     fn string_buffer() {

@@ -3,7 +3,7 @@ use core::fmt::{Debug, Formatter};
 use core::ops::Deref;
 use core::{fmt, mem, ptr, str};
 
-use crate::StorageType;
+use crate::storage::StorageType;
 
 /// Using this inline capacity will result in a type with the same memory size as a builtin [String]
 pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
@@ -165,7 +165,7 @@ impl<'s, const N: usize> TryFrom<&'s str> for InlineFlexStr<N> {
 
 #[cfg(test)]
 mod tests {
-    use crate::inline::InlineFlexStr;
+    use crate::storage::inline::InlineFlexStr;
     use alloc::string::ToString;
 
     #[test]

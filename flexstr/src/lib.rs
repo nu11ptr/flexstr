@@ -81,13 +81,9 @@ extern crate alloc;
 #[macro_use]
 pub mod builder;
 #[doc(hidden)]
-pub mod inline;
+pub mod storage;
 #[doc(hidden)]
 pub mod traits;
-
-pub use inline::STRING_SIZED_INLINE;
-#[doc(inline)]
-pub use traits::*;
 
 use alloc::rc::Rc;
 use alloc::string::String;
@@ -111,6 +107,14 @@ use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use static_assertions::{assert_eq_align, assert_eq_size, assert_impl_all, assert_not_impl_any};
 
+use crate::storage::heap::HeapStr;
+use crate::storage::inline::InlineFlexStr;
+pub use crate::storage::inline::STRING_SIZED_INLINE;
+use crate::storage::static_ref::StaticStr;
+pub use crate::storage::{StorageType, WrongStorageType};
+#[doc(inline)]
+pub use crate::traits::*;
+
 // Trick to test README samples (from: https://github.com/rust-lang/cargo/issues/383#issuecomment-720873790)
 #[cfg(doctest)]
 mod test_readme {
@@ -129,16 +133,10 @@ assert_eq_size!(SharedStr, String);
 assert_not_impl_any!(LocalStr: Send, Sync);
 assert_impl_all!(SharedStr: Send, Sync);
 
-assert_eq_size!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr<STRING_SIZED_INLINE>);
-assert_eq_size!(
-    StaticStr<PTR_SIZED_PAD>,
-    inline::InlineFlexStr<STRING_SIZED_INLINE>
-);
-assert_eq_align!(HeapStr<PTR_SIZED_PAD, Rc<str>>, inline::InlineFlexStr<STRING_SIZED_INLINE>);
-assert_eq_align!(
-    StaticStr<PTR_SIZED_PAD>,
-    inline::InlineFlexStr<STRING_SIZED_INLINE>
-);
+assert_eq_size!(HeapStr<PTR_SIZED_PAD, Rc<str>>, InlineFlexStr<STRING_SIZED_INLINE>);
+assert_eq_size!(StaticStr<PTR_SIZED_PAD>, InlineFlexStr<STRING_SIZED_INLINE>);
+assert_eq_align!(HeapStr<PTR_SIZED_PAD, Rc<str>>, InlineFlexStr<STRING_SIZED_INLINE>);
+assert_eq_align!(StaticStr<PTR_SIZED_PAD>, InlineFlexStr<STRING_SIZED_INLINE>);
 
 const BAD_SIZE_OR_ALIGNMENT: &str = "OOPS! It seems you are trying to create a custom `FlexStr` but have \
 violated the invariants on size and alignment. It is recommended to only try and use `FlexStrBase` \
@@ -149,111 +147,6 @@ all the type parameters correctly and is therefore not recommended.";
 /// Padding the size of a pointer for this platform minus one
 pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 
-/// Error type returned from [try_as_static_str](FlexStr::try_as_static_str) or
-/// [try_to_heap](FlexStr::try_to_heap) when this [FlexStr] does not contain the expected type of storage
-#[derive(Copy, Clone, Debug)]
-pub struct WrongStorageType {
-    /// The expected storage type of the string
-    pub expected: StorageType,
-    /// The actual storage type of the string
-    pub actual: StorageType,
-}
-
-impl Display for WrongStorageType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("The FlexStr did not use the storage type expected (expected: ")?;
-        self.expected.fmt(f)?;
-        f.write_str(", actual: ")?;
-        self.actual.fmt(f)?;
-        f.write_str(")")
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for WrongStorageType {}
-
-/// Represents the storage type used by a particular [FlexStr]
-#[derive(Copy, Clone, Debug)]
-#[repr(u8)]
-pub enum StorageType {
-    /// Denotes that this [FlexStr] is a wrapper string literal
-    Static,
-    /// Denotes that this [FlexStr] is inlined
-    Inline,
-    /// Denotes that this [FlexStr] uses heap-based storage
-    Heap,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct StaticStr<const PAD: usize> {
-    literal: &'static str,
-    pad: [mem::MaybeUninit<u8>; PAD],
-    marker: StorageType,
-}
-
-impl<const PAD: usize> StaticStr<PAD> {
-    const EMPTY: Self = Self::from_static("");
-
-    #[inline]
-    const fn from_static(s: &'static str) -> Self {
-        Self {
-            literal: s,
-            // SAFETY: Padding, never actually used
-            pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
-            marker: StorageType::Static,
-        }
-    }
-}
-
-impl<const PAD: usize> Debug for StaticStr<PAD> {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        <str as Debug>::fmt(self.literal, f)
-    }
-}
-
-// T will likely align this just fine, but since we don't know the size, this is safest
-#[cfg_attr(target_pointer_width = "64", repr(align(8)))]
-#[cfg_attr(target_pointer_width = "32", repr(align(4)))]
-#[repr(C)]
-#[derive(Clone)]
-struct HeapStr<const PAD: usize, HEAP> {
-    heap: HEAP,
-    pad: [mem::MaybeUninit<u8>; PAD],
-    marker: StorageType,
-}
-
-impl<const PAD: usize, HEAP> HeapStr<PAD, HEAP> {
-    #[inline]
-    fn from_heap(t: HEAP) -> Self {
-        Self {
-            heap: t,
-            // SAFETY: Padding, never actually used
-            pad: unsafe { mem::MaybeUninit::uninit().assume_init() },
-            marker: StorageType::Heap,
-        }
-    }
-
-    #[inline]
-    fn from_ref(s: impl AsRef<str>) -> Self
-    where
-        HEAP: for<'a> From<&'a str>,
-    {
-        Self::from_heap(s.as_ref().into())
-    }
-}
-
-impl<const PAD: usize, HEAP> Debug for HeapStr<PAD, HEAP>
-where
-    HEAP: Deref<Target = str>,
-{
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        <str as Debug>::fmt(&self.heap, f)
-    }
-}
-
 /// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
 ///
 /// # Note
@@ -263,7 +156,7 @@ where
 /// of your custom type, your parameters were of correct size/alignment.
 pub union FlexStr<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     static_str: StaticStr<PAD1>,
-    inline_str: inline::InlineFlexStr<SIZE>,
+    inline_str: InlineFlexStr<SIZE>,
     heap_str: mem::ManuallyDrop<HeapStr<PAD2, HEAP>>,
 }
 
@@ -382,11 +275,10 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
 
     #[inline]
     const fn variant_sizes_are_valid() -> bool {
-        mem::size_of::<HeapStr<PAD2, HEAP>>() == mem::size_of::<inline::InlineFlexStr<SIZE>>()
-            && mem::size_of::<StaticStr<PAD1>>() == mem::size_of::<inline::InlineFlexStr<SIZE>>()
-            && mem::align_of::<HeapStr<PAD2, HEAP>>()
-                == mem::align_of::<inline::InlineFlexStr<SIZE>>()
-            && mem::align_of::<StaticStr<PAD1>>() == mem::align_of::<inline::InlineFlexStr<SIZE>>()
+        mem::size_of::<HeapStr<PAD2, HEAP>>() == mem::size_of::<InlineFlexStr<SIZE>>()
+            && mem::size_of::<StaticStr<PAD1>>() == mem::size_of::<InlineFlexStr<SIZE>>()
+            && mem::align_of::<HeapStr<PAD2, HEAP>>() == mem::align_of::<InlineFlexStr<SIZE>>()
+            && mem::align_of::<StaticStr<PAD1>>() == mem::align_of::<InlineFlexStr<SIZE>>()
     }
 
     /// Creates a wrapped static string literal. This function is equivalent to using the macro and
@@ -447,7 +339,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
 
     #[doc(hidden)]
     #[inline]
-    pub fn from_inline(s: inline::InlineFlexStr<SIZE>) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    pub fn from_inline(s: InlineFlexStr<SIZE>) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         if Self::IS_VALID_SIZE {
             FlexStr { inline_str: s }
         } else {
@@ -466,7 +358,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// ```
     #[inline]
     pub fn try_inline<S: AsRef<str>>(s: S) -> Result<FlexStr<SIZE, PAD1, PAD2, HEAP>, S> {
-        match inline::InlineFlexStr::try_new(s) {
+        match InlineFlexStr::try_new(s) {
             Ok(s) => Ok(Self::from_inline(s)),
             Err(s) => Err(s),
         }
