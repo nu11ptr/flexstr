@@ -7,8 +7,8 @@ use core::fmt::{Debug, Display, Formatter};
 
 // *** Wrong Storage Type ***
 
-/// Error type returned from [try_as_static_str](FlexStr::try_as_static_str) or
-/// [try_to_heap](FlexStr::try_to_heap) when this [FlexStr] does not contain the expected type of storage
+/// Error type returned from [try_as_static_str](crate::FlexStr::try_as_static_str) or
+/// [try_to_heap](crate::FlexStr::try_to_heap) when this [FlexStr](crate::FlexStr) does not contain the expected type of storage
 #[derive(Copy, Clone, Debug)]
 pub struct WrongStorageType {
     /// The expected storage type of the string
@@ -32,14 +32,14 @@ impl std::error::Error for WrongStorageType {}
 
 // *** Storage Type ***
 
-/// Represents the storage type used by a particular [FlexStr]
+/// Represents the storage type used by a particular [FlexStr](crate::FlexStr)
 #[derive(Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum StorageType {
-    /// Denotes that this [FlexStr] is a wrapper string literal
+    /// Denotes that this [FlexStr](crate::FlexStr) is a wrapper string literal
     Static,
-    /// Denotes that this [FlexStr] is inlined
+    /// Denotes that this [FlexStr](crate::FlexStr) is inlined
     Inline,
-    /// Denotes that this [FlexStr] uses heap-based storage
+    /// Denotes that this [FlexStr](crate::FlexStr) uses heap-based storage
     Heap,
 }
