@@ -216,12 +216,10 @@ macro_rules! builder_into {
             $crate::builder::FlexStrBuilder::InlineBuffer(_) => {
                 if $buffer.is_inline_candidate() {
                     let len = $buffer.len() as u8;
-                    $crate::FlexStr {
-                        inline_str: $crate::inline::InlineFlexStr::from_array(
-                            $buffer.into_inner(),
-                            len,
-                        ),
-                    }
+                    $crate::FlexStr::from_inline($crate::inline::InlineFlexStr::from_array(
+                        $buffer.into_inner(),
+                        len,
+                    ))
                 } else {
                     $crate::traits::ToFlex::to_flex(&*$buffer)
                 }

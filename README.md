@@ -1,10 +1,10 @@
 # flexstr
 
-[![Crate](https://img.shields.io/crates/v/flexstr?style=for-the-badge)](https://crates.io/crates/flexstr)
-[![Docs](https://img.shields.io/docsrs/flexstr?style=for-the-badge)](https://docs.rs/flexstr)
-[![Tests](https://img.shields.io/github/workflow/status/nu11ptr/flexstr/CI/flexstr?style=for-the-badge)](https://github.com/nu11ptr/flexstr/actions)
-[![Coverage](https://img.shields.io/codecov/c/gh/nu11ptr/flexstr?style=for-the-badge)](https://codecov.io/gh/nu11ptr/flexstr)
-[![MSRV](https://img.shields.io/badge/msrv-1.59-blue.svg?style=for-the-badge)](https://crates.io/crates/flexstr)
+[![Crate](https://img.shields.io/crates/v/flexstr)](https://crates.io/crates/flexstr)
+[![Docs](https://docs.rs/flexstr/badge.svg)](https://docs.rs/flexstr)
+[![Build](https://github.com/nu11ptr/flexstr/workflows/CI/badge.svg)](https://github.com/nu11ptr/flexstr/actions)
+[![codecov](https://codecov.io/gh/nu11ptr/flexstr/branch/master/graph/badge.svg?token=yUZ8v2tKPd)](https://codecov.io/gh/nu11ptr/flexstr)
+[![MSRV](https://img.shields.io/badge/msrv-1.59-blue.svg)](https://crates.io/crates/flexstr)
 
 
 A flexible, simple to use, immutable, clone-efficient `String` replacement for 
@@ -223,6 +223,12 @@ All you need to do is pick a storage type. The storage type must implement
 `Deref<Target = str>`, `From<&str>`, and `Clone`. Pretty much all smart 
 pointers do this already.
 
+#### NOTE:
+
+> Custom concrete types need to specify a heap type with an exact size of two 
+> machine words (16 bytes on 64-bit, and 8 bytes on 32-bit). Any other size 
+> parameter will result in a runtime panic error message on string creation.
+
 ```rust
 use flexstr::{FlexStrBase, Repeat, ToFlex};
 
@@ -239,7 +245,7 @@ fn main() {
 ## Performance Characteristics
 
 * Clones are cheap and never allocate
-    * At minimum, they are just a copy of the enum and at max an additional 
+    * At minimum, they are just a copy of the union and at max an additional 
       reference count increment
 * Literals are just wrapped when used with `into()` and never copied
 * Calling `into()` on a `String` will result in an inline string (if 
@@ -254,7 +260,7 @@ fn main() {
 * `to_string` always copies into a new `String`
 * Conversions back and forth between `SharedStr` and `LocalStr` using `into()` 
   are cheap when using wrapped literals or inlined strings
-    * Inlined strings and wrapped literals just create a new enum wrapper
+    * Inlined strings and wrapped literals just create a new union wrapper
     * Reference counted wrapped strings will always require an allocation 
       and copy for the  new `Rc` or `Arc`
 
@@ -273,7 +279,7 @@ There is no free lunch:
 
 * Due to usage of `Rc` (or `Arc`), when on-boarding `String` it will need to 
   reallocate and copy
-* Due to the enum wrapper, every string operation has the overhead of an extra
+* Due to the union wrapper, every string operation has the overhead of an extra
   branching operation
 * Since `LocalStr` is not `Send` or `Sync`, there is a need to consider 
   single-threaded   (`LocalStr`) and multi-threaded (`SharedStr`) use cases and 

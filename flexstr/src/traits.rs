@@ -389,6 +389,7 @@ where
     fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
+            // TODO: Replace raw union creation with inline calls to special `from_` functions?
             match self.static_str.marker {
                 StorageType::Static => FlexStr {
                     static_str: self.static_str,

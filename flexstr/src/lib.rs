@@ -140,6 +140,12 @@ assert_eq_align!(
     inline::InlineFlexStr<STRING_SIZED_INLINE>
 );
 
+const BAD_SIZE_OR_ALIGNMENT: &str = "OOPS! It seems you are trying to create a custom `FlexStr` but have \
+violated the invariants on size and alignment. It is recommended to only try and use `FlexStrBase` \
+and pick a storage type with a size of exactly two machine words (16 bytes on 64-bit, 8 bytes on 32-bit). \
+Creating a custom type based directly on the `FlexStr` union is possible, but it is difficult to calculate \
+all the type parameters correctly and is therefore not recommended.";
+
 /// Padding the size of a pointer for this platform minus one
 pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 
@@ -155,7 +161,7 @@ pub struct WrongStorageType {
 
 impl Display for WrongStorageType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("The FlexStr did no use the storage type expected (expected: ")?;
+        f.write_str("The FlexStr did not use the storage type expected (expected: ")?;
         self.expected.fmt(f)?;
         f.write_str(", actual: ")?;
         self.actual.fmt(f)?;
@@ -249,10 +255,15 @@ where
 }
 
 /// A flexible string type that transparently wraps a string literal, inline string, or a heap allocated type
+///
+/// # Note
+/// It is not generally recommended to try and create direct custom concrete types of `FlexStr` as it
+/// is complicated to calculate the correct sizes of all the generic type parameters. However, be aware
+/// that a runtime panic will be issued on creation if incorrect, so if you are able to create a string
+/// of your custom type, your parameters were of correct size/alignment.
 pub union FlexStr<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
     static_str: StaticStr<PAD1>,
-    #[doc(hidden)]
-    pub inline_str: inline::InlineFlexStr<SIZE>,
+    inline_str: inline::InlineFlexStr<SIZE>,
     heap_str: mem::ManuallyDrop<HeapStr<PAD2, HEAP>>,
 }
 
@@ -260,6 +271,11 @@ pub union FlexStr<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
 ///
 /// # Note
 /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
+///
+/// # Note 2
+/// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
+/// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
+/// creation.
 pub type FlexStrBase<HEAP> = FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<str>`]
@@ -285,6 +301,7 @@ where
     fn clone(&self) -> Self {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
+            // TODO: Replace raw union construction with inline calls to special `from_` functions? (while watching benchmarks closely!)
             match self.static_str.marker {
                 StorageType::Static => FlexStr {
                     static_str: self.static_str,
@@ -352,9 +369,25 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     FlexStr<SIZE, PAD1, PAD2, HEAP>
 {
     /// An empty ("") static constant string
-    pub const EMPTY: Self = FlexStr {
-        static_str: StaticStr::EMPTY,
+    pub const EMPTY: Self = if Self::IS_VALID_SIZE {
+        FlexStr {
+            static_str: StaticStr::EMPTY,
+        }
+    } else {
+        panic!("{}", BAD_SIZE_OR_ALIGNMENT);
     };
+
+    // If the union variants aren't the precise right size bad things will happen - we protect against that
+    const IS_VALID_SIZE: bool = Self::variant_sizes_are_valid();
+
+    #[inline]
+    const fn variant_sizes_are_valid() -> bool {
+        mem::size_of::<HeapStr<PAD2, HEAP>>() == mem::size_of::<inline::InlineFlexStr<SIZE>>()
+            && mem::size_of::<StaticStr<PAD1>>() == mem::size_of::<inline::InlineFlexStr<SIZE>>()
+            && mem::align_of::<HeapStr<PAD2, HEAP>>()
+                == mem::align_of::<inline::InlineFlexStr<SIZE>>()
+            && mem::align_of::<StaticStr<PAD1>>() == mem::align_of::<inline::InlineFlexStr<SIZE>>()
+    }
 
     /// Creates a wrapped static string literal. This function is equivalent to using the macro and
     /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
@@ -366,8 +399,12 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// ```
     #[inline]
     pub const fn from_static(s: &'static str) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
-        FlexStr {
-            static_str: StaticStr::from_static(s),
+        if Self::IS_VALID_SIZE {
+            FlexStr {
+                static_str: StaticStr::from_static(s),
+            }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
@@ -392,15 +429,29 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     where
         HEAP: for<'a> From<&'a str>,
     {
-        let s = s.as_ref();
+        if Self::IS_VALID_SIZE {
+            let s = s.as_ref();
 
-        if s.is_empty() {
-            Self::EMPTY
-        } else {
-            match Self::try_inline(s) {
-                Ok(s) => s,
-                Err(_) => Self::from_ref_heap(s),
+            if s.is_empty() {
+                Self::EMPTY
+            } else {
+                match Self::try_inline(s) {
+                    Ok(s) => s,
+                    Err(_) => Self::from_ref_heap(s),
+                }
             }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+        }
+    }
+
+    #[doc(hidden)]
+    #[inline]
+    pub fn from_inline(s: inline::InlineFlexStr<SIZE>) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+        if Self::IS_VALID_SIZE {
+            FlexStr { inline_str: s }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
@@ -416,7 +467,7 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     #[inline]
     pub fn try_inline<S: AsRef<str>>(s: S) -> Result<FlexStr<SIZE, PAD1, PAD2, HEAP>, S> {
         match inline::InlineFlexStr::try_new(s) {
-            Ok(s) => Ok(FlexStr { inline_str: s }),
+            Ok(s) => Ok(Self::from_inline(s)),
             Err(s) => Err(s),
         }
     }
@@ -436,8 +487,12 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     where
         HEAP: for<'a> From<&'a str>,
     {
-        FlexStr {
-            heap_str: ManuallyDrop::new(HeapStr::from_ref(s)),
+        if Self::IS_VALID_SIZE {
+            FlexStr {
+                heap_str: ManuallyDrop::new(HeapStr::from_ref(s)),
+            }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
@@ -453,8 +508,12 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     /// ```
     #[inline]
     pub fn from_heap(t: HEAP) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
-        FlexStr {
-            heap_str: ManuallyDrop::new(HeapStr::from_heap(t)),
+        if Self::IS_VALID_SIZE {
+            FlexStr {
+                heap_str: ManuallyDrop::new(HeapStr::from_heap(t)),
+            }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
@@ -1428,7 +1487,6 @@ macro_rules! local_fmt {
 /// assert!(a.is_inline());
 /// assert_eq!(a, "Is inline")
 /// ```
-
 #[macro_export]
 macro_rules! shared_fmt {
     ($($arg:tt)*) => {{
