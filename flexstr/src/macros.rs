@@ -1,4 +1,4 @@
-/// Create compile time constant [LocalStr] (equivalent, but less typing than:
+/// Create compile time constant [LocalStr](crate::LocalStr) (equivalent, but less typing than:
 /// `LocalStr::from_static("my_literal")`
 /// ```
 /// use flexstr::{local_str, LocalStr};
@@ -13,7 +13,7 @@ macro_rules! local_str {
     };
 }
 
-/// Create compile time constant [SharedStr] (equivalent, but less typing than:
+/// Create compile time constant [SharedStr](crate::SharedStr) (equivalent, but less typing than:
 /// `SharedStr::from_static("my_literal")`
 /// ```
 /// use flexstr::{shared_str, SharedStr};
@@ -72,7 +72,7 @@ macro_rules! shared_ufmt {
     }}
 }
 
-/// Equivalent to [format!] macro from stdlib. Efficiently creates a native [LocalStr]
+/// Equivalent to [format!] macro from stdlib. Efficiently creates a native [LocalStr](crate::LocalStr)
 /// ```
 /// use flexstr::local_fmt;
 ///
@@ -88,7 +88,7 @@ macro_rules! local_fmt {
     }}
 }
 
-/// Equivalent to [format!] macro from stdlib. Efficiently creates a native [SharedStr]
+/// Equivalent to [format!] macro from stdlib. Efficiently creates a native [SharedStr](crate::SharedStr)
 /// ```
 /// use flexstr::shared_fmt;
 ///

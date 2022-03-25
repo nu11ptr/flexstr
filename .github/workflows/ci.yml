@@ -190,6 +190,19 @@ jobs:
       - name: Run Clippy (--no-default-features)
         run: cargo clippy --workspace --all-targets --verbose --no-default-features
 
+  doc:
+    name: Doc Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+
+      - name: Check docs
+        run: cargo rustdoc --all-features --package flexstr -- -D warnings
+
   tarpaulin:
     name: Code Coverage
     runs-on: ubuntu-latest

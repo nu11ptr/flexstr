@@ -312,19 +312,15 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     where
         HEAP: for<'a> From<&'a str>,
     {
-        if Self::IS_VALID_SIZE {
-            let s = s.as_ref();
+        let s = s.as_ref();
 
-            if s.is_empty() {
-                Self::EMPTY
-            } else {
-                match Self::try_inline(s) {
-                    Ok(s) => s,
-                    Err(_) => Self::from_ref_heap(s),
-                }
-            }
+        if s.is_empty() {
+            Self::EMPTY
         } else {
-            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+            match Self::try_inline(s) {
+                Ok(s) => s,
+                Err(_) => Self::from_ref_heap(s),
+            }
         }
     }
 
