@@ -32,7 +32,7 @@ type.
 
 ## Overview
 
-Rust is great, but it's `String` type is optimized as a mutable string 
+Rust is great, but its `String` type is optimized as a mutable string
 buffer, not for typical string use cases. Most string use cases don't 
 modify their contents, often need to copy strings around as if 
 they were cheap like integers, typically concatenate instead of modify, and 
