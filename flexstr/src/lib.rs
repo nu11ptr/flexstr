@@ -92,6 +92,7 @@ use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::sync::Arc;
 use core::fmt::{Arguments, Write};
+use core::marker::PhantomData;
 use core::mem;
 use core::mem::ManuallyDrop;
 use core::ops::Deref;
@@ -145,10 +146,18 @@ pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 /// is complicated to calculate the correct sizes of all the generic type parameters. However, be aware
 /// that a runtime panic will be issued on creation if incorrect, so if you are able to create a string
 /// of your custom type, your parameters were of correct size/alignment.
-pub union FlexStr<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+pub union FlexStr<
+    const SIZE: usize,
+    const PAD1: usize,
+    const PAD2: usize,
+    HEAP,
+    STR: ?Sized,
+    STRING,
+> {
     static_str: StaticStr<PAD1>,
     inline_str: InlineFlexStr<SIZE>,
     heap_str: mem::ManuallyDrop<HeapStr<PAD2, HEAP>>,
+    phantom: PhantomData<(STRING, STR)>,
 }
 
 /// A flexible base string type that transparently wraps a string literal, inline string, or a custom `HEAP` type
@@ -160,7 +169,8 @@ pub union FlexStr<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
 /// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
 /// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
 /// creation.
-pub type FlexStrBase<HEAP> = FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
+pub type FlexStrBase<HEAP> =
+    FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP, str, String>;
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<str>`]
 ///
@@ -176,10 +186,11 @@ pub type SharedStr = FlexStrBase<Arc<str>>;
 
 // *** Clone ***
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
-    for FlexStr<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING> Clone
+    for FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     HEAP: Clone,
+    STR: ?Sized,
 {
     #[inline]
     fn clone(&self) -> Self {
@@ -204,8 +215,10 @@ where
 
 // *** Drop ***
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
-    for FlexStr<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING> Drop
+    for FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
+where
+    STR: ?Sized,
 {
     #[inline]
     fn drop(&mut self) {
@@ -220,10 +233,11 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Drop
 
 // *** Deref ***
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
-    for FlexStr<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING> Deref
+    for FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     HEAP: Deref<Target = str>,
+    STR: ?Sized,
 {
     type Target = str;
 
@@ -249,8 +263,10 @@ where
 
 // *** Non-trait functions ***
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
-    FlexStr<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
+where
+    STR: ?Sized,
 {
     /// An empty ("") static constant string
     pub const EMPTY: Self = if Self::IS_VALID_SIZE {
@@ -524,9 +540,11 @@ impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> FlexStr<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     HEAP: Deref<Target = str>,
+    STR: ?Sized,
 {
     /// Returns true if this [FlexStr] is empty
     /// ```
@@ -618,12 +636,13 @@ where
 }
 
 #[inline]
-fn concat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
+fn concat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>(
     s1: &str,
     s2: &str,
-) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     HEAP: for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     let mut buffer = buffer_new!(SIZE);
     let mut builder = builder_new!(buffer, s1.len() + s2.len());
@@ -633,13 +652,14 @@ where
 }
 
 #[inline]
-fn from_iter_str<const SIZE: usize, const PAD1: usize, const PAD2: usize, I, HEAP, U>(
+fn from_iter_str<const SIZE: usize, const PAD1: usize, const PAD2: usize, I, HEAP, U, STR, STRING>(
     iter: I,
-) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     I: IntoIterator<Item = U>,
     HEAP: for<'b> From<&'b str>,
     U: AsRef<str>,
+    STR: ?Sized,
 {
     let iter = iter.into_iter();
 
@@ -654,14 +674,25 @@ where
 }
 
 #[inline]
-fn from_iter_char<const SIZE: usize, const PAD1: usize, const PAD2: usize, I, F, HEAP, U>(
+fn from_iter_char<
+    const SIZE: usize,
+    const PAD1: usize,
+    const PAD2: usize,
+    I,
+    F,
+    HEAP,
+    U,
+    STR,
+    STRING,
+>(
     iter: I,
     f: F,
-) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     I: IntoIterator<Item = U>,
     F: Fn(U) -> char,
     HEAP: for<'b> From<&'b str>,
+    STR: ?Sized,
 {
     let iter = iter.into_iter();
     let (lower, _) = iter.size_hint();
@@ -675,11 +706,12 @@ where
 }
 
 /// Equivalent to the [format](std::fmt::format) function from stdlib. Efficiently creates a native [FlexStr]
-pub fn flex_fmt<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP>(
+pub fn flex_fmt<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>(
     args: Arguments<'_>,
-) -> FlexStr<SIZE, PAD1, PAD2, HEAP>
+) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     HEAP: for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     // NOTE: We have a disadvantage to [String] because we cannot call `estimated_capacity()` on args
     // As such, we cannot assume a given needed capacity - we start with a stack allocated buffer

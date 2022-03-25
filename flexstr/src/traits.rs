@@ -2,22 +2,24 @@ use alloc::string::String;
 use core::mem::ManuallyDrop;
 use core::ops::Deref;
 
-use crate::{
-    FlexStr, HeapStr, LocalStr, SharedStr, StorageType, PTR_SIZED_PAD, STRING_SIZED_INLINE,
-};
+use crate::{FlexStr, FlexStrBase, HeapStr, LocalStr, SharedStr, StorageType};
 
 // *** Repeat custom trait ***
 
 /// Trait that can repeat a given [FlexStr] "n" times efficiently
-pub trait Repeat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+pub trait Repeat<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+where
+    STR: ?Sized,
+{
     /// Repeats a given string "n" times efficiently and returns a new [FlexStr]
-    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
+    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>;
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Repeat<SIZE, PAD1, PAD2, HEAP>
-    for FlexStr<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    Repeat<SIZE, PAD1, PAD2, HEAP, STR, STRING> for FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     HEAP: Deref<Target = str> + for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{local_str, IntoLocalStr, Repeat};
@@ -27,18 +29,19 @@ where
     /// assert_eq!(s, "a".repeat(10));
     /// ```
     #[inline]
-    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         str::repeat_n(self, n)
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Repeat<SIZE, PAD1, PAD2, HEAP>
-    for str
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    Repeat<SIZE, PAD1, PAD2, HEAP, STR, STRING> for str
 where
     HEAP: for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     #[inline]
-    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn repeat_n(&self, n: usize) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         let cap = self.len() * n;
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, cap);
@@ -54,24 +57,28 @@ where
 // *** ToCase custom trait ***
 
 /// Trait that provides uppercase/lowercase conversion functions for [FlexStr]
-pub trait ToCase<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+pub trait ToCase<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+where
+    STR: ?Sized,
+{
     /// Converts string to uppercase and returns a [FlexStr]
-    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
+    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>;
 
     /// Converts string to lowercase and returns a [FlexStr]
-    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
+    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>;
 
     /// Converts string to ASCII uppercase and returns a [FlexStr]
-    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
+    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>;
 
     /// Converts string to ASCII lowercase and returns a [FlexStr]
-    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
+    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>;
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToCase<SIZE, PAD1, PAD2, HEAP>
-    for FlexStr<SIZE, PAD1, PAD2, HEAP>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    ToCase<SIZE, PAD1, PAD2, HEAP, STR, STRING> for FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>
 where
     HEAP: Deref<Target = str> + for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{local_str, LocalStr, ToCase};
@@ -80,7 +87,7 @@ where
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
-    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         str::to_upper(self)
     }
 
@@ -91,7 +98,7 @@ where
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
-    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         str::to_lower(self)
     }
 
@@ -102,7 +109,7 @@ where
     /// assert_eq!(a, "TEST");
     /// ```
     #[inline]
-    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         str::to_ascii_upper(self)
     }
 
@@ -113,15 +120,16 @@ where
     /// assert_eq!(a, "test");
     /// ```
     #[inline]
-    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         str::to_ascii_lower(self)
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToCase<SIZE, PAD1, PAD2, HEAP>
-    for str
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    ToCase<SIZE, PAD1, PAD2, HEAP, STR, STRING> for str
 where
     HEAP: for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{LocalStr, ToCase};
@@ -129,7 +137,7 @@ where
     /// let a: LocalStr = "test".to_upper();
     /// assert_eq!(a, "TEST");
     /// ```
-    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
@@ -150,7 +158,7 @@ where
     /// let a: LocalStr = "TEST".to_lower();
     /// assert_eq!(a, "test");
     /// ```
-    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         // We estimate capacity based on previous string, but if not ASCII this might be wrong
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
@@ -171,7 +179,7 @@ where
     /// let a: LocalStr = "test".to_ascii_upper();
     /// assert_eq!(a, "TEST");
     /// ```
-    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_upper(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
 
@@ -189,7 +197,7 @@ where
     /// let a: LocalStr = "TEST".to_ascii_lower();
     /// assert_eq!(a, "test");
     /// ```
-    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_ascii_lower(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         let mut buffer = buffer_new!(SIZE);
         let mut builder = builder_new!(buffer, self.len());
 
@@ -211,16 +219,20 @@ where
 /// let a: LocalStr = "This is a heap allocated string!!!!!".to_string().to_flex();
 /// assert!(a.is_heap());
 /// ```
-pub trait ToFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+pub trait ToFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+where
+    STR: ?Sized,
+{
     /// Converts the source to a [FlexStr] without consuming it
-    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>;
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    ToFlex<SIZE, PAD1, PAD2, HEAP> for FlexStr<SIZE, PAD1, PAD2, HEAP2>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2, STR, STRING>
+    ToFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for FlexStr<SIZE, PAD1, PAD2, HEAP2, STR, STRING>
 where
     HEAP: for<'a> From<&'a str>,
     HEAP2: Clone + Deref<Target = str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{SharedStr, LocalStr, ToFlex};
@@ -230,15 +242,16 @@ where
     /// assert_eq!(a, b);
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         self.clone().into_flex()
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToFlex<SIZE, PAD1, PAD2, HEAP>
-    for str
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    ToFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for str
 where
     HEAP: for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{SharedStr, LocalStr, ToFlex};
@@ -251,15 +264,16 @@ where
     /// assert!(b.is_heap())
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         self.into()
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToFlex<SIZE, PAD1, PAD2, HEAP>
-    for bool
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    ToFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for bool
 where
     HEAP: for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{LocalStr, ToFlex};
@@ -269,15 +283,16 @@ where
     /// assert_eq!(s, "false");
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         FlexStr::from_static(if *self { "true" } else { "false" })
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToFlex<SIZE, PAD1, PAD2, HEAP>
-    for char
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    ToFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for char
 where
     HEAP: for<'a> From<&'a str> + Deref<Target = str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{LocalStr, ToFlex};
@@ -287,7 +302,7 @@ where
     /// assert_eq!(s, "☺");
     /// ```
     #[inline]
-    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         (*self).into()
     }
 }
@@ -295,9 +310,10 @@ where
 #[cfg(feature = "int_convert")]
 macro_rules! impl_int_flex {
     ($($type:ty),+) => {
-        $(impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToFlex<SIZE, PAD1, PAD2, HEAP> for $type
+        $(impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING> ToFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for $type
         where
             HEAP: for<'a> From<&'a str>,
+            STR: ?Sized,
         {
             /// ```
             /// use flexstr::{LocalStr, ToFlex};
@@ -307,7 +323,7 @@ macro_rules! impl_int_flex {
             /// assert_eq!(s, "123");
             /// ```
             #[inline]
-            fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+            fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
                 let mut buffer = itoa::Buffer::new();
                 buffer.format(*self).to_flex()
             }
@@ -321,9 +337,10 @@ impl_int_flex!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
 #[cfg(feature = "fp_convert")]
 macro_rules! impl_float_flex {
     ($($type:ty),+) => {
-        $(impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> ToFlex<SIZE, PAD1, PAD2, HEAP> for $type
+        $(impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING> ToFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for $type
         where
             HEAP: for<'a> From<&'a str>,
+            STR: ?Sized,
         {
             /// ```
             /// use flexstr::{LocalStr, ToFlex};
@@ -333,7 +350,7 @@ macro_rules! impl_float_flex {
             /// assert_eq!(s, "123.456");
             /// ```
             #[inline]
-            fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+            fn to_flex(&self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
                 let mut buffer = ryu::Buffer::new();
                 buffer.format(*self).to_flex()
             }
@@ -353,16 +370,20 @@ impl_float_flex!(f32, f64);
 /// let a: LocalStr = local_str!("This is a wrapped static string literal no matter how long it is!!!!!");
 /// assert!(a.is_static());
 /// ```
-pub trait IntoFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> {
+pub trait IntoFlex<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+where
+    STR: ?Sized,
+{
     /// Converts the source to a [FlexStr] while consuming the original
-    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP>;
+    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING>;
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2>
-    IntoFlex<SIZE, PAD1, PAD2, HEAP> for FlexStr<SIZE, PAD1, PAD2, HEAP2>
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, HEAP2, STR, STRING>
+    IntoFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for FlexStr<SIZE, PAD1, PAD2, HEAP2, STR, STRING>
 where
     HEAP: for<'a> From<&'a str>,
     HEAP2: Deref<Target = str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{shared_str, SharedStr, LocalStr, IntoFlex};
@@ -386,7 +407,7 @@ where
     /// assert_eq!(e, f);
     /// ```
     #[inline]
-    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
+    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
             // TODO: Replace raw union creation with inline calls to special `from_` functions?
@@ -413,10 +434,11 @@ where
     }
 }
 
-impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> IntoFlex<SIZE, PAD1, PAD2, HEAP>
-    for String
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR, STRING>
+    IntoFlex<SIZE, PAD1, PAD2, HEAP, STR, STRING> for String
 where
     HEAP: for<'a> From<&'a str>,
+    STR: ?Sized,
 {
     /// ```
     /// use flexstr::{SharedStr, IntoFlex};
@@ -427,8 +449,8 @@ where
     /// assert_eq!(b, a);
     /// ```
     #[inline]
-    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP> {
-        <FlexStr<SIZE, PAD1, PAD2, HEAP> as From<&str>>::from(&self)
+    fn into_flex(self) -> FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> {
+        <FlexStr<SIZE, PAD1, PAD2, HEAP, STR, STRING> as From<&str>>::from(&self)
     }
 }
 
@@ -446,7 +468,7 @@ pub trait ToLocalStr {
     fn to_local_str(&self) -> LocalStr;
 }
 
-impl<HEAP> ToLocalStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> ToLocalStr for FlexStrBase<HEAP>
 where
     HEAP: Clone + Deref<Target = str>,
 {
@@ -565,7 +587,7 @@ pub trait ToSharedStr {
     fn to_shared_str(&self) -> SharedStr;
 }
 
-impl<HEAP> ToSharedStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> ToSharedStr for FlexStrBase<HEAP>
 where
     HEAP: Clone + Deref<Target = str>,
 {
@@ -684,7 +706,7 @@ pub trait IntoLocalStr {
     fn into_local_str(self) -> LocalStr;
 }
 
-impl<HEAP> IntoLocalStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> IntoLocalStr for FlexStrBase<HEAP>
 where
     HEAP: Deref<Target = str>,
 {
@@ -730,7 +752,7 @@ pub trait IntoSharedStr {
     fn into_shared_str(self) -> SharedStr;
 }
 
-impl<HEAP> IntoSharedStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
+impl<HEAP> IntoSharedStr for FlexStrBase<HEAP>
 where
     HEAP: Deref<Target = str>,
 {
