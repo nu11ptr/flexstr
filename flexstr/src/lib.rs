@@ -38,10 +38,33 @@ pub use crate::string::std_str::{
     BoxedStr, BoxedStrRef, LocalStr, LocalStrRef, SharedStr, SharedStrRef,
 };
 
+/// Provides support for [BStr](bstr::BStr)-based [FlexStr] strings
+#[cfg(feature = "bstr")]
+pub mod b_str {
+    pub use crate::string::b_str::{
+        BoxedBStr, BoxedBStrRef, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
+    };
+}
+
 /// Provides support for [CStr](std::ffi::CStr)-based [FlexStr] strings
 #[cfg(feature = "std")]
 pub mod c_str {
     pub use crate::string::c_str::{
         BoxedCStr, BoxedCStrRef, LocalCStr, LocalCStrRef, SharedCStr, SharedCStrRef,
+    };
+}
+
+/// Provides support for [OsStr](std::ffi::OsStr)-based [FlexStr] strings
+#[cfg(feature = "std")]
+pub mod os_str {
+    pub use crate::string::os_str::{
+        BoxedOsStr, BoxedOsStrRef, LocalOsStr, LocalOsStrRef, SharedOsStr, SharedOsStrRef,
+    };
+}
+
+/// Provides support for raw [`[u8]`](slice)-based [FlexStr] strings
+pub mod raw_str {
+    pub use crate::string::raw_str::{
+        BoxedRawStr, BoxedRawStrRef, LocalRawStr, LocalRawStrRef, SharedRawStr, SharedRawStrRef,
     };
 }

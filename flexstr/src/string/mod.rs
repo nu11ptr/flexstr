@@ -1,4 +1,7 @@
+pub(crate) mod b_str;
 pub(crate) mod c_str;
+pub(crate) mod os_str;
+pub(crate) mod raw_str;
 pub(crate) mod std_str;
 
 /// Trait used for implementing a custom inner string type ([str], [OsStr](std::ffi::OsStr), [Cstr](std::ffi::CStr), etc.)

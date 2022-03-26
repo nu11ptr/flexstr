@@ -56,8 +56,25 @@ where
 
 pub use crate::string::std_str::{FlexStrBase, FlexStrRefBase};
 
+/// Provides support for custom [BStr](bstr::BStr)-based [FlexStr](crate::FlexStr) strings
+#[cfg(feature = "bstr")]
+pub mod b_str {
+    pub use crate::string::b_str::{FlexBStrBase, FlexBStrRefBase};
+}
+
 /// Provides support for custom [CStr](std::ffi::CStr)-based [FlexStr](crate::FlexStr) strings
 #[cfg(feature = "std")]
 pub mod c_str {
     pub use crate::string::c_str::{FlexCStrBase, FlexCStrRefBase};
+}
+
+/// Provides support for custom [OsStr](std::ffi::OsStr)-based [FlexStr](crate::FlexStr) strings
+#[cfg(feature = "std")]
+pub mod os_str {
+    pub use crate::string::os_str::{FlexOsStrBase, FlexOsStrRefBase};
+}
+
+/// Provides support for custom raw [`[u8]`](slice)-based [FlexStr](crate::FlexStr) strings
+pub mod raw_str {
+    pub use crate::string::raw_str::{FlexRawStrBase, FlexRawStrRefBase};
 }
