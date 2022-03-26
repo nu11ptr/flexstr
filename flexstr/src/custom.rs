@@ -54,10 +54,10 @@ where
     type InlineStorage = InlineStorage<STRING_SIZED_INLINE, STR>;
 }
 
-pub use crate::string::std_str::{BFlexStrBase, FlexStrBase};
+pub use crate::string::std_str::{FlexStrBase, FlexStrRefBase};
 
 /// Provides support for custom [CStr](std::ffi::CStr)-based [FlexStr](crate::FlexStr) strings
 #[cfg(feature = "std")]
 pub mod c_str {
-    pub use crate::string::c_str::{BFlexCStrBase, FlexCStrBase};
+    pub use crate::string::c_str::{FlexCStrBase, FlexCStrRefBase};
 }

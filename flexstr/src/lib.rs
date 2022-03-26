@@ -34,10 +34,14 @@ where
     borrow_str: mem::ManuallyDrop<BorrowStr<SIZE, STR, &'str STR>>,
 }
 
-pub use crate::string::std_str::{LocalStr, SharedStr};
+pub use crate::string::std_str::{
+    BoxedStr, BoxedStrRef, LocalStr, LocalStrRef, SharedStr, SharedStrRef,
+};
 
 /// Provides support for [CStr](std::ffi::CStr)-based [FlexStr] strings
 #[cfg(feature = "std")]
 pub mod c_str {
-    pub use crate::string::c_str::{LocalCStr, SharedCStr};
+    pub use crate::string::c_str::{
+        BoxedCStr, BoxedCStrRef, LocalCStr, LocalCStrRef, SharedCStr, SharedCStrRef,
+    };
 }
