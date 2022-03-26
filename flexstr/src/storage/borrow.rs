@@ -2,14 +2,14 @@ use crate::custom::Size;
 use crate::storage::StorageType;
 use crate::string::Str;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 #[repr(C)]
-pub(crate) struct HeapStr<SIZE, HEAP, STR>
+pub(crate) struct BorrowStr<SIZE, STR, REF>
 where
     SIZE: Size<STR>,
     STR: Str + ?Sized,
 {
-    pub heap: HEAP,
-    pad: SIZE::HeapPad,
+    pub string: REF,
+    pad: SIZE::BorrowPad,
     pub marker: StorageType,
 }
