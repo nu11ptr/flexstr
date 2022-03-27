@@ -9,49 +9,26 @@ pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 /// Using this inline capacity will result in a type with the same memory size as a builtin [String]
 pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 
-/// Type representing the inline storage including its size and string type. This is only used when
-/// implementing [Size]
-pub type InlineStorage<const N: usize, STR> = [mem::MaybeUninit<<STR as Str>::InlineType>; N];
-
 pub use crate::string::Str;
 
-/// Trait for defining the various sizes of all the inner union variants to ensure proper size and alignment
-pub trait Size<STR>
-where
-    STR: Str + ?Sized,
-{
-    /// Pad type and size for heap union variant (Only type [Pad] supported)
-    type HeapPad;
-    /// Pad type and size for borrowed union variants (Only type [Pad] supported)
-    type BorrowPad;
-    /// Type and size used for inline strings (Only [InlineStorage] supported)
-    type InlineStorage;
-}
+pub(crate) const BAD_SIZE_OR_ALIGNMENT: &str = "OOPS! It seems you are trying to create a custom `FlexStr` but have \
+violated the invariants on size and alignment. It is recommended to only try and use `FlexStrBase` \
+and pick a storage type with a size of exactly two machine words (16 bytes on 64-bit, 8 bytes on 32-bit). \
+Creating a custom type based directly on the `FlexStr` union is possible, but it is difficult to calculate \
+all the type parameters correctly and is therefore not recommended.";
 
-/// Type that supplies internal padding to the internal union structures. This is only needed when
-/// implementing [Size]
+/// Type that supplies internal padding to the internal union structures
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct Pad<const N: usize>([mem::MaybeUninit<u8>; N]);
+pub(crate) struct Pad<const N: usize>([mem::MaybeUninit<u8>; N]);
 
-impl<const N: usize> Default for Pad<N> {
-    fn default() -> Self {
+impl<const N: usize> Pad<N> {
+    // Must be const fn since we have some spots where we need that
+    #[inline]
+    pub(crate) const fn new() -> Self {
         // SAFETY: Padding, never actually used
         unsafe { Self(mem::MaybeUninit::uninit().assume_init()) }
     }
-}
-
-/// Predefined type implementing [Size] for string types using a two word heap type (ie [`Rc<str>`](std::rc::Rc)
-/// with the same inline size as a [String]
-pub struct TwoWordHeapStringSize;
-
-impl<STR> Size<STR> for TwoWordHeapStringSize
-where
-    STR: Str + ?Sized,
-{
-    type HeapPad = Pad<PTR_SIZED_PAD>;
-    type BorrowPad = Pad<PTR_SIZED_PAD>;
-    type InlineStorage = InlineStorage<STRING_SIZED_INLINE, STR>;
 }
 
 pub use crate::string::std_str::{FlexStrBase, FlexStrRefBase};

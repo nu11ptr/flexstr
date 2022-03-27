@@ -1,15 +1,26 @@
-use crate::custom::Size;
+use crate::custom::Pad;
 use crate::storage::StorageType;
-use crate::string::Str;
 
+// Cannot yet reference associated types from a generic param (impl trait) for const generic params,
+// so we are forced to work with raw const generics for now
 #[derive(Clone, Copy)]
 #[repr(C)]
-pub(crate) struct BorrowStr<SIZE, STR, REF>
-where
-    SIZE: Size<STR>,
-    STR: Str + ?Sized,
-{
+pub(crate) struct BorrowStr<const PAD: usize, REF> {
     pub string: REF,
-    pad: SIZE::BorrowPad,
+    pad: Pad<PAD>,
     pub marker: StorageType,
+}
+
+impl<const PAD: usize, REF> BorrowStr<PAD, REF> {
+    // NOTE: Even though this is not explicitly 'static it will only be called from public
+    // functions that are
+    #[inline]
+    pub const fn from_static(s: REF) -> Self {
+        Self {
+            string: s,
+            // Must be const fn, so can't use default
+            pad: Pad::new(),
+            marker: StorageType::Static,
+        }
+    }
 }

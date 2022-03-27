@@ -2,19 +2,26 @@
 
 use alloc::rc::Rc;
 use alloc::sync::Arc;
+use core::fmt::{Debug, Display, Formatter};
+use core::mem;
+use std::error::Error;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
+use paste::paste;
+
 use crate::string::Str;
-use crate::{FlexStr, TwoWordHeapStringSize};
+use crate::{define_flex_types, impl_flex_str};
+use crate::{BorrowStr, FlexStrInner};
 
 impl Str for CStr {
     type StringType = CString;
     type InlineType = c_char;
 
     #[inline]
-    unsafe fn from_raw_data(bytes: &[Self::InlineType]) -> &Self {
-        Self::from_ptr(bytes as *const [Self::InlineType] as *const Self::InlineType)
+    fn from_raw_data(bytes: &[Self::InlineType]) -> &Self {
+        // SAFETY: This will always be prior vetted to ensure it ends with a null terminator
+        unsafe { Self::from_ptr(bytes as *const [Self::InlineType] as *const Self::InlineType) }
     }
 
     #[inline]
@@ -30,74 +37,100 @@ impl Str for CStr {
     }
 }
 
-/// A flexible base string type that transparently wraps a string literal, inline string, or a custom `HEAP` type
-///
-/// # Note
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr](crate::FlexStr)
-///
-/// # Note 2
-/// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
-/// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
-/// creation.
-pub type FlexCStrBase<HEAP> = FlexStr<'static, TwoWordHeapStringSize, HEAP, CStr>;
+define_flex_types!("C", CStr);
 
-/// A flexible base string type that transparently wraps a string literal, inline string, a custom `HEAP` type, or
-/// a borrowed string (with appropriate lifetime specified).
-///
-/// # Note
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr](crate::FlexStr)
-///
-/// # Note 2
-/// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
-/// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
-/// creation.
-pub type FlexCStrRefBase<'str, HEAP> = FlexStr<'str, TwoWordHeapStringSize, HEAP, CStr>;
+impl_flex_str!(FlexCStr, CStr);
 
-/// A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<CStr>`]
-///
-/// # Note
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr](crate::FlexStr)
-pub type LocalCStr = FlexCStrBase<Rc<CStr>>;
+/// This error is returned when trying to create a new [FlexCStr] from a [&\[u8\]] sequence without
+/// a trailing null
+#[derive(Clone, Copy, Debug)]
+pub enum CStrNullError {
+    /// No required null byte was found
+    NoNullByteFound,
 
-/// A flexible string type that transparently wraps a string literal, inline string, or an [`Arc<CStr>`]
-///
-/// # Note
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr](crate::FlexStr)
-pub type SharedCStr = FlexCStrBase<Arc<CStr>>;
+    /// An interior null byte was found - the position is enclosed
+    InteriorNullByte(usize),
+}
 
-/// A flexible string type that transparently wraps a string literal, inline string, [`Rc<CStr>`], or
-/// borrowed string (with appropriate lifetime)
-///
-/// # Note
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-pub type LocalCStrRef<'str> = FlexCStrRefBase<'str, Rc<CStr>>;
+impl Display for CStrNullError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            // TODO: Replace with 'flex_fmt'
+            CStrNullError::InteriorNullByte(pos) => f.write_str(&format!(
+                "The byte slice had an interior null byte (Pos: {pos})"
+            )),
+            CStrNullError::NoNullByteFound => {
+                f.write_str("The byte slice had no trailing null byte")
+            }
+        }
+    }
+}
 
-/// A flexible string type that transparently wraps a string literal, inline string, [`Arc<CStr>`], or
-/// borrowed string (with appropriate lifetime)
-///
-/// # Note
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-pub type SharedCStrRef<'str> = FlexCStrRefBase<'str, Arc<CStr>>;
+impl Error for CStrNullError {}
 
-/// A flexible string type that transparently wraps a string literal, inline string, or a [`Box<CStr>`]
-///
-/// # Note
-/// This type is included for convenience for those who need wrapped [`Box<CStr>`] support. Those who
-/// do not have this special use case are encouraged to use [LocalCStr] or [SharedCStr] for much better
-/// clone performance (without copy or additional allocation)
-///
-/// # Note 2
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-pub type BoxedCStr = FlexCStrBase<Box<CStr>>;
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
+{
+    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
+    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
+    /// ```
+    /// use std::ffi::CStr;
+    /// use flexstr::c_str::LocalCStr;
+    ///
+    /// let s: &'static CStr = CStr::from_bytes_with_nul(b"test\0").unwrap();
+    /// const S: LocalCStr = LocalCStr::from_static(s);
+    /// assert!(S.is_static());
+    /// ```
+    #[inline]
+    pub const fn from_static(s: &'static CStr) -> Self {
+        if Self::IS_VALID_SIZE {
+            Self(FlexStrInner {
+                static_str: mem::ManuallyDrop::new(BorrowStr::from_static(s)),
+            })
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+        }
+    }
 
-/// A flexible string type that transparently wraps a string literal, inline string, [`Box<CStr>`], or
-/// borrowed string (with appropriate lifetime)
-///
-/// # Note
-/// This type is included for convenience for those who need wrapped [`Box<CStr>`] support. Those who
-/// do not have this special use case are encouraged to use [LocalCStr] or [SharedCStr] for much better
-/// clone performance (without copy or additional allocation)
-///
-/// # Note 2
-/// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-pub type BoxedCStrRef<'str> = FlexCStrRefBase<'str, Box<CStr>>;
+    /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
+    /// [FlexCStr] will be created using static wrapped storage. If unsuccessful (because encoding is
+    /// incorrect) a [CStrNullError] is returned. This is `const fn` so it can be used to initialize
+    /// a constant at compile time with zero runtime cost.
+    /// ```
+    /// use flexstr::c_str::LocalCStr;
+    ///
+    /// const S: LocalCStr = LocalCStr::try_from_static_raw(b"This is a valid CStr\0").unwrap();
+    /// assert!(S.is_static());
+    /// ```
+    #[inline]
+    pub const fn try_from_static_raw(s: &'static [u8]) -> Result<Self, CStrNullError> {
+        // We go through all this work just to make this const fn :-) If using stdlib it is a one liner
+
+        // Search string for null zero - `for` is not allowed in `const fn` functions unfortunately
+        let mut idx = 0;
+        let mut pos = None;
+
+        while idx < s.len() {
+            if s[idx] == b'\0' {
+                pos = Some(idx);
+                break;
+            }
+
+            idx += 1;
+        }
+
+        if let Some(pos) = pos {
+            if pos == s.len() - 1 {
+                // SAFETY: We manually verified it is valid just above
+                let s = unsafe { CStr::from_bytes_with_nul_unchecked(s) };
+                Ok(Self::from_static(s))
+            } else {
+                // Interior null byte
+                Err(CStrNullError::InteriorNullByte(pos))
+            }
+        } else {
+            // No null byte
+            Err(CStrNullError::NoNullByteFound)
+        }
+    }
+}

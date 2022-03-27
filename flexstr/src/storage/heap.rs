@@ -1,15 +1,16 @@
-use crate::custom::Size;
+use crate::custom::Pad;
 use crate::storage::StorageType;
 use crate::string::Str;
+use core::marker::PhantomData;
 
 #[derive(Clone)]
 #[repr(C)]
-pub(crate) struct HeapStr<SIZE, HEAP, STR>
+pub(crate) struct HeapStr<const PAD: usize, HEAP, STR>
 where
-    SIZE: Size<STR>,
     STR: Str + ?Sized,
 {
     pub heap: HEAP,
-    pad: SIZE::HeapPad,
+    pad: Pad<PAD>,
     pub marker: StorageType,
+    phantom: PhantomData<STR>,
 }

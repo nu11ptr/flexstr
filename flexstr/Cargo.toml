@@ -25,6 +25,7 @@ std = []
 # TODO: Figure out features and how it relates to our features
 bstr = {version = "0.2", optional = true }
 itoa = { version = "1", optional = true }
+paste = "1"
 ryu = { version = "1", optional = true }
 serde = { version = "1", optional = true }
 static_assertions = "1"

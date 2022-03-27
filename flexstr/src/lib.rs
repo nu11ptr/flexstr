@@ -9,40 +9,15 @@ pub mod custom;
 mod storage;
 mod string;
 
-use core::mem;
-
-use crate::custom::{Size, TwoWordHeapStringSize};
-use crate::storage::{BorrowStr, HeapStr, InlineStr};
-use crate::string::Str;
-
-/// A flexible string type that transparently wraps a string literal, inline string, a heap allocated type,
-/// or a borrowed string (with appropriate lifetime)
-///
-/// # Note
-/// It is not generally recommended to try and create direct custom concrete types of `FlexStr` as it
-/// is complicated to calculate the correct sizes of all the generic type parameters. However, be aware
-/// that a runtime panic will be issued on creation if incorrect, so if you are able to create a string
-/// of your custom type, your parameters were of correct size/alignment.
-pub union FlexStr<'str, SIZE, HEAP, STR>
-where
-    STR: Str + ?Sized + 'static,
-    SIZE: Size<STR>,
-{
-    static_str: mem::ManuallyDrop<BorrowStr<SIZE, STR, &'static STR>>,
-    inline_str: mem::ManuallyDrop<InlineStr<SIZE, STR>>,
-    heap_str: mem::ManuallyDrop<HeapStr<SIZE, HEAP, STR>>,
-    borrow_str: mem::ManuallyDrop<BorrowStr<SIZE, STR, &'str STR>>,
-}
-
 pub use crate::string::std_str::{
-    BoxedStr, BoxedStrRef, LocalStr, LocalStrRef, SharedStr, SharedStrRef,
+    BoxedStr, BoxedStrRef, FlexStr, LocalStr, LocalStrRef, SharedStr, SharedStrRef,
 };
 
 /// Provides support for [BStr](bstr::BStr)-based [FlexStr] strings
 #[cfg(feature = "bstr")]
 pub mod b_str {
     pub use crate::string::b_str::{
-        BoxedBStr, BoxedBStrRef, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
+        BoxedBStr, BoxedBStrRef, FlexBStr, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
     };
 }
 
@@ -50,7 +25,8 @@ pub mod b_str {
 #[cfg(feature = "std")]
 pub mod c_str {
     pub use crate::string::c_str::{
-        BoxedCStr, BoxedCStrRef, LocalCStr, LocalCStrRef, SharedCStr, SharedCStrRef,
+        BoxedCStr, BoxedCStrRef, CStrNullError, FlexCStr, LocalCStr, LocalCStrRef, SharedCStr,
+        SharedCStrRef,
     };
 }
 
@@ -58,13 +34,40 @@ pub mod c_str {
 #[cfg(feature = "std")]
 pub mod os_str {
     pub use crate::string::os_str::{
-        BoxedOsStr, BoxedOsStrRef, LocalOsStr, LocalOsStrRef, SharedOsStr, SharedOsStrRef,
+        BoxedOsStr, BoxedOsStrRef, FlexOsStr, LocalOsStr, LocalOsStrRef, SharedOsStr,
+        SharedOsStrRef,
     };
 }
 
 /// Provides support for raw [`[u8]`](slice)-based [FlexStr] strings
 pub mod raw_str {
     pub use crate::string::raw_str::{
-        BoxedRawStr, BoxedRawStrRef, LocalRawStr, LocalRawStrRef, SharedRawStr, SharedRawStrRef,
+        BoxedRawStr, BoxedRawStrRef, FlexRawStr, LocalRawStr, LocalRawStrRef, SharedRawStr,
+        SharedRawStrRef,
     };
+}
+
+use core::mem;
+
+use crate::storage::{BorrowStr, HeapStr, InlineStr};
+use crate::string::Str;
+
+// Cannot yet reference associated types from a generic param (impl trait) for const generic params,
+// so we are forced to work with raw const generics for now. Also, cannot call const fn functions
+// with a trait that has bounds other than `Size` atm.
+union FlexStrInner<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
+where
+    STR: Str + ?Sized + 'static,
+{
+    static_str: mem::ManuallyDrop<BorrowStr<BPAD, &'static STR>>,
+    inline_str: mem::ManuallyDrop<InlineStr<SIZE, STR>>,
+    heap_str: mem::ManuallyDrop<HeapStr<HPAD, HEAP, STR>>,
+    borrow_str: mem::ManuallyDrop<BorrowStr<BPAD, &'str STR>>,
+}
+
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
+    FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, STR>
+where
+    STR: Str,
+{
 }
