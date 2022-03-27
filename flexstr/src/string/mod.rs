@@ -8,14 +8,20 @@ pub(crate) mod std_str;
 pub trait Str {
     /// Regular (typically [Vec]-based) heap allocate string type
     type StringType;
-    /// Type of the individual element of the underlying storage array
-    type StoredType: Copy;
+    /// Type of the individual element of the underlying inline storage array
+    type InlineType: Copy;
+    /// Type held by the underlying heap storage
+    type HeapType: ?Sized;
     /// Error returned when a conversion from raw type to representative type fails
     type ConvertError;
 
-    /// Transforms a slice of the stored type into the final string type. This can't fail so it only
-    /// is called when the data is already vetted to be valid
-    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self;
+    /// Transforms a slice of the inline stored type into the final string type. This can't fail so
+    /// it is only called when the data is already vetted to be valid
+    fn from_inline_data(bytes: &[Self::InlineType]) -> &Self;
+
+    /// Transforms a slice of the heap stored type into the final string type. This can't fail so it
+    ///is only called when the data is already vetted to be valid
+    fn from_heap_data(bytes: &Self::HeapType) -> &Self;
 
     /// Tries to transform raw data that has not yet been vetted to the final string type. If it is not
     /// possible, a [Self::ConvertError] is returned
@@ -27,8 +33,11 @@ pub trait Str {
     /// Returns the storage length for this particular string in bytes (not the # of chars)
     fn length(&self) -> usize;
 
+    /// Returns a representation of the storage type
+    fn as_heap_type(&self) -> &Self::HeapType;
+
     /// Returns a representation of the inline type as a pointer
-    fn as_pointer(&self) -> *const Self::StoredType;
+    fn as_inline_ptr(&self) -> *const Self::InlineType;
 }
 
 #[doc(hidden)]
@@ -128,6 +137,30 @@ macro_rules! define_flex_types {
 
 #[doc(hidden)]
 #[macro_export]
+macro_rules! impl_validation {
+    ($str:ty) => {
+        // If the union variants aren't the precise right size bad things will happen - we protect against that
+        const IS_VALID_SIZE: bool = Self::variant_sizes_are_valid();
+
+        #[inline]
+        const fn variant_sizes_are_valid() -> bool {
+            use core::mem;
+
+            use crate::{BorrowStr, HeapStr, InlineStr};
+
+            mem::size_of::<HeapStr<HPAD, HEAP, $str>>() == mem::size_of::<InlineStr<SIZE, $str>>()
+                && mem::size_of::<BorrowStr<BPAD, &'static $str>>()
+                    == mem::size_of::<InlineStr<SIZE, $str>>()
+                && mem::align_of::<HeapStr<HPAD, HEAP, $str>>()
+                    == mem::align_of::<InlineStr<SIZE, $str>>()
+                && mem::align_of::<BorrowStr<BPAD, &'static $str>>()
+                    == mem::align_of::<InlineStr<SIZE, $str>>()
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
 macro_rules! impl_flex_str {
     ($flex_str:ident, $str:ty) => {
         /// A flexible string type that transparently wraps a string literal, inline string, a heap allocated type,
@@ -145,23 +178,72 @@ macro_rules! impl_flex_str {
 
         impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
             $flex_str<'str, SIZE, BPAD, HPAD, HEAP>
+        where
+            HEAP: Storage<$str>,
         {
-            // If the union variants aren't the precise right size bad things will happen - we protect against that
-            const IS_VALID_SIZE: bool = Self::variant_sizes_are_valid();
+            #[doc(hidden)]
+            #[inline(always)]
+            pub(crate) fn from_inline(s: InlineStr<SIZE, $str>) -> Self {
+                if Self::IS_VALID_SIZE {
+                    Self(FlexStrInner::from_inline(s))
+                } else {
+                    panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+                }
+            }
 
+            /// Attempts to create an inlined string. Returns a new inline string on success or the original
+            /// source string if it will not fit. Since the to/into/[from_ref](FlexStr::from_ref) functions
+            /// will automatically inline when possible, this function is really only for special use cases.
+            /// ```
+            /// use flexstr::LocalStr;
+            ///
+            /// let s = LocalStr::try_inline("test").unwrap();
+            /// assert!(s.is_inline());
+            /// ```
+            #[inline(always)]
+            pub fn try_inline<S: AsRef<$str>>(s: S) -> Result<Self, S> {
+                match InlineStr::try_new(s) {
+                    Ok(s) => Ok(Self::from_inline(s)),
+                    Err(s) => Err(s),
+                }
+            }
+
+            /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexStr::from_ref)
+            /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
+            /// Using this is generally only recommended when using the associated [to_heap](FlexStr::to_heap)
+            /// and [try_to_heap](FlexStr::try_to_heap) functions.
+            /// ```
+            /// use flexstr::LocalStr;
+            ///
+            /// let s = LocalStr::from_ref_heap("test");
+            /// assert!(s.is_heap());
+            /// ```
             #[inline]
-            const fn variant_sizes_are_valid() -> bool {
-                use core::mem;
+            pub fn from_ref_heap(s: impl AsRef<$str>) -> Self {
+                if Self::IS_VALID_SIZE {
+                    Self(FlexStrInner::from_ref_heap(s))
+                } else {
+                    panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+                }
+            }
 
-                use crate::{BorrowStr, HeapStr, InlineStr};
-
-                mem::size_of::<HeapStr<HPAD, HEAP, $str>>() == mem::size_of::<InlineStr<SIZE, $str>>()
-                    && mem::size_of::<BorrowStr<BPAD, &'static $str>>()
-                        == mem::size_of::<InlineStr<SIZE, $str>>()
-                    && mem::align_of::<HeapStr<HPAD, HEAP, $str>>()
-                        == mem::align_of::<InlineStr<SIZE, $str>>()
-                    && mem::align_of::<BorrowStr<BPAD, &'static $str>>()
-                        == mem::align_of::<InlineStr<SIZE, $str>>()
+            /// Create a new heap based string by wrapping the existing user provided heap string type (T).
+            /// For [LocalStr] this will be an [`Rc<str>`] and for [SharedStr] it will be an [`Arc<str>`].
+            /// This would typically only be used if efficient unwrapping of heap based data is needed at
+            /// a later time.
+            /// ```
+            /// use flexstr::LocalStr;
+            ///
+            /// let s = LocalStr::from_heap("test".into());
+            /// assert!(s.is_heap());
+            /// ```
+            #[inline]
+            pub fn from_heap(t: HEAP) -> Self {
+                if Self::IS_VALID_SIZE {
+                    Self(FlexStrInner::from_heap(t))
+                } else {
+                    panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+                }
             }
 
             /// Returns true if this is a wrapped string literal (`&'static str`)

@@ -8,20 +8,30 @@ use core::str::Utf8Error;
 
 use paste::paste;
 
+use crate::storage::Storage;
 use crate::string::Str;
-use crate::{define_flex_types, impl_flex_str, BorrowStr, FlexStrInner};
+use crate::{
+    define_flex_types, impl_flex_str, impl_validation, BorrowStr, FlexStrInner, InlineStr,
+};
 
-const EMPTY: &str = "";
+/// Empty string constant
+pub const EMPTY: &str = "";
 
 impl Str for str {
     type StringType = String;
-    type StoredType = u8;
+    type InlineType = u8;
+    type HeapType = [u8];
     type ConvertError = Utf8Error;
 
     #[inline]
-    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
+    fn from_inline_data(bytes: &[Self::InlineType]) -> &Self {
         // SAFETY: This will always be previously vetted to ensure it is proper UTF8
         unsafe { core::str::from_utf8_unchecked(bytes) }
+    }
+
+    #[inline]
+    fn from_heap_data(bytes: &Self::HeapType) -> &Self {
+        Self::from_inline_data(bytes)
     }
 
     #[inline]
@@ -44,7 +54,12 @@ impl Str for str {
     }
 
     #[inline]
-    fn as_pointer(&self) -> *const Self::StoredType {
+    fn as_heap_type(&self) -> &Self::HeapType {
+        self.as_bytes()
+    }
+
+    #[inline]
+    fn as_inline_ptr(&self) -> *const Self::InlineType {
         self.as_ptr()
     }
 }
@@ -56,6 +71,8 @@ impl_flex_str!(FlexStr, str);
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
+    impl_validation!(str);
+
     /// An empty ("") static constant string
     pub const EMPTY: Self = if Self::IS_VALID_SIZE {
         Self::from_static(EMPTY)

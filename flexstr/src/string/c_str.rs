@@ -9,23 +9,31 @@ use std::ffi::{CStr, CString};
 
 use paste::paste;
 
+use crate::storage::Storage;
 use crate::string::Str;
-use crate::{define_flex_types, impl_flex_str};
-use crate::{BorrowStr, FlexStrInner};
+use crate::{define_flex_types, impl_flex_str, impl_validation};
+use crate::{BorrowStr, FlexStrInner, InlineStr};
 
+/// Empty C string constant
 // This is the only way to get a const CStr that I can tell
 // SAFETY: We visually inspect the below raw byte sequence and can see it has a trailing null
-const EMPTY: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
+pub const EMPTY: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
 
 impl Str for CStr {
     type StringType = CString;
-    type StoredType = u8;
+    type InlineType = u8;
+    type HeapType = [u8];
     type ConvertError = CStrNullError;
 
     #[inline]
-    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
+    fn from_inline_data(bytes: &[Self::InlineType]) -> &Self {
         // SAFETY: This data is pre-vetted to ensure it ends with a null byte
         unsafe { CStr::from_bytes_with_nul_unchecked(bytes) }
+    }
+
+    #[inline]
+    fn from_heap_data(bytes: &Self::HeapType) -> &Self {
+        Self::from_inline_data(bytes)
     }
 
     #[inline]
@@ -46,14 +54,19 @@ impl Str for CStr {
 
     #[inline]
     fn length(&self) -> usize {
-        // TODO: Stdlib hints that it may change this to be non const time - might need a diff way?
         // NOTE: This will include trailing null byte (this is storage, not usable chars)
-        self.to_bytes_with_nul().len()
+        self.as_heap_type().len()
     }
 
     #[inline]
-    fn as_pointer(&self) -> *const Self::StoredType {
-        self.as_ptr() as *const Self::StoredType
+    fn as_heap_type(&self) -> &Self::HeapType {
+        // TODO: Stdlib hints that it may change this to be non const time - might need a diff way?
+        self.to_bytes_with_nul()
+    }
+
+    #[inline]
+    fn as_inline_ptr(&self) -> *const Self::InlineType {
+        self.as_ptr() as *const Self::InlineType
     }
 }
 
@@ -124,6 +137,8 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
+    impl_validation!(CStr);
+
     /// An empty ("") static constant string
     pub const EMPTY: Self = if Self::IS_VALID_SIZE {
         Self::from_static(EMPTY)

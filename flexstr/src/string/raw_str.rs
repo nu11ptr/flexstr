@@ -7,24 +7,34 @@ use core::mem;
 
 use paste::paste;
 
+use crate::storage::Storage;
 use crate::string::Str;
-use crate::{define_flex_types, impl_flex_str, BorrowStr, FlexStrInner};
+use crate::{
+    define_flex_types, impl_flex_str, impl_validation, BorrowStr, FlexStrInner, InlineStr,
+};
 
-const EMPTY: &[u8] = b"";
+/// Empty raw string constant
+pub const EMPTY: &[u8] = b"";
 
 impl Str for [u8] {
     type StringType = Vec<u8>;
-    type StoredType = u8;
+    type InlineType = u8;
+    type HeapType = [u8];
     type ConvertError = Infallible;
 
     #[inline]
-    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
+    fn from_inline_data(bytes: &[Self::InlineType]) -> &Self {
         bytes
     }
 
     #[inline]
+    fn from_heap_data(bytes: &Self::HeapType) -> &Self {
+        Self::from_inline_data(bytes)
+    }
+
+    #[inline]
     fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
-        Ok(Self::from_stored_data(bytes))
+        Ok(Self::from_inline_data(bytes))
     }
 
     #[inline]
@@ -42,7 +52,12 @@ impl Str for [u8] {
     }
 
     #[inline]
-    fn as_pointer(&self) -> *const Self::StoredType {
+    fn as_heap_type(&self) -> &Self::HeapType {
+        self
+    }
+
+    #[inline]
+    fn as_inline_ptr(&self) -> *const Self::InlineType {
         self.as_ptr()
     }
 }
@@ -54,6 +69,8 @@ impl_flex_str!(FlexRawStr, [u8]);
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexRawStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
+    impl_validation!([u8]);
+
     /// An empty ("") static constant string
     pub const EMPTY: Self = if Self::IS_VALID_SIZE {
         Self::from_static(EMPTY)
