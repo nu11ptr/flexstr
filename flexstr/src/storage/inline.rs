@@ -1,10 +1,11 @@
+use core::marker::PhantomData;
 use core::{mem, ptr};
 
 use crate::storage::StorageType;
 use crate::string::Str;
 
 /// Type representing the inline storage including its size and string type
-type InlineStorage<const N: usize, STR> = [mem::MaybeUninit<<STR as Str>::InlineType>; N];
+type InlineStorage<const N: usize> = [mem::MaybeUninit<u8>; N];
 
 #[doc(hidden)]
 #[derive(Clone, Copy)]
@@ -13,11 +14,12 @@ type InlineStorage<const N: usize, STR> = [mem::MaybeUninit<<STR as Str>::Inline
 #[repr(C)]
 pub(crate) struct InlineStr<const SIZE: usize, STR>
 where
-    STR: Str + ?Sized,
+    STR: ?Sized,
 {
-    data: InlineStorage<SIZE, STR>,
+    data: InlineStorage<SIZE>,
     len: u8,
     pub marker: StorageType,
+    phantom: PhantomData<STR>,
 }
 
 impl<const SIZE: usize, STR> InlineStr<SIZE, STR>
@@ -47,19 +49,15 @@ where
         // function directly. The copy is restrained to the length of the str.
 
         // Declare array, but keep uninitialized (we will overwrite momentarily)
-        let mut data: [mem::MaybeUninit<STR::InlineType>; SIZE] =
-            mem::MaybeUninit::uninit().assume_init();
+        let mut data: [mem::MaybeUninit<u8>; SIZE] = mem::MaybeUninit::uninit().assume_init();
         // Copy contents of &str to our data buffer
-        ptr::copy_nonoverlapping(
-            s.as_inline_ptr(),
-            data.as_mut_ptr().cast::<STR::InlineType>(),
-            len,
-        );
+        ptr::copy_nonoverlapping(s.as_inline_ptr(), data.as_mut_ptr().cast::<u8>(), len);
 
         Self {
             data,
             len: len as u8,
             marker: StorageType::Inline,
+            phantom: PhantomData,
         }
     }
 

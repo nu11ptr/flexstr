@@ -6,11 +6,11 @@ use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;
 
-use crate::string::Str;
-
 pub(crate) use borrow::*;
 pub(crate) use heap::*;
 pub(crate) use inline::*;
+
+use crate::string::Str;
 
 /// Represents the storage type used by a particular [FlexStr](crate::FlexStr)
 #[derive(Copy, Clone, Debug)]

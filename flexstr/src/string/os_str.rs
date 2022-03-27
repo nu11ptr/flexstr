@@ -3,36 +3,31 @@
 use alloc::rc::Rc;
 use alloc::sync::Arc;
 use core::convert::Infallible;
-use core::mem;
 use std::ffi::{OsStr, OsString};
 
 use paste::paste;
 
-use crate::storage::Storage;
 use crate::string::Str;
-use crate::{
-    define_flex_types, impl_flex_str, impl_validation, BorrowStr, FlexStrInner, InlineStr,
-};
+use crate::{define_flex_types, FlexStr};
 
 #[cfg(unix)]
 const RAW_EMPTY: &[u8] = b"";
 
 impl Str for OsStr {
     type StringType = OsString;
-    type InlineType = u8;
     type HeapType = OsStr;
     type ConvertError = Infallible;
 
     #[cfg(unix)]
     #[inline]
-    fn from_inline_data(bytes: &[Self::InlineType]) -> &Self {
+    fn from_inline_data(bytes: &[u8]) -> &Self {
         use std::os::unix::ffi::OsStrExt;
         OsStr::from_bytes(bytes)
     }
 
     #[cfg(not(unix))]
     #[inline]
-    fn from_inline_data(_bytes: &[Self::InlineType]) -> &Self {
+    fn from_inline_data(_bytes: &[u8]) -> &Self {
         // TODO: Does os_str_bytes have a feature to help with this? Didn't see one
         unreachable!("Raw byte slice conversion not supported on this platform");
     }
@@ -83,41 +78,24 @@ impl Str for OsStr {
 
     #[cfg(unix)]
     #[inline]
-    fn as_inline_ptr(&self) -> *const Self::InlineType {
+    fn as_inline_ptr(&self) -> *const u8 {
         use std::os::unix::ffi::OsStrExt;
-        self.as_bytes() as *const [Self::InlineType] as *const Self::InlineType
+        self.as_bytes() as *const [u8] as *const u8
     }
 
     #[cfg(not(unix))]
     #[inline]
-    fn as_inline_ptr(&self) -> *const Self::InlineType {
+    fn as_inline_ptr(&self) -> *const u8 {
         // TODO: Does os_str_bytes have a feature to help with this? Didn't see one
         unreachable!("Conversion back to raw pointer not supported on this platform");
     }
 }
 
-define_flex_types!("Os", OsStr);
-
-impl_flex_str!(FlexOsStr, OsStr);
+define_flex_types!("Os", OsStr, OsStr);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexOsStr<'str, SIZE, BPAD, HPAD, HEAP>
+    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, OsStr>
 {
-    impl_validation!(OsStr);
-
-    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
-    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
-    #[inline]
-    pub const fn from_static(s: &'static OsStr) -> Self {
-        if Self::IS_VALID_SIZE {
-            Self(FlexStrInner {
-                static_str: mem::ManuallyDrop::new(BorrowStr::from_static(s)),
-            })
-        } else {
-            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
-        }
-    }
-
     /// Creates a wrapped static string literal from a raw byte slice.
     #[cfg(unix)]
     #[inline]

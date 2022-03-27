@@ -4,27 +4,22 @@ use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;
 use core::convert::Infallible;
-use core::mem;
 
 use bstr::{BStr, BString};
 use paste::paste;
 
-use crate::storage::Storage;
 use crate::string::Str;
-use crate::{
-    define_flex_types, impl_flex_str, impl_validation, BorrowStr, FlexStrInner, InlineStr,
-};
+use crate::{define_flex_types, FlexStr};
 
 const RAW_EMPTY: &[u8] = b"";
 
 impl Str for BStr {
     type StringType = BString;
-    type InlineType = u8;
     type HeapType = [u8];
     type ConvertError = Infallible;
 
     #[inline]
-    fn from_inline_data(bytes: &[Self::InlineType]) -> &Self {
+    fn from_inline_data(bytes: &[u8]) -> &Self {
         bytes.into()
     }
 
@@ -58,33 +53,16 @@ impl Str for BStr {
     }
 
     #[inline]
-    fn as_inline_ptr(&self) -> *const Self::InlineType {
+    fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr()
     }
 }
 
-define_flex_types!("B", BStr);
-
-impl_flex_str!(FlexBStr, BStr);
+define_flex_types!("B", BStr, [u8]);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexBStr<'str, SIZE, BPAD, HPAD, HEAP>
+    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, BStr>
 {
-    impl_validation!(BStr);
-
-    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
-    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
-    #[inline]
-    pub const fn from_static(s: &'static BStr) -> Self {
-        if Self::IS_VALID_SIZE {
-            Self(FlexStrInner {
-                static_str: mem::ManuallyDrop::new(BorrowStr::from_static(s)),
-            })
-        } else {
-            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
-        }
-    }
-
     /// Creates a wrapped static string literal from a raw byte slice.
     #[inline]
     pub fn from_static_raw(s: &'static [u8]) -> Self {

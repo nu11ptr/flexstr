@@ -10,14 +10,14 @@ mod storage;
 mod string;
 
 pub use crate::string::std_str::{
-    BoxedStr, BoxedStrRef, FlexStr, LocalStr, LocalStrRef, SharedStr, SharedStrRef,
+    BoxedStr, BoxedStrRef, LocalStr, LocalStrRef, SharedStr, SharedStrRef, EMPTY,
 };
 
 /// Provides support for [BStr](bstr::BStr)-based [FlexStr] strings
 #[cfg(feature = "bstr")]
 pub mod b_str {
     pub use crate::string::b_str::{
-        BoxedBStr, BoxedBStrRef, FlexBStr, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
+        BoxedBStr, BoxedBStrRef, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
     };
 }
 
@@ -25,8 +25,8 @@ pub mod b_str {
 #[cfg(feature = "std")]
 pub mod c_str {
     pub use crate::string::c_str::{
-        BoxedCStr, BoxedCStrRef, CStrNullError, FlexCStr, LocalCStr, LocalCStrRef, SharedCStr,
-        SharedCStrRef,
+        BoxedCStr, BoxedCStrRef, CStrNullError, LocalCStr, LocalCStrRef, SharedCStr, SharedCStrRef,
+        EMPTY,
     };
 }
 
@@ -34,30 +34,39 @@ pub mod c_str {
 #[cfg(feature = "std")]
 pub mod os_str {
     pub use crate::string::os_str::{
-        BoxedOsStr, BoxedOsStrRef, FlexOsStr, LocalOsStr, LocalOsStrRef, SharedOsStr,
-        SharedOsStrRef,
+        BoxedOsStr, BoxedOsStrRef, LocalOsStr, LocalOsStrRef, SharedOsStr, SharedOsStrRef,
     };
 }
 
 /// Provides support for raw [`[u8]`](slice)-based [FlexStr] strings
 pub mod raw_str {
     pub use crate::string::raw_str::{
-        BoxedRawStr, BoxedRawStrRef, FlexRawStr, LocalRawStr, LocalRawStrRef, SharedRawStr,
-        SharedRawStrRef,
+        BoxedRawStr, BoxedRawStrRef, LocalRawStr, LocalRawStrRef, SharedRawStr, SharedRawStrRef,
+        EMPTY,
     };
 }
 
 use core::mem;
 
+use crate::custom::BAD_SIZE_OR_ALIGNMENT;
 use crate::storage::{BorrowStr, HeapStr, InlineStr, Storage, StorageType};
 use crate::string::Str;
+
+/// A flexible string type that transparently wraps a string literal, inline string, a heap allocated type,
+/// or a borrowed string (with appropriate lifetime)
+///
+/// # Note
+/// It is not generally recommended to try and create direct custom concrete types of [FlexStr] as it
+/// is complicated to calculate the correct sizes of all the generic type parameters. However, be aware
+/// that a runtime panic will be issued on creation if incorrect, so if you are able to create a string
+/// of your custom type, your parameters were of correct size/alignment.
 
 // Cannot yet reference associated types from a generic param (impl trait) for const generic params,
 // so we are forced to work with raw const generics for now. Also, cannot call const fn functions
 // with a trait that has bounds other than `Size` atm.
-union FlexStrInner<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
+pub union FlexStr<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
 where
-    STR: Str + ?Sized + 'static,
+    STR: ?Sized + 'static,
 {
     static_str: mem::ManuallyDrop<BorrowStr<BPAD, &'static STR>>,
     inline_str: mem::ManuallyDrop<InlineStr<SIZE, STR>>,
@@ -66,50 +75,160 @@ where
 }
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
-    FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, STR>
+    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, STR>
+where
+    STR: ?Sized + 'static,
+{
+    // If the union variants aren't the precise right size bad things will happen - we protect against that
+    const IS_VALID_SIZE: bool = Self::variant_sizes_are_valid();
+
+    #[inline]
+    const fn variant_sizes_are_valid() -> bool {
+        mem::size_of::<HeapStr<HPAD, HEAP, STR>>() == mem::size_of::<InlineStr<SIZE, STR>>()
+            && mem::size_of::<BorrowStr<BPAD, &'static STR>>()
+                == mem::size_of::<InlineStr<SIZE, STR>>()
+            && mem::align_of::<HeapStr<HPAD, HEAP, STR>>()
+                == mem::align_of::<InlineStr<SIZE, STR>>()
+            && mem::align_of::<BorrowStr<BPAD, &'static STR>>()
+                == mem::align_of::<InlineStr<SIZE, STR>>()
+    }
+
+    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
+    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// const S: LocalStr = LocalStr::from_static("test");
+    /// assert!(S.is_static());
+    /// ```
+    #[inline]
+    pub const fn from_static(s: &'static STR) -> Self {
+        if Self::IS_VALID_SIZE {
+            Self {
+                static_str: mem::ManuallyDrop::new(BorrowStr::from_static(s)),
+            }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+        }
+    }
+}
+
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
+    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, STR>
 where
     HEAP: Storage<STR>,
     STR: Str + ?Sized,
 {
     #[inline]
-    pub fn from_inline(s: InlineStr<SIZE, STR>) -> Self {
-        Self {
-            inline_str: mem::ManuallyDrop::new(s),
+    fn from_inline(s: InlineStr<SIZE, STR>) -> Self {
+        if Self::IS_VALID_SIZE {
+            Self {
+                inline_str: mem::ManuallyDrop::new(s),
+            }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
+    /// Attempts to create an inlined string. Returns a new inline string on success or the original
+    /// source string if it will not fit. Since the to/into/[from_ref](FlexStr::from_ref) functions
+    /// will automatically inline when possible, this function is really only for special use cases.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::try_inline("test").unwrap();
+    /// assert!(s.is_inline());
+    /// ```
+    #[inline]
+    pub fn try_inline<S: AsRef<STR>>(s: S) -> Result<Self, S> {
+        match InlineStr::try_new(s) {
+            Ok(s) => Ok(Self::from_inline(s)),
+            Err(s) => Err(s),
+        }
+    }
+
+    /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexStr::from_ref)
+    /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
+    /// Using this is generally only recommended when using the associated [to_heap](FlexStr::to_heap)
+    /// and [try_to_heap](FlexStr::try_to_heap) functions.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::from_ref_heap("test");
+    /// assert!(s.is_heap());
+    /// ```
     #[inline]
     pub fn from_ref_heap(s: impl AsRef<STR>) -> Self {
-        Self {
-            heap_str: mem::ManuallyDrop::new(HeapStr::from_ref(s)),
+        if Self::IS_VALID_SIZE {
+            Self {
+                heap_str: mem::ManuallyDrop::new(HeapStr::from_ref(s)),
+            }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
+    /// Create a new heap based string by wrapping the existing user provided heap string type (T).
+    /// For [LocalStr] this will be an [Rc\<str\>](std::rc::Rc) and for [SharedStr] it will be an
+    /// [Arc\<str\>](std::sync::Arc). This would typically only be used if efficient unwrapping of heap
+    /// based data is needed at a later time.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::from_heap("test".into());
+    /// assert!(s.is_heap());
+    /// ```
     #[inline]
     pub fn from_heap(t: HEAP) -> Self {
-        Self {
-            heap_str: mem::ManuallyDrop::new(HeapStr::from_heap(t)),
+        if Self::IS_VALID_SIZE {
+            Self {
+                heap_str: mem::ManuallyDrop::new(HeapStr::from_heap(t)),
+            }
+        } else {
+            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
+    /// Returns true if this is a wrapped string literal (`&'static str`)
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::from_static("test");
+    /// assert!(s.is_static());
+    /// ```
     #[inline]
     pub fn is_static(&self) -> bool {
         // SAFETY: Marker is identical in all union fields
         unsafe { matches!(self.static_str.marker, StorageType::Static) }
     }
 
+    /// Returns true if this is an inlined string
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::try_inline("test").unwrap();
+    /// assert!(s.is_inline());
+    /// ```
     #[inline]
     pub fn is_inline(&self) -> bool {
         // SAFETY: Marker is identical in all union fields
         unsafe { matches!(self.static_str.marker, StorageType::Inline) }
     }
 
+    /// Returns true if this is a wrapped string using heap storage
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::from_ref_heap("test");
+    /// assert!(s.is_heap());
+    /// ```
     #[inline]
     pub fn is_heap(&self) -> bool {
         // SAFETY: Marker is identical in all union fields
         unsafe { matches!(self.static_str.marker, StorageType::Heap) }
     }
 
+    /// Returns true if this is a wrapped string using borrowed storage
     #[inline]
     pub fn is_borrow(&self) -> bool {
         // SAFETY: Marker is identical in all union fields

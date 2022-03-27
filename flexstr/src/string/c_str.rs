@@ -3,16 +3,13 @@
 use alloc::rc::Rc;
 use alloc::sync::Arc;
 use core::fmt::{Debug, Display, Formatter};
-use core::mem;
 use std::error::Error;
 use std::ffi::{CStr, CString};
 
 use paste::paste;
 
-use crate::storage::Storage;
 use crate::string::Str;
-use crate::{define_flex_types, impl_flex_str, impl_validation};
-use crate::{BorrowStr, FlexStrInner, InlineStr};
+use crate::{define_flex_types, FlexStr, BAD_SIZE_OR_ALIGNMENT};
 
 /// Empty C string constant
 // This is the only way to get a const CStr that I can tell
@@ -21,12 +18,11 @@ pub const EMPTY: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
 
 impl Str for CStr {
     type StringType = CString;
-    type InlineType = u8;
     type HeapType = [u8];
     type ConvertError = CStrNullError;
 
     #[inline]
-    fn from_inline_data(bytes: &[Self::InlineType]) -> &Self {
+    fn from_inline_data(bytes: &[u8]) -> &Self {
         // SAFETY: This data is pre-vetted to ensure it ends with a null byte
         unsafe { CStr::from_bytes_with_nul_unchecked(bytes) }
     }
@@ -65,16 +61,12 @@ impl Str for CStr {
     }
 
     #[inline]
-    fn as_inline_ptr(&self) -> *const Self::InlineType {
-        self.as_ptr() as *const Self::InlineType
+    fn as_inline_ptr(&self) -> *const u8 {
+        self.as_ptr() as *const u8
     }
 }
 
-define_flex_types!("C", CStr);
-
-impl_flex_str!(FlexCStr, CStr);
-
-/// This error is returned when trying to create a new [FlexCStr] from a [&\[u8\]] sequence without
+/// This error is returned when trying to create a new [FlexStr] from a [&\[u8\]] sequence without
 /// a trailing null
 #[derive(Clone, Copy, Debug)]
 pub enum CStrNullError {
@@ -134,11 +126,11 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
     }
 }
 
-impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
-{
-    impl_validation!(CStr);
+define_flex_types!("C", CStr, [u8]);
 
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, CStr>
+{
     /// An empty ("") static constant string
     pub const EMPTY: Self = if Self::IS_VALID_SIZE {
         Self::from_static(EMPTY)
@@ -146,29 +138,8 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
         panic!("{}", BAD_SIZE_OR_ALIGNMENT);
     };
 
-    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
-    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
-    /// ```
-    /// use std::ffi::CStr;
-    /// use flexstr::c_str::LocalCStr;
-    ///
-    /// let s: &'static CStr = CStr::from_bytes_with_nul(b"test\0").unwrap();
-    /// let  s: LocalCStr = LocalCStr::from_static(s);
-    /// assert!(s.is_static());
-    /// ```
-    #[inline]
-    pub const fn from_static(s: &'static CStr) -> Self {
-        if Self::IS_VALID_SIZE {
-            Self(FlexStrInner {
-                static_str: mem::ManuallyDrop::new(BorrowStr::from_static(s)),
-            })
-        } else {
-            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
-        }
-    }
-
     /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
-    /// [FlexCStr] will be created using static wrapped storage. If unsuccessful (because encoding is
+    /// [FlexStr] will be created using static wrapped storage. If unsuccessful (because encoding is
     /// incorrect) a [CStrNullError] is returned. This is `const fn` so it can be used to initialize
     /// a constant at compile time with zero runtime cost.
     /// ```
