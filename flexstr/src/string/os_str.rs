@@ -11,6 +11,9 @@ use paste::paste;
 use crate::string::Str;
 use crate::{define_flex_types, impl_flex_str, BorrowStr, FlexStrInner};
 
+#[cfg(unix)]
+const RAW_EMPTY: &[u8] = b"";
+
 impl Str for OsStr {
     type StringType = OsString;
     type StoredType = u8;
@@ -41,6 +44,22 @@ impl Str for OsStr {
     fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
         // TODO: Use os_str_bytes for platforms other than unix
         unreachable!("Raw byte slice conversion not supported on this platform")
+    }
+
+    #[cfg(unix)]
+    #[inline]
+    fn empty(&self) -> Option<&'static Self> {
+        if self.length() == 0 {
+            Some(Self::from_stored_data(RAW_EMPTY))
+        } else {
+            None
+        }
+    }
+
+    #[cfg(not(unix))]
+    #[inline]
+    fn empty(&self) -> Option<&'static Self> {
+        None
     }
 
     #[inline]

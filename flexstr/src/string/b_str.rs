@@ -12,6 +12,8 @@ use paste::paste;
 use crate::string::Str;
 use crate::{define_flex_types, impl_flex_str, BorrowStr, FlexStrInner};
 
+const RAW_EMPTY: &[u8] = b"";
+
 impl Str for BStr {
     type StringType = BString;
     type StoredType = u8;
@@ -25,6 +27,15 @@ impl Str for BStr {
     #[inline]
     fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
         Ok(Self::from_stored_data(bytes))
+    }
+
+    #[inline]
+    fn empty(&self) -> Option<&'static Self> {
+        if self.length() == 0 {
+            Some(Self::from_stored_data(RAW_EMPTY))
+        } else {
+            None
+        }
     }
 
     #[inline]

@@ -21,6 +21,9 @@ pub trait Str {
     /// possible, a [Self::ConvertError] is returned
     fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError>;
 
+    /// If self is_empty return a static empty string. If not supported by this string type, None is returned
+    fn empty(&self) -> Option<&'static Self>;
+
     /// Returns the storage length for this particular string in bytes (not the # of chars)
     fn length(&self) -> usize;
 
@@ -159,6 +162,48 @@ macro_rules! impl_flex_str {
                         == mem::align_of::<InlineStr<SIZE, $str>>()
                     && mem::align_of::<BorrowStr<BPAD, &'static $str>>()
                         == mem::align_of::<InlineStr<SIZE, $str>>()
+            }
+
+            /// Returns true if this is a wrapped string literal (`&'static str`)
+            /// ```
+            /// use flexstr::LocalStr;
+            ///
+            /// let s = LocalStr::from_static("test");
+            /// assert!(s.is_static());
+            /// ```
+            #[inline(always)]
+            pub fn is_static(&self) -> bool {
+                self.0.is_static()
+            }
+
+            /// Returns true if this is an inlined string
+            /// ```
+            /// use flexstr::LocalStr;
+            ///
+            /// let s = LocalStr::try_inline("test").unwrap();
+            /// assert!(s.is_inline());
+            /// ```
+            #[inline(always)]
+            pub fn is_inline(&self) -> bool {
+                self.0.is_inline()
+            }
+
+            /// Returns true if this is a wrapped string using heap storage
+            /// ```
+            /// use flexstr::LocalStr;
+            ///
+            /// let s = LocalStr::from_ref_heap("test");
+            /// assert!(s.is_heap());
+            /// ```
+            #[inline(always)]
+            pub fn is_heap(&self) -> bool {
+                self.0.is_heap()
+            }
+
+            /// Returns true if this is a wrapped string using borrowed storage
+            #[inline(always)]
+            pub fn is_borrow(&self) -> bool {
+                self.0.is_borrow()
             }
         }
     };

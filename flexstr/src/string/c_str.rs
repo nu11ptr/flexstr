@@ -13,6 +13,10 @@ use crate::string::Str;
 use crate::{define_flex_types, impl_flex_str};
 use crate::{BorrowStr, FlexStrInner};
 
+// This is the only way to get a const CStr that I can tell
+// SAFETY: We visually inspect the below raw byte sequence and can see it has a trailing null
+const EMPTY: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
+
 impl Str for CStr {
     type StringType = CString;
     type StoredType = u8;
@@ -20,13 +24,24 @@ impl Str for CStr {
 
     #[inline]
     fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
-        // SAFETY: This data was pre-vetted to ensure it ends with a null byte
+        // SAFETY: This data is pre-vetted to ensure it ends with a null byte
         unsafe { CStr::from_bytes_with_nul_unchecked(bytes) }
     }
 
     #[inline]
     fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
         try_from_raw(bytes)
+    }
+
+    #[inline]
+    fn empty(&self) -> Option<&'static Self> {
+        // This is ok since this is a CStr which has an invariant that it MUST end with a null byte
+        // so a length of 1 MUST be an empty CStr
+        if self.length() == 1 {
+            Some(EMPTY)
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -109,6 +124,13 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
+    /// An empty ("") static constant string
+    pub const EMPTY: Self = if Self::IS_VALID_SIZE {
+        Self::from_static(EMPTY)
+    } else {
+        panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+    };
+
     /// Creates a wrapped static string literal. This function is equivalent to using the macro and
     /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
     /// ```

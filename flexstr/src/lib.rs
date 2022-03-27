@@ -49,7 +49,7 @@ pub mod raw_str {
 
 use core::mem;
 
-use crate::storage::{BorrowStr, HeapStr, InlineStr};
+use crate::storage::{BorrowStr, HeapStr, InlineStr, StorageType};
 use crate::string::Str;
 
 // Cannot yet reference associated types from a generic param (impl trait) for const generic params,
@@ -68,6 +68,29 @@ where
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
     FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, STR>
 where
-    STR: Str,
+    STR: Str + ?Sized,
 {
+    #[inline]
+    pub fn is_static(&self) -> bool {
+        // SAFETY: Marker is identical in all union fields
+        unsafe { matches!(self.static_str.marker, StorageType::Static) }
+    }
+
+    #[inline]
+    pub fn is_inline(&self) -> bool {
+        // SAFETY: Marker is identical in all union fields
+        unsafe { matches!(self.static_str.marker, StorageType::Inline) }
+    }
+
+    #[inline]
+    pub fn is_heap(&self) -> bool {
+        // SAFETY: Marker is identical in all union fields
+        unsafe { matches!(self.static_str.marker, StorageType::Heap) }
+    }
+
+    #[inline]
+    pub fn is_borrow(&self) -> bool {
+        // SAFETY: Marker is identical in all union fields
+        unsafe { matches!(self.static_str.marker, StorageType::Borrow) }
+    }
 }
