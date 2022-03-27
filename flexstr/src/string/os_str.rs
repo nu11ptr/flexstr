@@ -2,6 +2,7 @@
 
 use alloc::rc::Rc;
 use alloc::sync::Arc;
+use core::convert::Infallible;
 use core::mem;
 use std::ffi::{OsStr, OsString};
 
@@ -12,12 +13,34 @@ use crate::{define_flex_types, impl_flex_str, BorrowStr, FlexStrInner};
 
 impl Str for OsStr {
     type StringType = OsString;
-    type InlineType = u8;
+    type StoredType = u8;
+    type ConvertError = Infallible;
 
+    #[cfg(unix)]
     #[inline]
-    fn from_raw_data(_bytes: &[Self::InlineType]) -> &Self {
-        // There is no function to convert us from &[u8] to &OsStr without UB unfortunately
-        unreachable!("OsStr inline deref is not supported");
+    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
+        use std::os::unix::ffi::OsStrExt;
+        OsStr::from_bytes(bytes)
+    }
+
+    #[cfg(not(unix))]
+    #[inline]
+    fn from_stored_data(_bytes: &[Self::StoredType]) -> &Self {
+        // TODO: Does os_str_bytes have a feature to help with this? Didn't see one
+        unreachable!("Raw byte slice conversion not supported on this platform");
+    }
+
+    #[cfg(unix)]
+    #[inline]
+    fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
+        Ok(Self::from_stored_data(bytes))
+    }
+
+    #[cfg(not(unix))]
+    #[inline]
+    fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
+        // TODO: Use os_str_bytes for platforms other than unix
+        unreachable!("Raw byte slice conversion not supported on this platform")
     }
 
     #[inline]
@@ -25,10 +48,18 @@ impl Str for OsStr {
         self.len()
     }
 
+    #[cfg(unix)]
     #[inline]
-    fn as_pointer(&self) -> *const Self::InlineType {
-        // There is no function to convert us from &OsStr to *const u8 without UB unfortunately
-        unreachable!("OsStr inline raw copy is not supported");
+    fn as_pointer(&self) -> *const Self::StoredType {
+        use std::os::unix::ffi::OsStrExt;
+        self.as_bytes() as *const [Self::StoredType] as *const Self::StoredType
+    }
+
+    #[cfg(not(unix))]
+    #[inline]
+    fn as_pointer(&self) -> *const Self::StoredType {
+        // TODO: Does os_str_bytes have a feature to help with this? Didn't see one
+        unreachable!("Conversion back to raw byte slice not support on this platform");
     }
 }
 
@@ -50,5 +81,13 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
         } else {
             panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
+    }
+
+    /// Creates a wrapped static string literal from a raw byte slice.
+    #[cfg(unix)]
+    #[inline]
+    pub fn from_static_raw(s: &'static [u8]) -> Self {
+        // I see no mention of const fn for these functions on unix - use trait
+        Self::from_static(OsStr::from_stored_data(s))
     }
 }

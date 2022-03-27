@@ -8,18 +8,24 @@ pub(crate) mod std_str;
 pub trait Str {
     /// Regular (typically [Vec]-based) heap allocate string type
     type StringType;
-    /// Type of the individual element of the underlying inline array
-    type InlineType: Copy;
+    /// Type of the individual element of the underlying storage array
+    type StoredType: Copy;
+    /// Error returned when a conversion from raw type to representative type fails
+    type ConvertError;
 
-    /// Transforms a slice of the inline type into the final string type. This is unsafe because
-    /// we need to do zero overhead conversions for deref.
-    fn from_raw_data(bytes: &[Self::InlineType]) -> &Self;
+    /// Transforms a slice of the stored type into the final string type. This can't fail so it only
+    /// is called when the data is already vetted to be valid
+    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self;
+
+    /// Tries to transform raw data that has not yet been vetted to the final string type. If it is not
+    /// possible, a [Self::ConvertError] is returned
+    fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError>;
 
     /// Returns the storage length for this particular string in bytes (not the # of chars)
     fn length(&self) -> usize;
 
     /// Returns a representation of the inline type as a pointer
-    fn as_pointer(&self) -> *const Self::InlineType;
+    fn as_pointer(&self) -> *const Self::StoredType;
 }
 
 #[doc(hidden)]

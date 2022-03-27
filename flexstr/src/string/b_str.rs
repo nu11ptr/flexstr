@@ -3,6 +3,7 @@
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;
+use core::convert::Infallible;
 use core::mem;
 
 use bstr::{BStr, BString};
@@ -13,11 +14,17 @@ use crate::{define_flex_types, impl_flex_str, BorrowStr, FlexStrInner};
 
 impl Str for BStr {
     type StringType = BString;
-    type InlineType = u8;
+    type StoredType = u8;
+    type ConvertError = Infallible;
 
     #[inline]
-    fn from_raw_data(bytes: &[Self::InlineType]) -> &Self {
+    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
         bytes.into()
+    }
+
+    #[inline]
+    fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
+        Ok(Self::from_stored_data(bytes))
     }
 
     #[inline]
@@ -26,7 +33,7 @@ impl Str for BStr {
     }
 
     #[inline]
-    fn as_pointer(&self) -> *const Self::InlineType {
+    fn as_pointer(&self) -> *const Self::StoredType {
         self.as_ptr()
     }
 }
@@ -49,5 +56,12 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
         } else {
             panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
+    }
+
+    /// Creates a wrapped static string literal from a raw byte slice.
+    #[inline]
+    pub fn from_static_raw(s: &'static [u8]) -> Self {
+        // There are no `const fn` functions in BStr to do this so we use trait
+        Self::from_static(BStr::from_stored_data(s))
     }
 }

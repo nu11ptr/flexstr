@@ -6,7 +6,6 @@ use core::fmt::{Debug, Display, Formatter};
 use core::mem;
 use std::error::Error;
 use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
 
 use paste::paste;
 
@@ -16,24 +15,30 @@ use crate::{BorrowStr, FlexStrInner};
 
 impl Str for CStr {
     type StringType = CString;
-    type InlineType = c_char;
+    type StoredType = u8;
+    type ConvertError = CStrNullError;
 
     #[inline]
-    fn from_raw_data(bytes: &[Self::InlineType]) -> &Self {
-        // SAFETY: This will always be prior vetted to ensure it ends with a null terminator
-        unsafe { Self::from_ptr(bytes as *const [Self::InlineType] as *const Self::InlineType) }
+    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
+        // SAFETY: This data was pre-vetted to ensure it ends with a null byte
+        unsafe { CStr::from_bytes_with_nul_unchecked(bytes) }
+    }
+
+    #[inline]
+    fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
+        try_from_raw(bytes)
     }
 
     #[inline]
     fn length(&self) -> usize {
-        // TODO: Stdlib hints that it may change this to be non const time - might need a diff way
+        // TODO: Stdlib hints that it may change this to be non const time - might need a diff way?
         // NOTE: This will include trailing null byte (this is storage, not usable chars)
         self.to_bytes_with_nul().len()
     }
 
     #[inline]
-    fn as_pointer(&self) -> *const Self::InlineType {
-        self.as_ptr()
+    fn as_pointer(&self) -> *const Self::StoredType {
+        self.as_ptr() as *const Self::StoredType
     }
 }
 
@@ -68,6 +73,39 @@ impl Display for CStrNullError {
 
 impl Error for CStrNullError {}
 
+#[inline]
+const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
+    // We go through all this work just to make this const fn :-) If using stdlib it is a one liner
+    // Didn't see any signs it would be made const fn anytime soon
+
+    // Search string for null zero - `for` is not allowed in `const fn` functions unfortunately
+    let mut idx = 0;
+    let mut pos = None;
+
+    while idx < s.len() {
+        if s[idx] == b'\0' {
+            pos = Some(idx);
+            break;
+        }
+
+        idx += 1;
+    }
+
+    if let Some(pos) = pos {
+        if pos == s.len() - 1 {
+            // SAFETY: We manually verified it is valid just above
+            let s = unsafe { CStr::from_bytes_with_nul_unchecked(s) };
+            Ok(s)
+        } else {
+            // Interior null byte
+            Err(CStrNullError::InteriorNullByte(pos))
+        }
+    } else {
+        // No null byte
+        Err(CStrNullError::NoNullByteFound)
+    }
+}
+
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
@@ -78,8 +116,8 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// use flexstr::c_str::LocalCStr;
     ///
     /// let s: &'static CStr = CStr::from_bytes_with_nul(b"test\0").unwrap();
-    /// const S: LocalCStr = LocalCStr::from_static(s);
-    /// assert!(S.is_static());
+    /// let  s: LocalCStr = LocalCStr::from_static(s);
+    /// assert!(s.is_static());
     /// ```
     #[inline]
     pub const fn from_static(s: &'static CStr) -> Self {
@@ -104,33 +142,10 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// ```
     #[inline]
     pub const fn try_from_static_raw(s: &'static [u8]) -> Result<Self, CStrNullError> {
-        // We go through all this work just to make this const fn :-) If using stdlib it is a one liner
-
-        // Search string for null zero - `for` is not allowed in `const fn` functions unfortunately
-        let mut idx = 0;
-        let mut pos = None;
-
-        while idx < s.len() {
-            if s[idx] == b'\0' {
-                pos = Some(idx);
-                break;
-            }
-
-            idx += 1;
-        }
-
-        if let Some(pos) = pos {
-            if pos == s.len() - 1 {
-                // SAFETY: We manually verified it is valid just above
-                let s = unsafe { CStr::from_bytes_with_nul_unchecked(s) };
-                Ok(Self::from_static(s))
-            } else {
-                // Interior null byte
-                Err(CStrNullError::InteriorNullByte(pos))
-            }
-        } else {
-            // No null byte
-            Err(CStrNullError::NoNullByteFound)
+        // '?' not allowed in const fn
+        match try_from_raw(s) {
+            Ok(s) => Ok(Self::from_static(s)),
+            Err(err) => Err(err),
         }
     }
 }

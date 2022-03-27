@@ -4,7 +4,7 @@ use crate::storage::StorageType;
 use crate::string::Str;
 
 /// Type representing the inline storage including its size and string type
-type InlineStorage<const N: usize, STR> = [mem::MaybeUninit<<STR as Str>::InlineType>; N];
+type InlineStorage<const N: usize, STR> = [mem::MaybeUninit<<STR as Str>::StoredType>; N];
 
 #[doc(hidden)]
 #[derive(Clone, Copy)]

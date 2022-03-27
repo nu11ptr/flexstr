@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::convert::Infallible;
 use core::mem;
 
 use paste::paste;
@@ -11,11 +12,17 @@ use crate::{define_flex_types, impl_flex_str, BorrowStr, FlexStrInner};
 
 impl Str for [u8] {
     type StringType = Vec<u8>;
-    type InlineType = u8;
+    type StoredType = u8;
+    type ConvertError = Infallible;
 
     #[inline]
-    fn from_raw_data(bytes: &[Self::InlineType]) -> &Self {
+    fn from_stored_data(bytes: &[Self::StoredType]) -> &Self {
         bytes
+    }
+
+    #[inline]
+    fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
+        Ok(Self::from_stored_data(bytes))
     }
 
     #[inline]
@@ -24,7 +31,7 @@ impl Str for [u8] {
     }
 
     #[inline]
-    fn as_pointer(&self) -> *const Self::InlineType {
+    fn as_pointer(&self) -> *const Self::StoredType {
         self.as_ptr()
     }
 }
