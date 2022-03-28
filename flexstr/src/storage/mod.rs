@@ -12,17 +12,17 @@ pub(crate) use inline::*;
 
 use crate::string::Str;
 
-/// Represents the storage type used by a particular [FlexStr](crate::FlexStr)
+/// Represents the storage type used by a particular [FlexStrBase](crate::FlexStrBase)
 #[derive(Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum StorageType {
-    /// Denotes that this [FlexStr](crate::FlexStr) is a wrapped string literal
+    /// Denotes that this [FlexStrBase](crate::FlexStrBase) is a wrapped string literal
     Static,
-    /// Denotes that this [FlexStr](crate::FlexStr) is inlined
+    /// Denotes that this [FlexStrBase](crate::FlexStrBase) is inlined
     Inline,
-    /// Denotes that this [FlexStr](crate::FlexStr) uses heap-based storage
+    /// Denotes that this [FlexStrBase](crate::FlexStrBase) uses heap-based storage
     Heap,
-    /// Denotes that this [FlexStr](crate::FlexStr) uses borrowed storage
+    /// Denotes that this [FlexStrBase](crate::FlexStrBase) uses borrowed storage
     Borrow,
 }
 

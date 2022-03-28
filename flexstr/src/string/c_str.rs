@@ -9,7 +9,7 @@ use std::ffi::{CStr, CString};
 use paste::paste;
 
 use crate::string::Str;
-use crate::{define_flex_types, FlexStr, BAD_SIZE_OR_ALIGNMENT};
+use crate::{define_flex_types, FlexStrBase, FlexStrRefBase, BAD_SIZE_OR_ALIGNMENT};
 
 /// Empty C string constant
 // This is the only way to get a const CStr that I can tell
@@ -66,7 +66,7 @@ impl Str for CStr {
     }
 }
 
-/// This error is returned when trying to create a new [FlexStr] from a [&\[u8\]] sequence without
+/// This error is returned when trying to create a new [FlexStrBase] from a [&\[u8\]] sequence without
 /// a trailing null
 #[derive(Clone, Copy, Debug)]
 pub enum CStrNullError {
@@ -129,7 +129,7 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
 define_flex_types!("C", CStr, [u8]);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, CStr>
+    FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// An empty ("") static constant string
     pub const EMPTY: Self = if Self::IS_VALID_SIZE {
@@ -139,7 +139,7 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     };
 
     /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
-    /// [FlexStr] will be created using static wrapped storage. If unsuccessful (because encoding is
+    /// [FlexCStr] will be created using static wrapped storage. If unsuccessful (because encoding is
     /// incorrect) a [CStrNullError] is returned. This is `const fn` so it can be used to initialize
     /// a constant at compile time with zero runtime cost.
     /// ```

@@ -45,58 +45,80 @@ macro_rules! define_flex_types {
         use $crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
 
         paste! {
-            /// A flexible base string type that transparently wraps a string literal, inline string, or a custom `HEAP` type
+            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<",
+            stringify!($heap_type), ">`](std::rc::Rc)")]
             ///
             /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
+
+            // *** FlexStr ***
+            pub type [<Flex $ident Str>]<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP> =
+                FlexStrBase<'str, SIZE, BPAD, HPAD, HEAP, $type>;
+
+            // *** FlexStrRef *** (no need to export atm - it is blank)
+            type [<Flex $ident StrRef>]<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP> =
+                FlexStrRefBase<'str, SIZE, BPAD, HPAD, HEAP, $type>;
+
+            /// A flexible base string type that transparently wraps a string literal, inline string, or a custom `HEAP` type.
+            ///
+            /// It is three machine words in size (3x usize) and can hold 22 bytes of inline string data on 64-bit platforms.
+            ///
+            /// # Note
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
             ///
             /// # Note 2
             /// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
             /// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
             /// creation.
-            pub type [<Flex $ident StrBase>]<HEAP> =
-                FlexStr<'static, STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP, $type>;
+
+            // *** FlexStr3USize ***
+            pub type [<Flex $ident Str3USize>]<HEAP> =
+                [<Flex $ident Str>]<'static, STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
 
             /// A flexible base string type that transparently wraps a string literal, inline string, a custom `HEAP` type, or
             /// a borrowed string (with appropriate lifetime specified).
             ///
+            /// It is three machine words in size (3x usize) and can hold 22 bytes of inline string data on 64-bit platforms.
+            ///
             /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
             ///
             /// # Note 2
             /// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
             /// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
             /// creation.
-            pub type [<Flex $ident StrRefBase>]<'str, HEAP> =
-                FlexStr<'str, STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP, $type>;
+
+            // *** FlexStrRef3USize ***
+            pub type [<Flex $ident StrRef3USize>]<'str, HEAP> =
+                [<Flex $ident StrRef>]<'str, STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
 
             #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<",
             stringify!($heap_type), ">`](std::rc::Rc)")]
             ///
             /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-            pub type [<Local $ident Str>] = [<Flex $ident StrBase>]<Rc<$heap_type>>;
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
+            pub type [<Local $ident Str>] = [<Flex $ident Str3USize>]<Rc<$heap_type>>;
 
             #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or an [`Arc<",
             stringify!($heap_type), ">`](std::sync::Arc)")]
             ///
             /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-            pub type [<Shared $ident Str>] = [<Flex $ident StrBase>]<Arc<$heap_type>>;
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
+            pub type [<Shared $ident Str>] = [<Flex $ident Str3USize>]<Arc<$heap_type>>;
 
             #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Rc<",
             stringify!($heap_type), ">`](std::rc::Rc), or borrowed string (with appropriate lifetime)")]
             ///
             /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-            pub type [<Local $ident StrRef>]<'str> = [<Flex $ident StrRefBase>]<'str, Rc<$heap_type>>;
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
+            pub type [<Local $ident StrRef>]<'str> = [<Flex $ident StrRef3USize>]<'str, Rc<$heap_type>>;
 
             #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Arc<",
             stringify!($heap_type), ">`](std::sync::Arc), or borrowed string (with appropriate lifetime)")]
             ///
             /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-            pub type [<Shared $ident StrRef>]<'str> = [<Flex $ident StrRefBase>]<'str, Arc<$heap_type>>;
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
+            pub type [<Shared $ident StrRef>]<'str> = [<Flex $ident StrRef3USize>]<'str, Arc<$heap_type>>;
 
             #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or a [`Box<",
             stringify!($heap_type), ">`](std::boxed::Box)")]
@@ -108,8 +130,8 @@ macro_rules! define_flex_types {
             $ident "Str] for much better clone performance (without copy or additional allocation)"]
             ///
             /// # Note 2
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-            pub type [<Boxed $ident Str>] = [<Flex $ident StrBase>]<Box<$heap_type>>;
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
+            pub type [<Boxed $ident Str>] = [<Flex $ident Str3USize>]<Box<$heap_type>>;
 
             #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Box<",
             stringify!($heap_type), ">`](std::boxed::Box), or borrowed string (with appropriate lifetime)")]
@@ -121,8 +143,8 @@ macro_rules! define_flex_types {
             $ident "StrRef] for much better clone performance (without copy or additional allocation)"]
             ///
             /// # Note 2
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
-            pub type [<Boxed $ident StrRef>]<'str> = [<Flex $ident StrRefBase>]<'str, Box<$heap_type>>;
+            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
+            pub type [<Boxed $ident StrRef>]<'str> = [<Flex $ident StrRef3USize>]<'str, Box<$heap_type>>;
         }
     };
 }

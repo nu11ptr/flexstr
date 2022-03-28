@@ -8,7 +8,7 @@ use std::ffi::{OsStr, OsString};
 use paste::paste;
 
 use crate::string::Str;
-use crate::{define_flex_types, FlexStr};
+use crate::{define_flex_types, FlexStrBase, FlexStrRefBase};
 
 #[cfg(unix)]
 const RAW_EMPTY: &[u8] = b"";
@@ -94,7 +94,7 @@ impl Str for OsStr {
 define_flex_types!("Os", OsStr, OsStr);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, OsStr>
+    FlexOsStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// Creates a wrapped static string literal from a raw byte slice.
     #[cfg(unix)]

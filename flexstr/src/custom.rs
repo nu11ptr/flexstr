@@ -12,9 +12,9 @@ pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 pub use crate::string::Str;
 
 pub(crate) const BAD_SIZE_OR_ALIGNMENT: &str = "OOPS! It seems you are trying to create a custom `FlexStr` but have \
-violated the invariants on size and alignment. It is recommended to only try and use `FlexStrBase` \
+violated the invariants on size and alignment. It is recommended to only try and use `FlexStr3USize` \
 and pick a storage type with a size of exactly two machine words (16 bytes on 64-bit, 8 bytes on 32-bit). \
-Creating a custom type based directly on the `FlexStr` union is possible, but it is difficult to calculate \
+Creating a custom type based directly on the `FlexStrBase` union is possible, but it is difficult to calculate \
 all the type parameters correctly and is therefore not recommended.";
 
 /// Type that supplies internal padding to the internal union structures
@@ -31,27 +31,27 @@ impl<const N: usize> Pad<N> {
     }
 }
 
-pub use crate::string::std_str::{FlexStrBase, FlexStrRefBase};
+pub use crate::string::std_str::{FlexStr3USize, FlexStrRef3USize};
 
-/// Provides support for custom [BStr](bstr::BStr)-based [FlexStr](crate::FlexStr) strings
+/// Provides support for custom [BStr](bstr::BStr)-based [FlexStrBase](crate::FlexStrBase) strings
 #[cfg(feature = "bstr")]
 pub mod b_str {
-    pub use crate::string::b_str::{FlexBStrBase, FlexBStrRefBase};
+    pub use crate::string::b_str::{FlexBStr3USize, FlexBStrRef3USize};
 }
 
-/// Provides support for custom [CStr](std::ffi::CStr)-based [FlexStr](crate::FlexStr) strings
+/// Provides support for custom [CStr](std::ffi::CStr)-based [FlexStrBase](crate::FlexStrBase) strings
 #[cfg(feature = "std")]
 pub mod c_str {
-    pub use crate::string::c_str::{FlexCStrBase, FlexCStrRefBase};
+    pub use crate::string::c_str::{FlexCStr3USize, FlexCStrRef3USize};
 }
 
-/// Provides support for custom [OsStr](std::ffi::OsStr)-based [FlexStr](crate::FlexStr) strings
+/// Provides support for custom [OsStr](std::ffi::OsStr)-based [FlexStrBase](crate::FlexStrBase) strings
 #[cfg(feature = "std")]
 pub mod os_str {
-    pub use crate::string::os_str::{FlexOsStrBase, FlexOsStrRefBase};
+    pub use crate::string::os_str::{FlexOsStr3USize, FlexOsStrRef3USize};
 }
 
-/// Provides support for custom raw [`[u8]`](slice)-based [FlexStr](crate::FlexStr) strings
+/// Provides support for custom raw [`[u8]`](slice)-based [FlexStrBase](crate::FlexStrBase) strings
 pub mod raw_str {
-    pub use crate::string::raw_str::{FlexRawStrBase, FlexRawStrRefBase};
+    pub use crate::string::raw_str::{FlexRawStr3USize, FlexRawStrRef3USize};
 }

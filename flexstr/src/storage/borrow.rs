@@ -12,8 +12,6 @@ pub(crate) struct BorrowStr<const PAD: usize, REF> {
 }
 
 impl<const PAD: usize, REF> BorrowStr<PAD, REF> {
-    // NOTE: Even though this is not explicitly 'static it will only be called from public
-    // functions that are
     #[inline]
     pub const fn from_static(s: REF) -> Self {
         Self {
@@ -21,6 +19,15 @@ impl<const PAD: usize, REF> BorrowStr<PAD, REF> {
             // Must be const fn, so can't use default
             pad: Pad::new(),
             marker: StorageType::Static,
+        }
+    }
+
+    #[inline]
+    pub fn from_borrow(s: REF) -> Self {
+        Self {
+            string: s,
+            pad: Pad::new(),
+            marker: StorageType::Borrow,
         }
     }
 }

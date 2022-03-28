@@ -9,7 +9,7 @@ use bstr::{BStr, BString};
 use paste::paste;
 
 use crate::string::Str;
-use crate::{define_flex_types, FlexStr};
+use crate::{define_flex_types, FlexStrBase, FlexStrRefBase};
 
 const RAW_EMPTY: &[u8] = b"";
 
@@ -61,7 +61,7 @@ impl Str for BStr {
 define_flex_types!("B", BStr, [u8]);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, BStr>
+    FlexBStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// Creates a wrapped static string literal from a raw byte slice.
     #[inline]

@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use paste::paste;
 
 use crate::string::Str;
-use crate::{define_flex_types, FlexStr, BAD_SIZE_OR_ALIGNMENT};
+use crate::{define_flex_types, FlexStrBase, FlexStrRefBase, BAD_SIZE_OR_ALIGNMENT};
 
 /// Empty raw string constant
 pub const EMPTY: &[u8] = b"";
@@ -60,7 +60,7 @@ impl Str for [u8] {
 define_flex_types!("Raw", [u8], [u8]);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexStr<'str, SIZE, BPAD, HPAD, HEAP, [u8]>
+    FlexRawStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// An empty ("") static constant string
     pub const EMPTY: Self = if Self::IS_VALID_SIZE {
