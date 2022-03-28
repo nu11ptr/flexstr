@@ -8,7 +8,6 @@ use crate::string::Str;
 type InlineStorage<const N: usize> = [mem::MaybeUninit<u8>; N];
 
 #[doc(hidden)]
-#[derive(Clone, Copy)]
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
 #[repr(C)]
@@ -19,7 +18,19 @@ where
     data: InlineStorage<SIZE>,
     len: u8,
     pub marker: StorageType,
-    phantom: PhantomData<STR>,
+    // TODO: Do research on phantom type as relates to variance and auto traits
+    phantom: PhantomData<fn(STR) -> STR>,
+}
+
+impl<const SIZE: usize, STR> Copy for InlineStr<SIZE, STR> where STR: ?Sized {}
+
+impl<const SIZE: usize, STR> Clone for InlineStr<SIZE, STR>
+where
+    STR: ?Sized,
+{
+    fn clone(&self) -> Self {
+        panic!("Clone should never be used on `InlineStr`");
+    }
 }
 
 impl<const SIZE: usize, STR> InlineStr<SIZE, STR>

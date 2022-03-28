@@ -13,7 +13,8 @@ where
     pub heap: HEAP,
     pad: Pad<PAD>,
     pub marker: StorageType,
-    phantom: PhantomData<STR>,
+    // TODO: Do research on phantom type as relates to variance and auto traits
+    phantom: PhantomData<fn(STR) -> STR>,
 }
 
 impl<const PAD: usize, HEAP, STR> HeapStr<PAD, HEAP, STR>

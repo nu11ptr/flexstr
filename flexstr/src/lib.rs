@@ -77,6 +77,59 @@ where
     borrow_str: mem::ManuallyDrop<BorrowStr<BPAD, &'str STR>>,
 }
 
+// *** Clone ***
+
+impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR> Clone
+    for FlexStrBase<'str, SIZE, PAD1, PAD2, HEAP, STR>
+where
+    HEAP: Storage<STR> + Clone,
+    STR: Str + ?Sized,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            // TODO: Replace raw union construction with inline calls to special `from_` functions?
+            // (while watching benchmarks closely!)
+            match self.static_str.marker {
+                StorageType::Static => Self {
+                    static_str: self.static_str,
+                },
+                StorageType::Inline => Self {
+                    inline_str: self.inline_str,
+                },
+                StorageType::Heap => Self {
+                    // Recreating vs. calling clone at the top is 30% faster in benchmarks
+                    heap_str: mem::ManuallyDrop::new(HeapStr::from_heap(
+                        self.heap_str.heap.clone(),
+                    )),
+                },
+                StorageType::Borrow => Self {
+                    borrow_str: self.borrow_str,
+                },
+            }
+        }
+    }
+}
+
+// *** Drop ***
+
+impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR> Drop
+    for FlexStrBase<'str, SIZE, PAD1, PAD2, HEAP, STR>
+where
+    STR: ?Sized,
+{
+    #[inline]
+    fn drop(&mut self) {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            if let StorageType::Heap = self.heap_str.marker {
+                mem::ManuallyDrop::drop(&mut self.heap_str);
+            }
+        }
+    }
+}
+
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
     FlexStrBase<'str, SIZE, BPAD, HPAD, HEAP, STR>
 where
@@ -122,6 +175,39 @@ where
     HEAP: Storage<STR>,
     STR: Str + ?Sized,
 {
+    /// Creates a new string from a `STR` reference. If the string is empty, an empty static string
+    /// is returned. If at or under the inline length limit, an inline string will be returned.
+    /// Otherwise, a heap based string will be allocated and returned. This is typically used to
+    /// create strings from a non-static borrowed `STR` where you don't have ownership.
+    /// ```
+    /// use flexstr::LocalStr;
+    ///
+    /// let s: LocalStr = LocalStr::from_ref("");
+    /// assert!(s.is_static());
+    ///
+    /// let s: LocalStr = LocalStr::from_ref("test");
+    /// assert!(s.is_inline());
+    ///
+    /// let s: LocalStr = LocalStr::from_ref("This is too long to be inlined!!!!!!!");
+    /// assert!(s.is_heap());
+    /// ```
+    #[inline]
+    pub fn from_ref(s: impl AsRef<STR>) -> Self
+    where
+        STR: AsRef<STR>,
+    {
+        let s = s.as_ref();
+
+        match s.empty() {
+            // TODO: Benchmark empty strings to see if I need to specialize this
+            Some(empty) => Self::from_static(empty),
+            None => match Self::try_inline(s) {
+                Ok(s) => s,
+                Err(_) => Self::from_ref_heap(s),
+            },
+        }
+    }
+
     #[inline]
     fn from_inline(s: InlineStr<SIZE, STR>) -> Self {
         if Self::IS_VALID_SIZE {
