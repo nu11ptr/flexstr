@@ -1,4 +1,4 @@
-//! This module is useful for defining custom string types
+//! This module is useful for defining custom string types and heap storage backends
 
 use alloc::string::String;
 use core::mem;
@@ -9,6 +9,7 @@ pub const PTR_SIZED_PAD: usize = mem::size_of::<*const ()>() - 1;
 /// Using this inline capacity will result in a type with the same memory size as a builtin [String]
 pub const STRING_SIZED_INLINE: usize = mem::size_of::<String>() - 2;
 
+pub use crate::storage::Storage;
 pub use crate::string::Str;
 
 pub(crate) const BAD_SIZE_OR_ALIGNMENT: &str = "OOPS! It seems you are trying to create a custom `FlexStr` but have \

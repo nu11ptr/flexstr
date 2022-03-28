@@ -143,10 +143,10 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// incorrect) a [CStrNullError] is returned. This is `const fn` so it can be used to initialize
     /// a constant at compile time with zero runtime cost.
     /// ```
-    /// use flexstr::c_str::LocalCStr;
+    /// use flexstr::c_str::{CStrNullError, LocalCStr};
     ///
-    /// const S: LocalCStr = LocalCStr::try_from_static_raw(b"This is a valid CStr\0").unwrap();
-    /// assert!(S.is_static());
+    /// const S: Result<LocalCStr, CStrNullError> = LocalCStr::try_from_static_raw(b"This is a valid CStr\0");
+    /// assert!(S.unwrap().is_static());
     /// ```
     #[inline]
     pub const fn try_from_static_raw(s: &'static [u8]) -> Result<Self, CStrNullError> {

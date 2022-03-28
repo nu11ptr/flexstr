@@ -26,13 +26,19 @@ pub enum StorageType {
     Borrow,
 }
 
-pub trait Storage<STR: Str + ?Sized> {
+/// Trait used for implementing custom heap storage backends
+pub trait Storage<STR>
+where
+    STR: Str + ?Sized,
+{
+    /// Takes a string reference and returns the inner heap type
     fn from_ref(s: &STR) -> Self;
 }
 
-impl<STR: Str> Storage<STR> for Rc<STR::HeapType>
+impl<STR> Storage<STR> for Rc<STR::HeapType>
 where
     Rc<STR::HeapType>: for<'a> From<&'a STR::HeapType>,
+    STR: Str + ?Sized,
 {
     #[inline]
     fn from_ref(s: &STR) -> Self {
@@ -40,9 +46,10 @@ where
     }
 }
 
-impl<STR: Str> Storage<STR> for Arc<STR::HeapType>
+impl<STR> Storage<STR> for Arc<STR::HeapType>
 where
     Arc<STR::HeapType>: for<'a> From<&'a STR::HeapType>,
+    STR: Str + ?Sized,
 {
     #[inline]
     fn from_ref(s: &STR) -> Self {
@@ -50,9 +57,10 @@ where
     }
 }
 
-impl<STR: Str> Storage<STR> for Box<STR::HeapType>
+impl<STR> Storage<STR> for Box<STR::HeapType>
 where
     Box<STR::HeapType>: for<'a> From<&'a STR::HeapType>,
+    STR: Str + ?Sized,
 {
     #[inline]
     fn from_ref(s: &STR) -> Self {

@@ -178,7 +178,7 @@ where
     /// ```
     /// use flexstr::LocalStr;
     ///
-    /// let s = LocalStr::from_heap("test".into());
+    /// let s = LocalStr::from_heap(b"test"[..].into());
     /// assert!(s.is_heap());
     /// ```
     #[inline]
@@ -247,6 +247,9 @@ pub type FlexStrRefBase<'str, const SIZE: usize, const BPAD: usize, const HPAD: 
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
     FlexStrRefBase<'str, SIZE, BPAD, HPAD, HEAP, STR>
+where
+    HEAP: Storage<STR>,
+    STR: Str + ?Sized,
 {
     /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
     /// simply wrapped and tied to the lifetime of the source string.
@@ -258,7 +261,7 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>
     /// assert!(s.is_borrow());
     /// ```
     #[inline]
-    pub const fn from_borrow(s: &'str STR) -> Self {
+    pub fn from_borrow(s: &'str STR) -> Self {
         if Self::IS_VALID_SIZE {
             Self {
                 borrow_str: mem::ManuallyDrop::new(BorrowStr::from_borrow(s)),
