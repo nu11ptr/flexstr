@@ -127,8 +127,8 @@ macro_rules! define_flex_types {
             /// # Note
             #[doc = concat!("This type is included for convenience for those who need wrapped [`Box<", stringify!($heap_type),
             ">`](std::boxed::Box)")]
-            #[doc = "support. Those who do not have this special use case are encouraged to use [Local" $ident "Str] or [Shared"
-            $ident "Str] for much better clone performance (without copy or additional allocation)"]
+            #[doc = "support. Those who do not have this special use case are encouraged to use [Local" $ident "] or [Shared"
+            $ident "] for much better clone performance (without copy or additional allocation)"]
             ///
             /// # Note 2
             /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
@@ -140,8 +140,8 @@ macro_rules! define_flex_types {
             /// # Note
             #[doc = concat!("This type is included for convenience for those who need wrapped [`Box<", stringify!($heap_type),
             ">`](std::boxed::Box)")]
-            #[doc = "support. Those who do not have this special use case are encouraged to use [Local" $ident "StrRef] or [Shared"
-            $ident "StrRef] for much better clone performance (without copy or additional allocation)"]
+            #[doc = "support. Those who do not have this special use case are encouraged to use [Local" $ident "Ref] or [Shared"
+            $ident "Ref] for much better clone performance (without copy or additional allocation)"]
             ///
             /// # Note 2
             /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]

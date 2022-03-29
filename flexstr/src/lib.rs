@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
 //! A flexible, simple to use, immutable, clone-efficient [String] replacement for Rust
@@ -16,6 +17,7 @@ pub use crate::string::std_str::{
 
 /// Provides support for [BStr](bstr::BStr)-based [FlexStrBase] strings
 #[cfg(feature = "bstr")]
+#[cfg_attr(docsrs, doc(cfg(feature = "bstr")))]
 pub mod b_str {
     pub use crate::string::b_str::{
         BoxedBStr, BoxedBStrRef, FlexBStr, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
@@ -24,6 +26,7 @@ pub mod b_str {
 
 /// Provides support for [CStr](std::ffi::CStr)-based [FlexStrBase] strings
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod c_str {
     pub use crate::string::c_str::{
         BoxedCStr, BoxedCStrRef, CStrNullError, FlexCStr, LocalCStr, LocalCStrRef, SharedCStr,
@@ -33,6 +36,7 @@ pub mod c_str {
 
 /// Provides support for [OsStr](std::ffi::OsStr)-based [FlexStrBase] strings
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod os_str {
     pub use crate::string::os_str::{
         BoxedOsStr, BoxedOsStrRef, FlexOsStr, LocalOsStr, LocalOsStrRef, SharedOsStr,
@@ -42,6 +46,7 @@ pub mod os_str {
 
 /// Provides support for [Path](std::path::Path)-based [FlexStrBase] strings
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod path {
     pub use crate::string::path::{
         BoxedPath, BoxedPathRef, FlexPath, LocalPath, LocalPathRef, SharedPath, SharedPathRef,

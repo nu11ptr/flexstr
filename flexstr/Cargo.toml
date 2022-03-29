@@ -13,6 +13,7 @@ edition = "2021"
 
 [package.metadata.docs.rs]
 all-features = true
+rustc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["std"]
