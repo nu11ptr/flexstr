@@ -6,8 +6,10 @@ use core::convert::Infallible;
 
 use paste::paste;
 
+use crate::inner::FlexStrInner;
 use crate::string::Str;
-use crate::{define_flex_types, FlexStrBase, FlexStrRefBase, BAD_SIZE_OR_ALIGNMENT};
+use crate::traits::private;
+use crate::{define_flex_types, FlexStrCore, FlexStrCoreRef, Storage};
 
 /// Empty raw string constant
 pub const EMPTY: &[u8] = b"";
@@ -59,13 +61,46 @@ impl Str for [u8] {
 
 define_flex_types!("RawStr", [u8], [u8]);
 
-impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexRawStr<'str, SIZE, BPAD, HPAD, HEAP>
-{
-    /// An empty ("") static constant string
-    pub const EMPTY: Self = if Self::IS_VALID_SIZE {
-        Self::from_static(EMPTY)
-    } else {
-        panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+macro_rules! impl_body {
+    () => {
+        /// An empty ("") static constant string
+        pub const EMPTY: Self = Self::from_static(EMPTY);
+
+        /// Creates a wrapped static string literal. This function is equivalent to using the macro and
+        /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
+        #[inline(always)]
+        pub const fn from_static(s: &'static [u8]) -> Self {
+            Self(FlexStrInner::from_static(s))
+        }
     };
+}
+
+// *** FlexRawStr ***
+
+impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexRawStr<SIZE, BPAD, HPAD, HEAP>
+{
+    impl_body!();
+}
+
+impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexStrCore<'static, SIZE, BPAD, HPAD, HEAP, [u8]> for FlexRawStr<SIZE, BPAD, HPAD, HEAP>
+where
+    HEAP: Storage<[u8]>,
+{
+}
+
+// *** FlexRawStrRef ***
+
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexRawStrRef<'str, SIZE, BPAD, HPAD, HEAP>
+{
+    impl_body!();
+}
+
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexStrCore<'str, SIZE, BPAD, HPAD, HEAP, [u8]> for FlexRawStrRef<'str, SIZE, BPAD, HPAD, HEAP>
+where
+    HEAP: Storage<[u8]>,
+{
 }

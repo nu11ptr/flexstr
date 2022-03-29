@@ -48,17 +48,74 @@ macro_rules! define_flex_types {
         paste! {
             #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<",
             stringify!($heap_type), ">`](std::rc::Rc)")]
-            ///
-            /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
 
             // *** FlexStr ***
-            pub type [<Flex $ident >]<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP> =
-                FlexStrBase<'str, SIZE, BPAD, HPAD, HEAP, $type>;
+            #[repr(transparent)]
+            //#[derive(Clone)]
+            pub struct [<Flex $ident >]<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
+                FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type>);
 
-            // *** FlexStrRef *** (no need to export atm - it is blank)
-            type [<Flex $ident Ref>]<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP> =
-                FlexStrRefBase<'str, SIZE, BPAD, HPAD, HEAP, $type>;
+            // *** FlexStr: FlexStrCoreInner ***
+            impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+                private::FlexStrCoreInner<'static, SIZE, BPAD, HPAD, HEAP, $type>
+                for [<Flex $ident >]<SIZE, BPAD, HPAD, HEAP>
+            where
+                HEAP: Storage<$type>,
+            {
+                type This = Self;
+
+                #[inline(always)]
+                fn wrap(
+                    inner: FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type>,
+                ) -> Self::This {
+                    Self(inner)
+                }
+
+                #[inline(always)]
+                fn inner(&self) -> &FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type> {
+                    &self.0
+                }
+            }
+
+            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Rc<",
+            stringify!($heap_type), ">`](std::rc::Rc), or a borrowed string (with appropriate lifetime)")]
+
+            // *** FlexStrRef ***
+            #[repr(transparent)]
+            //#[derive(Clone)]
+            pub struct [<Flex $ident Ref>]<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
+                FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, $type>);
+
+            // *** FlexStrRef: FlexStrCoreInner ***
+            impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+                private::FlexStrCoreInner<'str, SIZE, BPAD, HPAD, HEAP, $type>
+                for [<Flex $ident Ref>]<'str, SIZE, BPAD, HPAD, HEAP>
+            where
+                HEAP: Storage<$type>,
+            {
+                type This = Self;
+
+                #[inline(always)]
+                fn wrap(
+                    inner: FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, $type>,
+                ) -> Self::This {
+                    Self(inner)
+                }
+
+                #[inline(always)]
+                fn inner(&self) -> &FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, $type> {
+                    &self.0
+                }
+            }
+
+            // *** FlexStrRef: FlexStrCoreRef ***
+            impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+                FlexStrCoreRef<'str, SIZE, BPAD, HPAD, HEAP, $type>
+                for [<Flex $ident Ref>]<'str, SIZE, BPAD, HPAD, HEAP>
+            where
+                HEAP: Storage<$type>,
+            {
+            }
 
             /// A flexible base string type that transparently wraps a string literal, inline string, or a custom `HEAP` type.
             ///
@@ -74,7 +131,7 @@ macro_rules! define_flex_types {
 
             // *** FlexStr3USize ***
             pub type [<Flex $ident 3USize>]<HEAP> =
-                [<Flex $ident >]<'static, STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
+                [<Flex $ident >]<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
 
             /// A flexible base string type that transparently wraps a string literal, inline string, a custom `HEAP` type, or
             /// a borrowed string (with appropriate lifetime specified).
