@@ -8,6 +8,7 @@ extern crate alloc;
 pub mod custom;
 mod storage;
 mod string;
+mod traits;
 
 pub use crate::string::std_str::{
     BoxedStr, BoxedStrRef, FlexStr, LocalStr, LocalStrRef, SharedStr, SharedStrRef, EMPTY,

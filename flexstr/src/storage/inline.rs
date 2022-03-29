@@ -35,6 +35,20 @@ where
 
 impl<const SIZE: usize, STR> InlineStr<SIZE, STR>
 where
+    STR: ?Sized,
+{
+    // If the SIZE param is larger than a u8
+    const IS_VALID_SIZE: bool = Self::variant_size_is_valid();
+
+    #[inline]
+    const fn variant_size_is_valid() -> bool {
+        mem::size_of::<InlineStr<SIZE, STR>>()
+            <= (u8::MAX as usize) + mem::size_of::<StorageType>() + 1
+    }
+}
+
+impl<const SIZE: usize, STR> InlineStr<SIZE, STR>
+where
     STR: Str + ?Sized,
 {
     /// Attempts to return a new [InlineStr] if the source string is short enough to be copied.
@@ -55,20 +69,24 @@ where
 
     #[inline]
     unsafe fn new(s: &STR, len: usize) -> Self {
-        // SAFETY: This is safe because while uninitialized to start, we copy the the str contents
-        // over the top. We check to ensure it is not too long in `try_new` and don't call this
-        // function directly. The copy is restrained to the length of the str.
+        if Self::IS_VALID_SIZE {
+            // SAFETY: This is safe because while uninitialized to start, we copy the the str contents
+            // over the top. We check to ensure it is not too long in `try_new` and don't call this
+            // function directly. The copy is restrained to the length of the str.
 
-        // Declare array, but keep uninitialized (we will overwrite momentarily)
-        let mut data: [mem::MaybeUninit<u8>; SIZE] = mem::MaybeUninit::uninit().assume_init();
-        // Copy contents of &str to our data buffer
-        ptr::copy_nonoverlapping(s.as_inline_ptr(), data.as_mut_ptr().cast::<u8>(), len);
+            // Declare array, but keep uninitialized (we will overwrite momentarily)
+            let mut data: [mem::MaybeUninit<u8>; SIZE] = mem::MaybeUninit::uninit().assume_init();
+            // Copy contents of &str to our data buffer
+            ptr::copy_nonoverlapping(s.as_inline_ptr(), data.as_mut_ptr().cast::<u8>(), len);
 
-        Self {
-            data,
-            len: len as u8,
-            marker: StorageType::Inline,
-            phantom: PhantomData,
+            Self {
+                data,
+                len: len as u8,
+                marker: StorageType::Inline,
+                phantom: PhantomData,
+            }
+        } else {
+            panic!("Oops! The max inline size cannot exceed 255 bytes");
         }
     }
 
