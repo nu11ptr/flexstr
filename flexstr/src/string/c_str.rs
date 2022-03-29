@@ -126,7 +126,7 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
     }
 }
 
-define_flex_types!("C", CStr, [u8]);
+define_flex_types!("CStr", CStr, [u8]);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>

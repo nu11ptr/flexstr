@@ -3,7 +3,8 @@
 use alloc::rc::Rc;
 use alloc::sync::Arc;
 use core::convert::Infallible;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 
 use paste::paste;
 
@@ -13,16 +14,16 @@ use crate::{define_flex_types, FlexStrBase, FlexStrRefBase};
 #[cfg(unix)]
 const RAW_EMPTY: &[u8] = b"";
 
-impl Str for OsStr {
-    type StringType = OsString;
-    type HeapType = OsStr;
+impl Str for Path {
+    type StringType = PathBuf;
+    type HeapType = Path;
     type ConvertError = Infallible;
 
     #[cfg(unix)]
     #[inline]
     fn from_inline_data(bytes: &[u8]) -> &Self {
         use std::os::unix::ffi::OsStrExt;
-        OsStr::from_bytes(bytes)
+        Path::new(OsStr::from_bytes(bytes))
     }
 
     #[cfg(not(unix))]
@@ -68,7 +69,7 @@ impl Str for OsStr {
 
     #[inline]
     fn length(&self) -> usize {
-        self.len()
+        self.as_os_str().len()
     }
 
     #[inline]
@@ -80,7 +81,7 @@ impl Str for OsStr {
     #[inline]
     fn as_inline_ptr(&self) -> *const u8 {
         use std::os::unix::ffi::OsStrExt;
-        self.as_bytes() as *const [u8] as *const u8
+        self.as_os_str().as_bytes() as *const [u8] as *const u8
     }
 
     #[cfg(not(unix))]
@@ -91,16 +92,16 @@ impl Str for OsStr {
     }
 }
 
-define_flex_types!("OsStr", OsStr, OsStr);
+define_flex_types!("Path", Path, Path);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexOsStr<'str, SIZE, BPAD, HPAD, HEAP>
+    FlexPath<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// Creates a wrapped static string literal from a raw byte slice.
     #[cfg(unix)]
     #[inline]
     pub fn from_static_raw(s: &'static [u8]) -> Self {
         // I see no mention of const fn for these functions on unix - use trait
-        Self::from_static(OsStr::from_inline_data(s))
+        Self::from_static(Path::from_inline_data(s))
     }
 }

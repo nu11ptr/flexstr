@@ -57,7 +57,7 @@ impl Str for [u8] {
     }
 }
 
-define_flex_types!("Raw", [u8], [u8]);
+define_flex_types!("RawStr", [u8], [u8]);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexRawStr<'str, SIZE, BPAD, HPAD, HEAP>

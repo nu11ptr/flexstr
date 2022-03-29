@@ -40,6 +40,14 @@ pub mod os_str {
     };
 }
 
+/// Provides support for [Path](std::path::Path)-based [FlexStrBase] strings
+#[cfg(feature = "std")]
+pub mod path {
+    pub use crate::string::path::{
+        BoxedPath, BoxedPathRef, FlexPath, LocalPath, LocalPathRef, SharedPath, SharedPathRef,
+    };
+}
+
 /// Provides support for raw [`[u8]`](slice)-based [FlexStrBase] strings
 pub mod raw_str {
     pub use crate::string::raw_str::{

@@ -52,6 +52,12 @@ pub mod os_str {
     pub use crate::string::os_str::{FlexOsStr3USize, FlexOsStrRef3USize};
 }
 
+/// Provides support for custom [Path](std::path::Path)-based [FlexStrBase](crate::FlexStrBase) strings
+#[cfg(feature = "std")]
+pub mod path {
+    pub use crate::string::path::{FlexPath3USize, FlexPathRef3USize};
+}
+
 /// Provides support for custom raw [`[u8]`](slice)-based [FlexStrBase](crate::FlexStrBase) strings
 pub mod raw_str {
     pub use crate::string::raw_str::{FlexRawStr3USize, FlexRawStrRef3USize};

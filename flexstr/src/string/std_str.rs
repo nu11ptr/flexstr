@@ -59,7 +59,7 @@ impl Str for str {
     }
 }
 
-define_flex_types!("", str, [u8]);
+define_flex_types!("Str", str, [u8]);
 
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexStr<'str, SIZE, BPAD, HPAD, HEAP>
