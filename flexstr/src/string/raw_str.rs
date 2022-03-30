@@ -34,7 +34,7 @@ impl Str for [u8] {
         Ok(Self::from_inline_data(bytes))
     }
 
-    #[inline]
+    #[inline(always)]
     fn empty(&self) -> Option<&'static Self> {
         if self.length() == 0 {
             Some(EMPTY)
@@ -43,7 +43,7 @@ impl Str for [u8] {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn length(&self) -> usize {
         self.len()
     }
@@ -53,7 +53,7 @@ impl Str for [u8] {
         self
     }
 
-    #[inline]
+    #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr()
     }

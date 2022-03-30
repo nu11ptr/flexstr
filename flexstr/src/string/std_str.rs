@@ -36,7 +36,7 @@ impl Str for str {
         str::from_utf8(bytes)
     }
 
-    #[inline]
+    #[inline(always)]
     fn empty(&self) -> Option<&'static Self> {
         if self.length() == 0 {
             Some(EMPTY)
@@ -45,7 +45,7 @@ impl Str for str {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn length(&self) -> usize {
         self.len()
     }
@@ -55,7 +55,7 @@ impl Str for str {
         self.as_bytes()
     }
 
-    #[inline]
+    #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr()
     }

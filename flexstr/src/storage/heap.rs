@@ -10,6 +10,7 @@ pub(crate) struct HeapStr<const PAD: usize, HEAP, STR>
 where
     STR: ?Sized,
 {
+    // TODO: Clone reaches in for performance reasons...revisit that
     pub heap: HEAP,
     pad: Pad<PAD>,
     pub marker: StorageType,
@@ -35,5 +36,10 @@ where
     #[inline]
     pub fn from_ref(s: impl AsRef<STR>) -> Self {
         Self::from_heap(HEAP::from_ref(s.as_ref()))
+    }
+
+    #[inline]
+    pub fn as_str_type(&self) -> &STR {
+        STR::from_heap_data(self.heap.as_heap_type())
     }
 }

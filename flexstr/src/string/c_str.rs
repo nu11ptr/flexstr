@@ -39,7 +39,7 @@ impl Str for CStr {
         try_from_raw(bytes)
     }
 
-    #[inline]
+    #[inline(always)]
     fn empty(&self) -> Option<&'static Self> {
         // This is ok since this is a CStr which has an invariant that it MUST end with a null byte
         // so a length of 1 MUST be an empty CStr
@@ -50,7 +50,7 @@ impl Str for CStr {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn length(&self) -> usize {
         // NOTE: This will include trailing null byte (this is storage, not usable chars)
         self.as_heap_type().len()
@@ -62,7 +62,7 @@ impl Str for CStr {
         self.to_bytes_with_nul()
     }
 
-    #[inline]
+    #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr() as *const u8
     }

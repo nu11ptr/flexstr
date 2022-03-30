@@ -6,13 +6,13 @@ use crate::storage::StorageType;
 #[derive(Clone, Copy)]
 #[repr(C)]
 pub(crate) struct BorrowStr<const PAD: usize, REF> {
-    pub string: REF,
+    string: REF,
     pad: Pad<PAD>,
     pub marker: StorageType,
 }
 
 impl<const PAD: usize, REF> BorrowStr<PAD, REF> {
-    #[inline]
+    #[inline(always)]
     pub const fn from_static(s: REF) -> Self {
         Self {
             string: s,
@@ -22,12 +22,20 @@ impl<const PAD: usize, REF> BorrowStr<PAD, REF> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn from_borrow(s: REF) -> Self {
         Self {
             string: s,
             pad: Pad::new(),
             marker: StorageType::Borrow,
         }
+    }
+
+    #[inline]
+    pub fn as_str_type(&self) -> REF
+    where
+        REF: Copy,
+    {
+        self.string
     }
 }

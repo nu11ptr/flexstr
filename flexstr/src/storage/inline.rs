@@ -4,9 +4,6 @@ use core::{mem, ptr};
 use crate::storage::StorageType;
 use crate::string::Str;
 
-/// Type representing the inline storage including its size and string type
-type InlineStorage<const N: usize> = [mem::MaybeUninit<u8>; N];
-
 #[doc(hidden)]
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
@@ -15,7 +12,7 @@ pub(crate) struct InlineStr<const SIZE: usize, STR>
 where
     STR: ?Sized,
 {
-    data: InlineStorage<SIZE>,
+    data: [mem::MaybeUninit<u8>; SIZE],
     len: u8,
     pub marker: StorageType,
     // TODO: Do research on phantom type as relates to variance and auto traits
@@ -67,7 +64,7 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     unsafe fn new(s: &STR, len: usize) -> Self {
         if Self::IS_VALID_SIZE {
             // SAFETY: This is safe because while uninitialized to start, we copy the the str contents
@@ -92,8 +89,25 @@ where
 
     /// Returns the capacity of this inline string
     // NOTE: Cannot be const due to the trait bounds on Str
-    #[inline]
+    #[inline(always)]
     pub fn capacity() -> usize {
         SIZE
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.len as usize
+    }
+
+    #[inline]
+    pub fn as_str_type(&self) -> &STR {
+        let data = &self.data[..self.len()];
+
+        unsafe {
+            // SAFETY: The contents are always obtained from a valid UTF8 str, so they must be valid
+            // Additionally, we clamp the size of the slice passed to be no longer than our str length
+            let data = &*(data as *const [mem::MaybeUninit<u8>] as *const [u8]);
+            STR::from_inline_data(data)
+        }
     }
 }

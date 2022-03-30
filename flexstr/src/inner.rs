@@ -1,4 +1,5 @@
 use core::mem;
+use core::ops::Deref;
 
 use crate::{BorrowStr, HeapStr, InlineStr, Storage, StorageType, Str, BAD_SIZE_OR_ALIGNMENT};
 
@@ -68,7 +69,7 @@ impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR> D
 where
     STR: ?Sized,
 {
-    #[inline]
+    #[inline(always)]
     fn drop(&mut self) {
         // SAFETY: Marker check is aligned to correct accessed field
         unsafe {
@@ -76,6 +77,21 @@ where
                 mem::ManuallyDrop::drop(&mut self.heap_str);
             }
         }
+    }
+}
+
+// *** Deref ***
+impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP, STR> Deref
+    for FlexStrInner<'str, SIZE, PAD1, PAD2, HEAP, STR>
+where
+    HEAP: Storage<STR>,
+    STR: Str + ?Sized,
+{
+    type Target = STR;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        self.as_str_type()
     }
 }
 
@@ -98,7 +114,7 @@ where
                 == mem::align_of::<InlineStr<SIZE, STR>>()
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn from_static(s: &'static STR) -> Self {
         if Self::IS_VALID_SIZE {
             Self {
@@ -116,7 +132,7 @@ where
     HEAP: Storage<STR>,
     STR: Str + ?Sized,
 {
-    #[inline]
+    #[inline(always)]
     pub fn from_ref(s: impl AsRef<STR>) -> Self {
         match s.as_ref().empty() {
             // TODO: Benchmark empty strings to see if I need to specialize this
@@ -139,7 +155,7 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn from_inline(s: InlineStr<SIZE, STR>) -> Self {
         if Self::IS_VALID_SIZE {
             Self {
@@ -150,7 +166,7 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn try_inline<S: AsRef<STR>>(s: S) -> Result<Self, S> {
         match InlineStr::try_new(s) {
             Ok(s) => Ok(Self::from_inline(s)),
@@ -177,6 +193,19 @@ where
             }
         } else {
             panic!("{}", BAD_SIZE_OR_ALIGNMENT);
+        }
+    }
+
+    #[inline]
+    pub fn as_str_type(&self) -> &STR {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            match self.static_str.marker {
+                StorageType::Static => self.static_str.as_str_type(),
+                StorageType::Inline => &self.inline_str.as_str_type(),
+                StorageType::Heap => &self.heap_str.as_str_type(),
+                StorageType::Borrow => self.borrow_str.as_str_type(),
+            }
         }
     }
 

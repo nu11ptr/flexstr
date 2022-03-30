@@ -53,7 +53,7 @@ impl Str for OsStr {
     }
 
     #[cfg(unix)]
-    #[inline]
+    #[inline(always)]
     fn empty(&self) -> Option<&'static Self> {
         if self.length() == 0 {
             Some(Self::from_inline_data(RAW_EMPTY))
@@ -63,12 +63,12 @@ impl Str for OsStr {
     }
 
     #[cfg(not(unix))]
-    #[inline]
+    #[inline(always)]
     fn empty(&self) -> Option<&'static Self> {
         None
     }
 
-    #[inline]
+    #[inline(always)]
     fn length(&self) -> usize {
         self.len()
     }
@@ -79,7 +79,7 @@ impl Str for OsStr {
     }
 
     #[cfg(unix)]
-    #[inline]
+    #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         use std::os::unix::ffi::OsStrExt;
         self.as_bytes() as *const [u8] as *const u8

@@ -43,6 +43,7 @@ pub trait Str {
 #[macro_export]
 macro_rules! define_flex_types {
     ($ident:literal, $type:ty, $heap_type:ty) => {
+        use core::ops::Deref;
         use $crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
 
         paste! {
@@ -51,9 +52,34 @@ macro_rules! define_flex_types {
 
             // *** FlexStr ***
             #[repr(transparent)]
-            //#[derive(Clone)]
             pub struct [<Flex $ident >]<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
                 FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type>);
+
+            // *** FlexStr: Clone ***
+            impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
+                for [<Flex $ident >]<SIZE, PAD1, PAD2, HEAP>
+            where
+                HEAP: Storage<$type> + Clone,
+            {
+                #[inline(always)]
+                fn clone(&self) -> Self {
+                   Self(self.0.clone())
+                }
+            }
+
+            // *** FlexStr: Deref ***
+            impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
+                for [<Flex $ident >]<SIZE, PAD1, PAD2, HEAP>
+            where
+                HEAP: Storage<$type>,
+            {
+                type Target = $type;
+
+                #[inline(always)]
+                fn deref(&self) -> &Self::Target {
+                   self.0.as_str_type()
+                }
+            }
 
             // *** FlexStr: FlexStrCoreInner ***
             impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
@@ -82,9 +108,34 @@ macro_rules! define_flex_types {
 
             // *** FlexStrRef ***
             #[repr(transparent)]
-            //#[derive(Clone)]
             pub struct [<Flex $ident Ref>]<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
                 FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, $type>);
+
+            // *** FlexStrRef: Clone ***
+            impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
+                for [<Flex $ident Ref>]<'str, SIZE, PAD1, PAD2, HEAP>
+            where
+                HEAP: Storage<$type> + Clone,
+            {
+                #[inline(always)]
+                fn clone(&self) -> Self {
+                   Self(self.0.clone())
+                }
+            }
+
+            // *** FlexStrRef: Deref ***
+            impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
+                for [<Flex $ident Ref>]<'str, SIZE, PAD1, PAD2, HEAP>
+            where
+                HEAP: Storage<$type>,
+            {
+                type Target = $type;
+
+                #[inline(always)]
+                fn deref(&self) -> &Self::Target {
+                   self.0.as_str_type()
+                }
+            }
 
             // *** FlexStrRef: FlexStrCoreInner ***
             impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>

@@ -31,8 +31,11 @@ pub trait Storage<STR>
 where
     STR: Str + ?Sized,
 {
-    /// Takes a string reference and returns the inner heap type
+    /// Takes a string reference and returns a newly created inner heap type
     fn from_ref(s: &STR) -> Self;
+
+    /// Returns the contents of this storage
+    fn as_heap_type(&self) -> &STR::HeapType;
 }
 
 impl<STR> Storage<STR> for Rc<STR::HeapType>
@@ -43,6 +46,11 @@ where
     #[inline]
     fn from_ref(s: &STR) -> Self {
         s.as_heap_type().into()
+    }
+
+    #[inline]
+    fn as_heap_type(&self) -> &STR::HeapType {
+        self.as_ref()
     }
 }
 
@@ -55,6 +63,11 @@ where
     fn from_ref(s: &STR) -> Self {
         s.as_heap_type().into()
     }
+
+    #[inline]
+    fn as_heap_type(&self) -> &STR::HeapType {
+        self.as_ref()
+    }
 }
 
 impl<STR> Storage<STR> for Box<STR::HeapType>
@@ -65,5 +78,10 @@ where
     #[inline]
     fn from_ref(s: &STR) -> Self {
         s.as_heap_type().into()
+    }
+
+    #[inline]
+    fn as_heap_type(&self) -> &STR::HeapType {
+        self.as_ref()
     }
 }
