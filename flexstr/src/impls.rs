@@ -1,4 +1,5 @@
 use alloc::string::String;
+use core::borrow::Borrow;
 use core::cmp::Ordering;
 use core::convert::Infallible;
 use core::fmt;
@@ -288,6 +289,17 @@ where
 }
 
 // *** Misc. standard traits ***
+
+impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Borrow<str>
+    for FlexStr<SIZE, PAD1, PAD2, HEAP>
+where
+    HEAP: Deref<Target = str>,
+{
+    #[inline]
+    fn borrow(&self) -> &str {
+        str::borrow(self)
+    }
+}
 
 impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> AsRef<str>
     for FlexStr<SIZE, PAD1, PAD2, HEAP>
@@ -609,8 +621,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::local_str;
-
     #[cfg(feature = "serde")]
     #[test]
     fn serialization() {
