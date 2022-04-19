@@ -624,7 +624,7 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn serialization() {
-        use crate::{LocalStr, SharedStr, local_str};
+        use crate::{local_str, LocalStr, SharedStr};
         use alloc::string::ToString;
         use serde_json::json;
 
