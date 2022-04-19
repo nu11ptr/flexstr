@@ -1,0 +1,16 @@
+[fragment_lists]
+str_type_impls = ["flex_struct"]
+
+[files.str]
+path = "std_str.rs"
+fragment_list = "str_type_impls"
+
+[files.str.vars]
+str_type = "str"
+
+[files.b_str]
+path = "b_str.rs"
+fragment_list = "str_type_impls"
+
+[files.b_str.vars]
+str_type = "BStr"
