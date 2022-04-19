@@ -202,8 +202,8 @@ where
         unsafe {
             match self.static_str.marker {
                 StorageType::Static => self.static_str.as_str_type(),
-                StorageType::Inline => &self.inline_str.as_str_type(),
-                StorageType::Heap => &self.heap_str.as_str_type(),
+                StorageType::Inline => self.inline_str.as_str_type(),
+                StorageType::Heap => self.heap_str.as_str_type(),
                 StorageType::Borrow => self.borrow_str.as_str_type(),
             }
         }

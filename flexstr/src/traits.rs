@@ -97,6 +97,15 @@ where
         Self::wrap(FlexStrInner::from_heap(t))
     }
 
+    /// Extracts a string slice containing the entire [FlexStr] in the final string type
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = LocalStr::from_ref("abc");
+    /// assert_eq!(s.as_str_type(), "abc");
+    /// ```
+    fn as_str_type(&self) -> &STR;
+
     /// Returns true if this is a wrapped string literal (`&'static str`)
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};

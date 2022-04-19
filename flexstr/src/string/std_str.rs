@@ -10,6 +10,7 @@ use paste::paste;
 use crate::inner::FlexStrInner;
 use crate::string::Str;
 use crate::traits::private;
+use crate::traits::private::FlexStrCoreInner;
 use crate::{define_flex_types, FlexStrCore, FlexStrCoreRef, Storage};
 
 /// Empty string constant
@@ -113,6 +114,11 @@ impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
 where
     HEAP: Storage<str>,
 {
+    /// blah
+    #[inline(always)]
+    fn as_str_type(&self) -> &str {
+        self.inner().as_str_type()
+    }
 }
 
 // *** FlexStrRef ***
@@ -128,4 +134,8 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
 where
     HEAP: Storage<str>,
 {
+    #[inline(always)]
+    fn as_str_type(&self) -> &str {
+        self.inner().as_str_type()
+    }
 }
