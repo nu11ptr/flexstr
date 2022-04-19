@@ -3,9 +3,8 @@
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;
-use core::convert::Infallible;
 
-use bstr::{BStr, BString};
+use bstr::BStr;
 use paste::paste;
 
 use crate::inner::FlexStrInner;
@@ -14,52 +13,7 @@ use crate::traits::private;
 use crate::traits::private::FlexStrCoreInner;
 use crate::{define_flex_types, FlexStrCore, FlexStrCoreRef, Storage};
 
-const RAW_EMPTY: &[u8] = b"";
-
-impl Str for BStr {
-    type StringType = BString;
-    type HeapType = [u8];
-    type ConvertError = Infallible;
-
-    #[inline]
-    fn from_inline_data(bytes: &[u8]) -> &Self {
-        bytes.into()
-    }
-
-    #[inline]
-    fn from_heap_data(bytes: &Self::HeapType) -> &Self {
-        Self::from_inline_data(bytes)
-    }
-
-    #[inline]
-    fn try_from_raw_data(bytes: &[u8]) -> Result<&Self, Self::ConvertError> {
-        Ok(Self::from_inline_data(bytes))
-    }
-
-    #[inline(always)]
-    fn empty(&self) -> Option<&'static Self> {
-        if self.length() == 0 {
-            Some(Self::from_inline_data(RAW_EMPTY))
-        } else {
-            None
-        }
-    }
-
-    #[inline(always)]
-    fn length(&self) -> usize {
-        self.len()
-    }
-
-    #[inline]
-    fn as_heap_type(&self) -> &Self::HeapType {
-        self
-    }
-
-    #[inline(always)]
-    fn as_inline_ptr(&self) -> *const u8 {
-        self.as_ptr()
-    }
-}
+pub(crate) const RAW_EMPTY: &[u8] = b"";
 
 define_flex_types!("BStr", BStr, [u8]);
 
