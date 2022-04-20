@@ -1,16 +1,24 @@
 [fragment_lists]
-str_type_impls = ["flex_struct"]
+str_type_impls = ["str_use", "flex_struct", "type_aliases"]
+
+# *** str ***
 
 [files.str]
 path = "std_str.rs"
 fragment_list = "str_type_impls"
 
 [files.str.vars]
-str_type = "str"
+suffix = "Str"
+str_type = "$type$str"
+heap_type = "$type$[u8]"
+
+# *** BStr ***
 
 [files.b_str]
 path = "b_str.rs"
 fragment_list = "str_type_impls"
 
 [files.b_str.vars]
-str_type = "BStr"
+suffix = "BStr"
+str_type = "$type$BStr"
+heap_type = "$type$[u8]"
