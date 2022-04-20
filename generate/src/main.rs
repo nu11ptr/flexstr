@@ -111,20 +111,40 @@ impl CodeFragment for FlexStruct {
 struct TypeAliases;
 
 impl CodeFragment for TypeAliases {
-    fn uses(&self, _vars: &TokenVars) -> Result<TokenStream, Error> {
+    fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => local_heap_path, shared_heap_path }
+
         Ok(quote! {
             use crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
+            use #local_heap_path;
+            use #shared_heap_path;
         })
     }
 
     fn generate(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
-        import_vars! { vars => suffix }
+        import_vars! {
+            vars =>
+                suffix, heap_type,
+                local_heap_type, local_heap_path, shared_heap_type, shared_heap_path
+        }
 
-        let ident = format_ident!("Flex{suffix}");
-        let ident_3usize = format_ident!("Flex{suffix}3USize");
+        let flex_ident = format_ident!("Flex{suffix}");
+        let local_ident = format_ident!("Local{suffix}");
+        let shared_ident = format_ident!("Shared{suffix}");
+        let ident_3usize = format_ident!("{flex_ident}3USize");
 
-        let doc_comm = doc_comment(shared_fmt!(
-            "Since this is just a type alias for a generic type, full documentation can be found here: [{ident}]"));
+        let full_docs_comm = doc_comment(shared_fmt!(
+            "Since this is just a type alias for a generic type, full documentation can be found here: [{flex_ident}]"));
+
+        let desc_comm = |h_type, h_path| {
+            doc_comment(shared_fmt!(
+            "A flexible string type that transparently wraps a string literal, inline string, or \
+            an [`{h_type}<{heap_type}>`]({h_path})"
+        ))
+        };
+
+        let local_desc_comm = desc_comm(local_heap_type, local_heap_path);
+        let shared_desc_comm = desc_comm(shared_heap_type, shared_heap_path);
 
         Ok(quote! {
             _comment_!("*** Type Aliases ***");
@@ -135,13 +155,28 @@ impl CodeFragment for TypeAliases {
             /// It is three machine words in size (3x usize) and can hold 22 bytes of inline string data on 64-bit platforms.
             ///
             /// # Note
-            #doc_comm
+            #full_docs_comm
             ///
             /// # Note 2
             /// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
             /// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
             /// creation.
-            pub type #ident_3usize<HEAP> = #ident<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
+            pub type #ident_3usize<'str, HEAP> =
+                #flex_ident<'str, STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
+
+            _blank_!();
+            #local_desc_comm
+            ///
+            /// # Note
+            #full_docs_comm
+            pub type #local_ident = #ident_3usize<#local_heap_type<'static, #heap_type>>;
+
+            _blank_!();
+            #shared_desc_comm
+            ///
+            /// # Note
+            #full_docs_comm
+            pub type #shared_ident = #ident_3usize<#shared_heap_type<'static, #heap_type>>;
         })
     }
 }
