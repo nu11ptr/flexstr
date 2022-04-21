@@ -49,7 +49,7 @@ impl CodeFragment for FlexStruct {
             #doc_comm
             #[repr(transparent)]
             pub struct #ident<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
-               FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type>);
+               pub(crate) FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type>);
 
             _blank_!();
             _comment_!("###  Clone ###\n");

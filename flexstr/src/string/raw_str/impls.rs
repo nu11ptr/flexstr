@@ -5,12 +5,10 @@ use alloc::sync::Arc;
 use paste::paste;
 
 use crate::inner::FlexStrInner;
+use crate::string::raw_str::EMPTY;
 use crate::traits::private;
 use crate::traits::private::FlexStrCoreInner;
 use crate::{define_flex_types, FlexStrCore, FlexStrCoreRef, Storage};
-
-/// Empty raw string constant
-pub const EMPTY: &[u8] = b"";
 
 define_flex_types!("RawStr", [u8], [u8]);
 

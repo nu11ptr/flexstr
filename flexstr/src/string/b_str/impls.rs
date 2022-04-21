@@ -13,8 +13,6 @@ use crate::traits::private;
 use crate::traits::private::FlexStrCoreInner;
 use crate::{define_flex_types, FlexStrCore, FlexStrCoreRef, Storage};
 
-pub(crate) const RAW_EMPTY: &[u8] = b"";
-
 define_flex_types!("BStr", BStr, [u8]);
 
 macro_rules! impl_body {

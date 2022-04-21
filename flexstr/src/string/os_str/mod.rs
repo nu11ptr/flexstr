@@ -4,8 +4,10 @@ use core::convert::Infallible;
 use std::ffi::{OsStr, OsString};
 
 pub use self::impls::*;
-use crate::string::os_str::RAW_EMPTY;
 use crate::string::Str;
+
+#[cfg(unix)]
+const RAW_EMPTY: &[u8] = b"";
 
 impl Str for OsStr {
     type StringType = OsString;

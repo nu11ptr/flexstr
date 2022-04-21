@@ -2,18 +2,14 @@ use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;
 use core::str;
-use core::str::Utf8Error;
 
 use paste::paste;
 
 use crate::inner::FlexStrInner;
-use crate::string::Str;
+use crate::string::std_str::EMPTY;
 use crate::traits::private;
 use crate::traits::private::FlexStrCoreInner;
 use crate::{define_flex_types, FlexStrCore, FlexStrCoreRef, Storage};
-
-/// Empty string constant
-pub const EMPTY: &str = "";
 
 define_flex_types!("Str", str, [u8]);
 
@@ -33,23 +29,6 @@ macro_rules! impl_body {
         #[inline(always)]
         pub const fn from_static(s: &'static str) -> Self {
             Self(FlexStrInner::from_static(s))
-        }
-
-        /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
-        /// [FlexStr] will be created using static wrapped storage. If unsuccessful (because encoding is
-        /// incorrect) a [Utf8Error] is returned.
-        /// ```
-        /// use flexstr::{FlexStrCore, LocalStr};
-        ///
-        /// const S: &[u8] = b"test";
-        /// let s = LocalStr::try_from_static_raw(S).unwrap();
-        /// assert!(s.is_static());
-        /// ```
-        #[inline]
-        pub fn try_from_static_raw(s: &'static [u8]) -> Result<Self, Utf8Error> {
-            // `from_utf8` still const fn unstable - use trait for now
-            let s = str::try_from_raw_data(s)?;
-            Ok(Self(FlexStrInner::from_static(s)))
         }
     };
 }

@@ -6,6 +6,9 @@ use core::convert::Infallible;
 pub use self::impls::*;
 use crate::string::Str;
 
+/// Empty raw string constant
+pub const EMPTY: &[u8] = b"";
+
 impl Str for [u8] {
     type StringType = Vec<u8>;
     type HeapType = [u8];

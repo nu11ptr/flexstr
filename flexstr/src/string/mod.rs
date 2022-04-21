@@ -53,7 +53,7 @@ macro_rules! define_flex_types {
             // *** FlexStr ***
             #[repr(transparent)]
             pub struct [<Flex $ident >]<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
-                FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type>);
+                pub(crate) FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type>);
 
             // *** FlexStr: Clone ***
             impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone

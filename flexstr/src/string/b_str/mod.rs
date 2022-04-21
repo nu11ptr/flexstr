@@ -7,6 +7,8 @@ use bstr::{BStr, BString};
 pub use self::impls::*;
 use crate::string::Str;
 
+const RAW_EMPTY: &[u8] = b"";
+
 impl Str for BStr {
     type StringType = BString;
     type HeapType = [u8];

@@ -5,8 +5,10 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 pub use self::impls::*;
-use crate::string::path::RAW_EMPTY;
 use crate::string::Str;
+
+#[cfg(unix)]
+const RAW_EMPTY: &[u8] = b"";
 
 impl Str for Path {
     type StringType = PathBuf;

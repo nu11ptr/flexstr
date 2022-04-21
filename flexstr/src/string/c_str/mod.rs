@@ -5,7 +5,13 @@ use std::error::Error;
 use std::ffi::{CStr, CString};
 
 pub use self::impls::*;
+use crate::inner::FlexStrInner;
 use crate::string::Str;
+
+/// Empty C string constant
+// This is the only way to get a const CStr that I can tell
+// SAFETY: We visually inspect the below raw byte sequence and can see it has a trailing null
+pub const EMPTY: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
 
 impl Str for CStr {
     type StringType = CString;
@@ -114,5 +120,29 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
     } else {
         // No null byte
         Err(CStrNullError::NoNullByteFound)
+    }
+}
+
+impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexCStr<SIZE, BPAD, HPAD, HEAP>
+{
+    /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
+    /// [FlexCStr] will be created using static wrapped storage. If unsuccessful (because encoding is
+    /// incorrect) a [CStrNullError] is returned. This is `const fn` so it can be used to initialize
+    /// a constant at compile time with zero runtime cost.
+    /// ```
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::c_str::{CStrNullError, LocalCStr};
+    ///
+    /// const S: Result<LocalCStr, CStrNullError> = LocalCStr::try_from_static_raw(b"This is a valid CStr\0");
+    /// assert!(S.unwrap().is_static());
+    /// ```
+    #[inline]
+    pub const fn try_from_static_raw(s: &'static [u8]) -> Result<Self, CStrNullError> {
+        // '?' not allowed in const fn
+        match try_from_raw(s) {
+            Ok(s) => Ok(Self(FlexStrInner::from_static(s))),
+            Err(err) => Err(err),
+        }
     }
 }
