@@ -1,7 +1,10 @@
+#![cfg(feature = "bstr")]
+
 mod impls;
 
 use core::convert::Infallible;
 
+use crate::inner::FlexStrInner;
 use bstr::{BStr, BString};
 
 pub use self::impls::*;
@@ -51,5 +54,16 @@ impl Str for BStr {
     #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr()
+    }
+}
+
+impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexBStr<SIZE, BPAD, HPAD, HEAP>
+{
+    /// Creates a wrapped static string literal from a raw byte slice.
+    #[inline]
+    pub fn from_static_raw(s: &'static [u8]) -> Self {
+        // There are no `const fn` functions in BStr to do this so we use trait
+        Self(FlexStrInner::from_static(BStr::from_inline_data(s)))
     }
 }

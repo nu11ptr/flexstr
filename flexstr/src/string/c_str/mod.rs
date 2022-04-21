@@ -1,3 +1,5 @@
+#![cfg(feature = "std")]
+
 mod impls;
 
 use core::fmt::{Debug, Display, Formatter};
@@ -126,6 +128,17 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
 impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexCStr<SIZE, BPAD, HPAD, HEAP>
 {
+    /// An empty ("") static constant string
+    pub const EMPTY: Self = Self::from_static(EMPTY);
+
+    // TODO: Replace with generated
+    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
+    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
+    #[inline(always)]
+    pub const fn from_static(s: &'static CStr) -> Self {
+        Self(FlexStrInner::from_static(s))
+    }
+
     /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
     /// [FlexCStr] will be created using static wrapped storage. If unsuccessful (because encoding is
     /// incorrect) a [CStrNullError] is returned. This is `const fn` so it can be used to initialize

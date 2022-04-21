@@ -1,5 +1,8 @@
+#![cfg(feature = "std")]
+
 mod impls;
 
+use crate::inner::FlexStrInner;
 use core::convert::Infallible;
 use std::ffi::{OsStr, OsString};
 
@@ -84,5 +87,18 @@ impl Str for OsStr {
     fn as_inline_ptr(&self) -> *const u8 {
         // TODO: Does os_str_bytes have a feature to help with this? Didn't see one
         unreachable!("Conversion back to raw pointer not supported on this platform");
+    }
+}
+
+impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexOsStr<SIZE, BPAD, HPAD, HEAP>
+{
+    /// Creates a wrapped static string literal from a raw byte slice.
+    #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(unix)))]
+    #[inline]
+    pub fn from_static_raw(s: &'static [u8]) -> Self {
+        // I see no mention of const fn for these functions on unix - use trait
+        Self(FlexStrInner::from_static(OsStr::from_inline_data(s)))
     }
 }

@@ -1,5 +1,6 @@
 mod impls;
 
+use alloc::string::String;
 use core::str;
 use core::str::Utf8Error;
 
@@ -59,6 +60,23 @@ impl Str for str {
 impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexStr<SIZE, BPAD, HPAD, HEAP>
 {
+    /// An empty ("") static constant string
+    pub const EMPTY: Self = Self::from_static(EMPTY);
+
+    // TODO: Replace with generated
+    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
+    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// const S: LocalStr = LocalStr::from_static("test");
+    /// assert!(S.is_static());
+    /// ```
+    #[inline(always)]
+    pub const fn from_static(s: &'static str) -> Self {
+        Self(FlexStrInner::from_static(s))
+    }
+
     /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
     /// [FlexStr] will be created using static wrapped storage. If unsuccessful (because encoding is
     /// incorrect) a [Utf8Error] is returned.
