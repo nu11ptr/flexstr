@@ -3,6 +3,8 @@ local_heap_type = "$type$Rc"
 local_heap_path = "$type$alloc::rc::Rc"
 shared_heap_type = "$type$Arc"
 shared_heap_path = "$type$alloc::sync::Arc"
+boxed_heap_type = "$type$Box"
+boxed_heap_path = "$type$std::boxed::Box"
 
 [fragment_lists]
 str_type_impls = ["str_use", "flex_struct", "type_aliases"]
