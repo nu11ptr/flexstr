@@ -1,0 +1,108 @@
+use flexgen::var::{TokenValue, TokenVars};
+use flexgen::{import_vars, CodeFragment, Error};
+use flexstr::local_fmt;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use quote_doctest::doc_comment;
+
+pub(crate) struct StrUse;
+
+impl CodeFragment for StrUse {
+    fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix }
+
+        Ok(match suffix {
+            TokenValue::String(s) if s == "BStr" => quote! { use bstr::BStr; },
+            TokenValue::String(s) if s == "CStr" => quote! { use std::ffi::CStr; },
+            TokenValue::String(s) if s == "OsStr" => quote! { use std::ffi::OsStr; },
+            TokenValue::String(s) if s == "Path" => quote! { use std::path::Path; },
+            _ => quote! {},
+        })
+    }
+}
+
+pub(crate) struct FlexStruct;
+
+impl CodeFragment for FlexStruct {
+    fn uses(&self, _vars: &TokenVars) -> Result<TokenStream, Error> {
+        Ok(quote! {
+            use crate::FlexStrInner;
+            use crate::traits::private::FlexStrCoreInner;
+        })
+    }
+
+    fn generate(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix, str_type }
+
+        let doc_comm = doc_comment(local_fmt!(
+            "A flexible string type that transparently wraps a string literal, inline string, or an \n\
+             [`Rc<{str_type}>`](std::rc::Rc)"
+        ));
+
+        let ident = format_ident!("Flex{suffix}");
+
+        Ok(quote! {
+            _comment_!("*** Regular Type ***\n");
+            _blank_!();
+
+            #doc_comm
+            #[repr(transparent)]
+            pub struct #ident<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
+               pub(crate) FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type>);
+
+            _blank_!();
+            _comment_!("###  Clone ###\n");
+            _blank_!();
+            impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
+                for #ident<'str, SIZE, PAD1, PAD2, HEAP>
+            where
+                HEAP: Storage<#str_type> + Clone,
+            {
+                #[inline(always)]
+                fn clone(&self) -> Self {
+                   Self(self.0.clone())
+                }
+            }
+
+            _blank_!();
+            _comment_!("### Deref ###\n");
+            _blank_!();
+            impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
+                for #ident<'str, SIZE, PAD1, PAD2, HEAP>
+            where
+                HEAP: Storage<#str_type>,
+            {
+                type Target = #str_type;
+
+                #[inline(always)]
+                fn deref(&self) -> &Self::Target {
+                   self.0.as_str_type()
+                }
+            }
+
+            _blank_!();
+            _comment_!("### FlexStrCoreInner ###\n");
+            _blank_!();
+            impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+                private::FlexStrCoreInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type>
+                for #ident<'str, SIZE, BPAD, HPAD, HEAP>
+            where
+                HEAP: Storage<#str_type>,
+            {
+                type This = Self;
+
+                #[inline(always)]
+                fn wrap(
+                    inner: FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type>,
+                ) -> Self::This {
+                    Self(inner)
+                }
+
+                #[inline(always)]
+                fn inner(&self) -> &FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type> {
+                    &self.0
+                }
+            }
+        })
+    }
+}
