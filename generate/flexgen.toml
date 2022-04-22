@@ -4,29 +4,73 @@ local_heap_path = "$type$alloc::rc::Rc"
 shared_heap_type = "$type$Arc"
 shared_heap_path = "$type$alloc::sync::Arc"
 boxed_heap_type = "$type$Box"
-boxed_heap_path = "$type$std::boxed::Box"
+boxed_heap_path = "$type$alloc::boxed::Box"
 
 [fragment_lists]
 str_type_impls = ["flex_struct", "flex_impls", "type_aliases"]
 
-# *** str ***
-
-[files.str]
-path = "std_str.rs"
-fragment_list = "str_type_impls"
-
-[files.str.vars]
-suffix = "Str"
-str_type = "$type$str"
-heap_type = "$type$[u8]"
-
 # *** BStr ***
 
 [files.b_str]
-path = "b_str.rs"
+path = "../flexstr/src/string/b_str/impls.rs"
 fragment_list = "str_type_impls"
 
 [files.b_str.vars]
 suffix = "BStr"
 str_type = "$type$BStr"
+heap_type = "$type$[u8]"
+
+# *** CStr ***
+
+[files.c_str]
+path = "../flexstr/src/string/c_str/impls.rs"
+fragment_list = "str_type_impls"
+
+[files.c_str.vars]
+suffix = "CStr"
+str_type = "$type$CStr"
+heap_type = "$type$[u8]"
+
+# *** OsStr ***
+
+[files.os_str]
+path = "../flexstr/src/string/os_str/impls.rs"
+fragment_list = "str_type_impls"
+
+[files.os_str.vars]
+suffix = "OsStr"
+str_type = "$type$OsStr"
+heap_type = "$type$OsStr"
+
+# *** Path ***
+
+[files.path]
+path = "../flexstr/src/string/path/impls.rs"
+fragment_list = "str_type_impls"
+
+[files.path.vars]
+suffix = "Path"
+str_type = "$type$Path"
+heap_type = "$type$Path"
+
+# *** RawStr ***
+
+[files.raw_str]
+path = "../flexstr/src/string/raw_str/impls.rs"
+fragment_list = "str_type_impls"
+
+[files.raw_str.vars]
+suffix = "RawStr"
+str_type = "$type$[u8]"
+heap_type = "$type$[u8]"
+
+# *** str ***
+
+[files.str]
+path = "../flexstr/src/string/std_str/impls.rs"
+fragment_list = "str_type_impls"
+
+[files.str.vars]
+suffix = "Str"
+str_type = "$type$str"
 heap_type = "$type$[u8]"

@@ -25,9 +25,11 @@ impl CodeFragment for FlexStruct {
 
         Ok(quote! {
             #str_type_use
-            use crate::FlexStrInner;
-            use crate::traits::FlexStrCore;
+            use core::ops::Deref;
+            use crate::inner::FlexStrInner;
+            use crate::storage::Storage;
             use crate::traits::private::FlexStrCoreInner;
+            use crate::traits::{FlexStrCore, private};
         })
     }
 
@@ -107,8 +109,8 @@ impl CodeFragment for FlexStruct {
             _blank_!();
             _comment_!("### FlexStrCore ###\n");
             _blank_!();
-            impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-                FlexStrCore<'str, SIZE, BPAD, HPAD, HEAP, #str_type> for #ident<SIZE, BPAD, HPAD, HEAP>
+            impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+                FlexStrCore<'str, SIZE, BPAD, HPAD, HEAP, #str_type> for #ident<'str, SIZE, BPAD, HPAD, HEAP>
             where
                 HEAP: Storage<#str_type>,
             {
@@ -131,7 +133,7 @@ impl CodeFragment for FromStatic {
 
         Ok(quote! {
             #str_type_use
-            use crate::FlexStrInner;
+            use crate::inner::FlexStrInner;
         })
     }
 
@@ -141,7 +143,7 @@ impl CodeFragment for FromStatic {
         let local_ident = format_ident!("Local{suffix}");
 
         let doc_test = doc_test!(quote! {
-            use flexstr::#local_ident;
+            use flexstr::{FlexStrCore, #local_ident};
             _blank_!();
 
             const S: #local_ident = #local_ident::from_static("test");

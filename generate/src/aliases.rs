@@ -9,12 +9,13 @@ pub(crate) struct TypeAliases;
 
 impl CodeFragment for TypeAliases {
     fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
-        import_vars! { vars => local_heap_path, shared_heap_path }
+        import_vars! { vars => local_heap_path, shared_heap_path, boxed_heap_path }
 
         Ok(quote! {
             use crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
             use #local_heap_path;
             use #shared_heap_path;
+            use #boxed_heap_path;
         })
     }
 
@@ -96,28 +97,28 @@ impl CodeFragment for TypeAliases {
             ///
             /// # Note
             #full_docs_comm
-            pub type #local_ident = #ident_3usize<#local_heap_type<'static, #heap_type>>;
-
-            _blank_!();
-            #shared_desc_comm
-            ///
-            /// # Note
-            #full_docs_comm
-            pub type #shared_ident = #ident_3usize<#shared_heap_type<'static, #heap_type>>;
+            pub type #local_ident = #ident_3usize<'static, #local_heap_type<#heap_type>>;
 
             _blank_!();
             #local_ref_desc_comm
             ///
             /// # Note
             #full_docs_comm
-            pub type #local_ref_ident = #ident_3usize<#local_heap_type<'static, #heap_type>>;
+            pub type #local_ref_ident<'str> = #ident_3usize<'str, #local_heap_type<#heap_type>>;
+
+            _blank_!();
+            #shared_desc_comm
+            ///
+            /// # Note
+            #full_docs_comm
+            pub type #shared_ident = #ident_3usize<'static, #shared_heap_type<#heap_type>>;
 
             _blank_!();
             #shared_ref_desc_comm
             ///
             /// # Note
             #full_docs_comm
-            pub type #shared_ref_ident = #ident_3usize<#shared_heap_type<'static, #heap_type>>;
+            pub type #shared_ref_ident<'str> = #ident_3usize<'str, #shared_heap_type<#heap_type>>;
 
             _blank_!();
             #boxed_desc_comm
@@ -129,7 +130,7 @@ impl CodeFragment for TypeAliases {
             #boxed_note
             /// support. Those who do not have this special use case are encouraged to use `Local` or `Shared`
             /// variants for much better clone performance (without copy or additional allocation)
-            pub type #boxed_ident = #ident_3usize<#boxed_heap_type<'static, #heap_type>>;
+            pub type #boxed_ident = #ident_3usize<'static, #boxed_heap_type<#heap_type>>;
 
             _blank_!();
             #boxed_ref_desc_comm
@@ -141,7 +142,7 @@ impl CodeFragment for TypeAliases {
             #boxed_note
             /// support. Those who do not have this special use case are encouraged to use `Local` or `Shared`
             /// variants for much better clone performance (without copy or additional allocation)
-            pub type #boxed_ref_ident = #ident_3usize<#boxed_heap_type<'static, #heap_type>>;
+            pub type #boxed_ref_ident<'str> = #ident_3usize<'str, #boxed_heap_type<#heap_type>>;
         })
     }
 }

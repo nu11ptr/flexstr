@@ -1,11 +1,11 @@
 mod aliases;
 mod impls;
 
-pub(crate) use crate::aliases::*;
-pub(crate) use crate::impls::*;
-
 use flexgen::config::Config;
 use flexgen::{register_fragments, CodeGenerator, Error};
+
+pub(crate) use crate::aliases::*;
+pub(crate) use crate::impls::*;
 
 fn main() -> Result<(), Error> {
     let fragments = register_fragments!(FlexStruct, FlexImpls, TypeAliases);

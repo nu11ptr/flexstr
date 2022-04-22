@@ -2,11 +2,11 @@
 
 mod impls;
 
-use crate::inner::FlexStrInner;
 use core::convert::Infallible;
 use std::ffi::{OsStr, OsString};
 
 pub use self::impls::*;
+use crate::inner::FlexStrInner;
 use crate::string::Str;
 
 #[cfg(unix)]
@@ -90,8 +90,8 @@ impl Str for OsStr {
     }
 }
 
-impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexOsStr<SIZE, BPAD, HPAD, HEAP>
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexOsStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// Creates a wrapped static string literal from a raw byte slice.
     #[cfg(unix)]

@@ -1,6 +1,5 @@
 mod impls;
 
-use crate::inner::FlexStrInner;
 use alloc::vec::Vec;
 use core::convert::Infallible;
 
@@ -55,17 +54,9 @@ impl Str for [u8] {
     }
 }
 
-impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexRawStr<SIZE, BPAD, HPAD, HEAP>
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexRawStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// An empty ("") static constant string
     pub const EMPTY: Self = Self::from_static(EMPTY);
-
-    // TODO: Replace with generated
-    /// Creates a wrapped static string literal. This function is equivalent to using the macro and
-    /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
-    #[inline(always)]
-    pub const fn from_static(s: &'static [u8]) -> Self {
-        Self(FlexStrInner::from_static(s))
-    }
 }

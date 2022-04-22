@@ -13,8 +13,7 @@ mod string;
 mod traits;
 
 pub use crate::string::std_str::{
-    BoxedStr, BoxedStrRef, FlexStr, FlexStrRef, LocalStr, LocalStrRef, SharedStr, SharedStrRef,
-    EMPTY,
+    BoxedStr, BoxedStrRef, FlexStr, LocalStr, LocalStrRef, SharedStr, SharedStrRef, EMPTY,
 };
 pub use crate::traits::{FlexStrCore, FlexStrCoreRef};
 
@@ -23,8 +22,7 @@ pub use crate::traits::{FlexStrCore, FlexStrCoreRef};
 #[cfg_attr(docsrs, doc(cfg(feature = "bstr")))]
 pub mod b_str {
     pub use crate::string::b_str::{
-        BoxedBStr, BoxedBStrRef, FlexBStr, FlexBStrRef, LocalBStr, LocalBStrRef, SharedBStr,
-        SharedBStrRef,
+        BoxedBStr, BoxedBStrRef, FlexBStr, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
     };
 }
 
@@ -33,8 +31,8 @@ pub mod b_str {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod c_str {
     pub use crate::string::c_str::{
-        BoxedCStr, BoxedCStrRef, CStrNullError, FlexCStr, FlexCStrRef, LocalCStr, LocalCStrRef,
-        SharedCStr, SharedCStrRef, EMPTY,
+        BoxedCStr, BoxedCStrRef, CStrNullError, FlexCStr, LocalCStr, LocalCStrRef, SharedCStr,
+        SharedCStrRef, EMPTY,
     };
 }
 
@@ -43,7 +41,7 @@ pub mod c_str {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod os_str {
     pub use crate::string::os_str::{
-        BoxedOsStr, BoxedOsStrRef, FlexOsStr, FlexOsStrRef, LocalOsStr, LocalOsStrRef, SharedOsStr,
+        BoxedOsStr, BoxedOsStrRef, FlexOsStr, LocalOsStr, LocalOsStrRef, SharedOsStr,
         SharedOsStrRef,
     };
 }
@@ -53,16 +51,15 @@ pub mod os_str {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod path {
     pub use crate::string::path::{
-        BoxedPath, BoxedPathRef, FlexPath, FlexPathRef, LocalPath, LocalPathRef, SharedPath,
-        SharedPathRef,
+        BoxedPath, BoxedPathRef, FlexPath, LocalPath, LocalPathRef, SharedPath, SharedPathRef,
     };
 }
 
 /// Provides support for raw [\[u8\]](slice)-based [FlexRawStr] strings
 pub mod raw_str {
     pub use crate::string::raw_str::{
-        BoxedRawStr, BoxedRawStrRef, FlexRawStr, FlexRawStrRef, LocalRawStr, LocalRawStrRef,
-        SharedRawStr, SharedRawStrRef, EMPTY,
+        BoxedRawStr, BoxedRawStrRef, FlexRawStr, LocalRawStr, LocalRawStrRef, SharedRawStr,
+        SharedRawStrRef, EMPTY,
     };
 }
 

@@ -4,10 +4,10 @@ mod impls;
 
 use core::convert::Infallible;
 
-use crate::inner::FlexStrInner;
 use bstr::{BStr, BString};
 
 pub use self::impls::*;
+use crate::inner::FlexStrInner;
 use crate::string::Str;
 
 const RAW_EMPTY: &[u8] = b"";
@@ -57,8 +57,8 @@ impl Str for BStr {
     }
 }
 
-impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-    FlexBStr<SIZE, BPAD, HPAD, HEAP>
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexBStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
     /// Creates a wrapped static string literal from a raw byte slice.
     #[inline]
