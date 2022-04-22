@@ -5,13 +5,49 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use quote_doctest::{doc_comment, doc_test};
 
+const B_STR: &str = "BStr";
+const C_STR: &str = "CStr";
+const OS_STR: &str = "OsStr";
+const PATH: &str = "Path";
+const RAW_STR: &str = "RawStr";
+const STR: &str = "Str";
+
 fn str_type_use(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == "BStr" => quote! { use bstr::BStr; },
-        TokenValue::String(s) if s == "CStr" => quote! { use std::ffi::CStr; },
-        TokenValue::String(s) if s == "OsStr" => quote! { use std::ffi::OsStr; },
-        TokenValue::String(s) if s == "Path" => quote! { use std::path::Path; },
-        _ => quote! {},
+        TokenValue::String(s) if s == B_STR => quote! { use bstr::BStr; },
+        TokenValue::String(s) if s == C_STR => quote! { use std::ffi::CStr; },
+        TokenValue::String(s) if s == OS_STR => quote! { use std::ffi::OsStr; },
+        TokenValue::String(s) if s == PATH => quote! { use std::path::Path; },
+        TokenValue::String(_) => quote! {},
+        _ => panic!("'suffix' was not a string"),
+    }
+}
+
+fn str_path(suffix: &TokenValue) -> TokenStream {
+    match suffix {
+        TokenValue::String(s) if s == B_STR => quote! { flexstr::b_str },
+        TokenValue::String(s) if s == C_STR => quote! { flexstr::c_str },
+        TokenValue::String(s) if s == OS_STR => quote! { flexstr::os_str },
+        TokenValue::String(s) if s == PATH => quote! { flexstr::path },
+        TokenValue::String(s) if s == RAW_STR => quote! { flexstr::raw_str },
+        TokenValue::String(s) if s == STR => quote! { flexstr },
+        TokenValue::String(s) => panic!("Unhandled 'suffix': {s}"),
+        _ => panic!("'suffix' was not a string"),
+    }
+}
+
+fn static_str_example(suffix: &TokenValue) -> TokenStream {
+    match suffix {
+        TokenValue::String(s) if s == B_STR => quote! { (b"test" as &[u8]).into() },
+        TokenValue::String(s) if s == C_STR => {
+            quote! { CStr::from_bytes_with_nul(b"test\0").unwrap() }
+        }
+        TokenValue::String(s) if s == OS_STR => quote! { OsStr::new("test") },
+        TokenValue::String(s) if s == PATH => quote! { Path::new("test") },
+        TokenValue::String(s) if s == RAW_STR => quote! { b"test" },
+        TokenValue::String(s) if s == STR => quote! { "test" },
+        TokenValue::String(s) => panic!("Unhandled 'suffix': {s}"),
+        _ => panic!("'suffix' was not a string"),
     }
 }
 
@@ -141,13 +177,18 @@ impl CodeFragment for FromStatic {
         import_vars! { vars => suffix, str_type }
 
         let local_ident = format_ident!("Local{suffix}");
+        let str_type_use = str_type_use(suffix);
+        let path = str_path(suffix);
+        let example = static_str_example(suffix);
 
         let doc_test = doc_test!(quote! {
-            use flexstr::{FlexStrCore, #local_ident};
+            #str_type_use
+            use flexstr::FlexStrCore;
+            use #path::#local_ident;
             _blank_!();
 
-            const S: #local_ident = #local_ident::from_static("test");
-            assert!(S.is_static());
+            let s = #local_ident::from_static(#example);
+            assert!(s.is_static());
         })?;
 
         Ok(quote! {

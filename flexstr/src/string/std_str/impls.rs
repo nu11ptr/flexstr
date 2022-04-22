@@ -1,7 +1,7 @@
-//
-// WARNING: This file has been auto-generated using flexgen (https://github.com/nu11ptr/flexgen).
-// Any manual modifications to this file will be overwritten the next time this file is generated.
-//
+// +-------------------------------------------------------------------------------------------------+
+// | WARNING: This file has been auto-generated using FlexGen (https://github.com/nu11ptr/flexgen).  |
+// | Any manual modifications to this file will be overwritten the next time this file is generated. |
+// +-------------------------------------------------------------------------------------------------+
 
 use alloc::boxed::Box;
 use alloc::rc::Rc;
@@ -88,10 +88,11 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// Creates a wrapped static string literal. This function is equivalent to using the macro and
     /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
     /// ```
-    /// use flexstr::{FlexStrCore, LocalStr};
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::LocalStr;
     ///
-    /// const S: LocalStr = LocalStr::from_static("test");
-    /// assert!(S.is_static());
+    /// let s = LocalStr::from_static("test");
+    /// assert!(s.is_static());
     /// ```
     #[inline(always)]
     pub const fn from_static(s: &'static str) -> Self {
