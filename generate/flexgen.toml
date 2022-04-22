@@ -7,7 +7,7 @@ boxed_heap_type = "$type$Box"
 boxed_heap_path = "$type$std::boxed::Box"
 
 [fragment_lists]
-str_type_impls = ["str_use", "flex_struct", "type_aliases"]
+str_type_impls = ["flex_struct", "flex_impls", "type_aliases"]
 
 # *** str ***
 
