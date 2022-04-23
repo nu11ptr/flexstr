@@ -95,7 +95,7 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// use flexstr::FlexStrCore;
     /// use flexstr::path::LocalPath;
     ///
-    /// let s = LocalPath::from_static(Path::new("test"));
+    /// let s = LocalPath::from_static(Path::new("This is a string literal"));
     /// assert!(s.is_static());
     /// ```
     #[inline(always)]
@@ -174,6 +174,21 @@ where
     #[inline(always)]
     pub fn from_ref_heap(s: impl AsRef<Path>) -> Self {
         Self(FlexStrInner::from_ref_heap(s))
+    }
+
+    /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
+    /// simply wrapped and tied to the lifetime of the source string.
+    /// ```
+    /// use std::path::Path;
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::path::LocalPath;
+    ///
+    /// let s = LocalPath::from_borrow(Path::new("This is a string literal"));
+    /// assert!(s.is_borrow());
+    /// ```
+    #[inline(always)]
+    pub fn from_borrow(s: &'str Path) -> Self {
+        Self(FlexStrInner::from_borrow(s))
     }
 }
 

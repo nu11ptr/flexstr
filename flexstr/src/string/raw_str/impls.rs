@@ -93,7 +93,7 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// use flexstr::FlexStrCore;
     /// use flexstr::raw_str::LocalRawStr;
     ///
-    /// let s = LocalRawStr::from_static(b"test");
+    /// let s = LocalRawStr::from_static(b"This is a string literal");
     /// assert!(s.is_static());
     /// ```
     #[inline(always)]
@@ -169,6 +169,20 @@ where
     #[inline(always)]
     pub fn from_ref_heap(s: impl AsRef<[u8]>) -> Self {
         Self(FlexStrInner::from_ref_heap(s))
+    }
+
+    /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
+    /// simply wrapped and tied to the lifetime of the source string.
+    /// ```
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::raw_str::LocalRawStr;
+    ///
+    /// let s = LocalRawStr::from_borrow(b"This is a string literal");
+    /// assert!(s.is_borrow());
+    /// ```
+    #[inline(always)]
+    pub fn from_borrow(s: &'str [u8]) -> Self {
+        Self(FlexStrInner::from_borrow(s))
     }
 }
 

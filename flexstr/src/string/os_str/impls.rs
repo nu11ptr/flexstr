@@ -95,7 +95,7 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// use flexstr::FlexStrCore;
     /// use flexstr::os_str::LocalOsStr;
     ///
-    /// let s = LocalOsStr::from_static(OsStr::new("test"));
+    /// let s = LocalOsStr::from_static(OsStr::new("This is a string literal"));
     /// assert!(s.is_static());
     /// ```
     #[inline(always)]
@@ -174,6 +174,21 @@ where
     #[inline(always)]
     pub fn from_ref_heap(s: impl AsRef<OsStr>) -> Self {
         Self(FlexStrInner::from_ref_heap(s))
+    }
+
+    /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
+    /// simply wrapped and tied to the lifetime of the source string.
+    /// ```
+    /// use std::ffi::OsStr;
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::os_str::LocalOsStr;
+    ///
+    /// let s = LocalOsStr::from_borrow(OsStr::new("This is a string literal"));
+    /// assert!(s.is_borrow());
+    /// ```
+    #[inline(always)]
+    pub fn from_borrow(s: &'str OsStr) -> Self {
+        Self(FlexStrInner::from_borrow(s))
     }
 }
 

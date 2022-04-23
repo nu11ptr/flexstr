@@ -38,14 +38,16 @@ fn str_path(suffix: &TokenValue) -> TokenStream {
 
 fn static_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == B_STR => quote! { (b"test" as &[u8]).into() },
-        TokenValue::String(s) if s == C_STR => {
-            quote! { CStr::from_bytes_with_nul(b"test\0").unwrap() }
+        TokenValue::String(s) if s == B_STR => {
+            quote! { (b"This is a string literal" as &[u8]).into() }
         }
-        TokenValue::String(s) if s == OS_STR => quote! { OsStr::new("test") },
-        TokenValue::String(s) if s == PATH => quote! { Path::new("test") },
-        TokenValue::String(s) if s == RAW_STR => quote! { b"test" },
-        TokenValue::String(s) if s == STR => quote! { "test" },
+        TokenValue::String(s) if s == C_STR => {
+            quote! { CStr::from_bytes_with_nul(b"This is a string literal\0").unwrap() }
+        }
+        TokenValue::String(s) if s == OS_STR => quote! { OsStr::new("This is a string literal") },
+        TokenValue::String(s) if s == PATH => quote! { Path::new("This is a string literal") },
+        TokenValue::String(s) if s == RAW_STR => quote! { b"This is a string literal" },
+        TokenValue::String(s) if s == STR => quote! { "This is a string literal" },
         TokenValue::String(s) => panic!("Unhandled 'suffix': {s}"),
         _ => panic!("'suffix' was not a string"),
     }
@@ -430,6 +432,50 @@ impl CodeFragment for FromRefHeap {
     }
 }
 
+struct FromBorrow;
+
+impl CodeFragment for FromBorrow {
+    fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix }
+
+        let str_type_use = str_type_use(suffix);
+
+        Ok(quote! {
+            #str_type_use
+            use crate::inner::FlexStrInner;
+        })
+    }
+
+    fn generate(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix, str_type }
+
+        let local_ident = format_ident!("Local{suffix}");
+        let str_type_use = str_type_use(suffix);
+        let path = str_path(suffix);
+        let example = static_str_example(suffix);
+
+        let doc_test = doc_test!(quote! {
+            #str_type_use
+            use flexstr::FlexStrCore;
+            use #path::#local_ident;
+            _blank_!();
+
+            let s = #local_ident::from_borrow(#example);
+            assert!(s.is_borrow());
+        })?;
+
+        Ok(quote! {
+            /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
+            /// simply wrapped and tied to the lifetime of the source string.
+            #doc_test
+            #[inline(always)]
+            pub fn from_borrow(s: &'str #str_type) -> Self {
+                Self(FlexStrInner::from_borrow(s))
+            }
+        })
+    }
+}
+
 pub(crate) struct FlexImpls;
 
 impl CodeFragment for FlexImpls {
@@ -438,12 +484,14 @@ impl CodeFragment for FlexImpls {
         let from_ref_uses = FromRef.uses(vars)?;
         let try_inline_uses = TryInline.uses(vars)?;
         let from_ref_heap = FromRefHeap.uses(vars)?;
+        let from_borrow = FromBorrow.uses(vars)?;
 
         Ok(quote! {
             #from_static_uses
             #from_ref_uses
             #try_inline_uses
             #from_ref_heap
+            #from_borrow
             use crate::storage::Storage;
         })
     }
@@ -457,6 +505,7 @@ impl CodeFragment for FlexImpls {
         let from_ref = FromRef.generate(vars)?;
         let try_inline = TryInline.generate(vars)?;
         let from_ref_heap = FromRefHeap.generate(vars)?;
+        let from_borrow = FromBorrow.generate(vars)?;
 
         Ok(quote! {
             _comment_!("### Const Fn Init Functions ###");
@@ -484,6 +533,9 @@ impl CodeFragment for FlexImpls {
 
                 _blank_!();
                 #from_ref_heap
+
+                _blank_!();
+                #from_borrow
             }
         })
     }

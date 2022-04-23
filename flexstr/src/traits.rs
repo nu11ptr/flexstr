@@ -1,4 +1,3 @@
-use crate::inner::FlexStrInner;
 use crate::{Storage, Str};
 
 pub(crate) mod private {
@@ -32,38 +31,6 @@ where
     HEAP: Storage<STR>,
     STR: Str + ?Sized + 'static,
 {
-    /// Create a new heap based string by wrapping the existing user provided heap string type (T).
-    /// For [LocalStr] this will be an [Rc\<str\>](std::rc::Rc) and for [SharedStr] it will be an
-    /// [Arc\<str\>](std::sync::Arc).
-    ///
-    /// # Note
-    /// This would typically only be used if efficient unwrapping of heap based data is needed at a
-    /// later time.
-    /// ```
-    /// use flexstr::{FlexStrCore, LocalStr};
-    ///
-    /// let s = LocalStr::from_heap(b"test"[..].into());
-    /// assert!(s.is_heap());
-    /// ```
-    #[inline(always)]
-    fn from_heap(t: HEAP) -> Self::This {
-        Self::wrap(FlexStrInner::from_heap(t))
-    }
-
-    /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
-    /// simply wrapped and tied to the lifetime of the source string.
-    /// ```
-    /// use flexstr::{FlexStrCore, LocalStrRef};
-    ///
-    /// let abc = format!("{}", "abc");
-    /// let s = LocalStrRef::from_borrow(&abc);
-    /// assert!(s.is_borrow());
-    /// ```
-    #[inline(always)]
-    fn from_borrow(s: &'str STR) -> Self::This {
-        Self::wrap(FlexStrInner::from_borrow(s))
-    }
-
     /// Extracts a string slice containing the entire [FlexStr] in the final string type
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
