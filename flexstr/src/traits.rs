@@ -1,3 +1,4 @@
+use crate::storage::WrongStorageType;
 use crate::{Storage, Str};
 
 pub(crate) mod private {
@@ -16,10 +17,6 @@ pub(crate) mod private {
         HEAP: Storage<STR>,
         STR: Str + ?Sized,
     {
-        type This;
-
-        fn wrap(inner: FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, STR>) -> Self::This;
-
         fn inner(&self) -> &FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, STR>;
     }
 }
@@ -28,9 +25,23 @@ pub(crate) mod private {
 pub trait FlexStrCore<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>:
     private::FlexStrCoreInner<'str, SIZE, BPAD, HPAD, HEAP, STR>
 where
-    HEAP: Storage<STR>,
+    HEAP: Storage<STR> + 'static,
     STR: Str + ?Sized + 'static,
 {
+    /// Attempts to extract a static inline string literal if one is stored inside this [LocalStr].
+    /// Returns [WrongStorageType] if this is not a static string literal.
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = "abc";
+    /// let s2 = LocalStr::from_static("abc");
+    /// assert_eq!(s2.try_as_static_str().unwrap(), s);
+    /// ```
+    #[inline(always)]
+    fn try_as_static_str(&self) -> Result<&'static STR, WrongStorageType> {
+        self.inner().try_as_static_str()
+    }
+
     /// Extracts a string slice containing the entire [FlexStr] in the final string type
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
@@ -38,7 +49,34 @@ where
     /// let s = LocalStr::from_ref("abc");
     /// assert_eq!(s.as_str_type(), "abc");
     /// ```
-    fn as_str_type(&self) -> &STR;
+    #[inline(always)]
+    fn as_str_type(&'str self) -> &STR {
+        self.inner().as_str_type()
+    }
+
+    /// Returns true if this [FlexStr] is empty
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = LocalStr::from_static("");
+    /// assert!(s.is_empty());
+    /// ```
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.inner().is_empty()
+    }
+
+    /// Returns the length of this [FlexStr] in bytes (not chars or graphemes)
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = LocalStr::from_ref("len");
+    /// assert_eq!(s.len(), 3);
+    /// ```
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.inner().len()
+    }
 
     /// Returns true if this is a wrapped string literal (`&'static str`)
     /// ```

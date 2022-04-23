@@ -5,12 +5,41 @@ mod inline;
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;
+use core::fmt;
+use core::fmt::Debug as _;
 
 pub(crate) use borrow::*;
 pub(crate) use heap::*;
 pub(crate) use inline::*;
 
 use crate::string::Str;
+
+// *** Wrong Storage Type ***
+
+/// Error type returned from [try_as_static_str](crate::FlexStr::try_as_static_str) or
+/// [try_to_heap](crate::FlexStr::try_to_heap) when this [FlexStr](crate::FlexStr) does not contain the expected type of storage
+#[derive(Copy, Clone, Debug)]
+pub struct WrongStorageType {
+    /// The expected storage type of the string
+    pub expected: StorageType,
+    /// The actual storage type of the string
+    pub actual: StorageType,
+}
+
+impl fmt::Display for WrongStorageType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("The FlexStr did not use the storage type expected (expected: ")?;
+        self.expected.fmt(f)?;
+        f.write_str(", actual: ")?;
+        self.actual.fmt(f)?;
+        f.write_str(")")
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for WrongStorageType {}
+
+// *** Storage Type ***
 
 /// Represents the storage type used by a particular [FlexStrBase](crate::FlexStrBase)
 #[derive(Copy, Clone, Debug)]
@@ -25,6 +54,8 @@ pub enum StorageType {
     /// Denotes that this [FlexStrBase](crate::FlexStrBase) uses borrowed storage
     Borrow,
 }
+
+// *** Storage ***
 
 /// Trait used for implementing custom heap storage backends
 pub trait Storage<STR>

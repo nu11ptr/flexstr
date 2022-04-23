@@ -1,6 +1,7 @@
 use core::mem;
 use core::ops::Deref;
 
+use crate::storage::WrongStorageType;
 use crate::{BorrowStr, HeapStr, InlineStr, Storage, StorageType, Str, BAD_SIZE_OR_ALIGNMENT};
 
 /// This serves as the base type for the whole crate. Most methods are listed here.
@@ -186,13 +187,16 @@ where
     }
 
     #[inline]
-    pub fn from_heap(t: HEAP) -> Self {
-        if Self::IS_VALID_SIZE {
-            Self {
-                heap_str: mem::ManuallyDrop::new(HeapStr::from_heap(t)),
+    pub fn try_as_static_str(&self) -> Result<&'static STR, WrongStorageType> {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            match self.static_str.marker {
+                StorageType::Static => Ok(self.static_str.as_str_type()),
+                actual => Err(WrongStorageType {
+                    expected: StorageType::Static,
+                    actual,
+                }),
             }
-        } else {
-            panic!("{}", BAD_SIZE_OR_ALIGNMENT);
         }
     }
 
@@ -205,6 +209,26 @@ where
                 StorageType::Inline => self.inline_str.as_str_type(),
                 StorageType::Heap => self.heap_str.as_str_type(),
                 StorageType::Borrow => self.borrow_str.as_str_type(),
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        // SAFETY: Marker check is aligned to correct accessed field
+        unsafe {
+            // Due to how inline does deref, I'm guessing this is slightly cheaper by using
+            // inline native len instead of using length() off of `&STR` at the top
+            match self.static_str.marker {
+                StorageType::Static => self.static_str.as_str_type().length(),
+                StorageType::Inline => self.inline_str.len(),
+                StorageType::Heap => self.heap_str.as_str_type().length(),
+                StorageType::Borrow => self.borrow_str.as_str_type().length(),
             }
         }
     }

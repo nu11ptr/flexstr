@@ -12,7 +12,6 @@ use std::path::Path;
 use crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
 use crate::inner::FlexStrInner;
 use crate::storage::Storage;
-use crate::traits::private::FlexStrCoreInner;
 use crate::traits::{private, FlexStrCore};
 
 // *** String Type Struct ***
@@ -59,11 +58,6 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
 where
     HEAP: Storage<Path>,
 {
-    type This = Self;
-    #[inline(always)]
-    fn wrap(inner: FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, Path>) -> Self::This {
-        Self(inner)
-    }
     #[inline(always)]
     fn inner(&self) -> &FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, Path> {
         &self.0
@@ -75,12 +69,8 @@ where
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexStrCore<'str, SIZE, BPAD, HPAD, HEAP, Path> for FlexPath<'str, SIZE, BPAD, HPAD, HEAP>
 where
-    HEAP: Storage<Path>,
+    HEAP: Storage<Path> + 'static,
 {
-    #[inline(always)]
-    fn as_str_type(&self) -> &Path {
-        self.inner().as_str_type()
-    }
 }
 
 // ### Const Fn Init Functions ###

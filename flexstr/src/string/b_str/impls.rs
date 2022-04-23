@@ -13,7 +13,6 @@ use bstr::BStr;
 use crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
 use crate::inner::FlexStrInner;
 use crate::storage::Storage;
-use crate::traits::private::FlexStrCoreInner;
 use crate::traits::{private, FlexStrCore};
 
 // *** String Type Struct ***
@@ -60,11 +59,6 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
 where
     HEAP: Storage<BStr>,
 {
-    type This = Self;
-    #[inline(always)]
-    fn wrap(inner: FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, BStr>) -> Self::This {
-        Self(inner)
-    }
     #[inline(always)]
     fn inner(&self) -> &FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, BStr> {
         &self.0
@@ -76,12 +70,8 @@ where
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexStrCore<'str, SIZE, BPAD, HPAD, HEAP, BStr> for FlexBStr<'str, SIZE, BPAD, HPAD, HEAP>
 where
-    HEAP: Storage<BStr>,
+    HEAP: Storage<BStr> + 'static,
 {
-    #[inline(always)]
-    fn as_str_type(&self) -> &BStr {
-        self.inner().as_str_type()
-    }
 }
 
 // ### Const Fn Init Functions ###

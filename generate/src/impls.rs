@@ -115,7 +115,6 @@ impl CodeFragment for FlexStruct {
             use core::ops::Deref;
             use crate::inner::FlexStrInner;
             use crate::storage::Storage;
-            use crate::traits::private::FlexStrCoreInner;
             use crate::traits::{FlexStrCore, private};
         })
     }
@@ -178,15 +177,6 @@ impl CodeFragment for FlexStruct {
             where
                 HEAP: Storage<#str_type>,
             {
-                type This = Self;
-
-                #[inline(always)]
-                fn wrap(
-                    inner: FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type>,
-                ) -> Self::This {
-                    Self(inner)
-                }
-
                 #[inline(always)]
                 fn inner(&self) -> &FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, #str_type> {
                     &self.0
@@ -199,12 +189,8 @@ impl CodeFragment for FlexStruct {
             impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
                 FlexStrCore<'str, SIZE, BPAD, HPAD, HEAP, #str_type> for #ident<'str, SIZE, BPAD, HPAD, HEAP>
             where
-                HEAP: Storage<#str_type>,
+                HEAP: Storage<#str_type> + 'static,
             {
-                #[inline(always)]
-                fn as_str_type(&self) -> &#str_type {
-                    self.inner().as_str_type()
-                }
             }
         })
     }
