@@ -32,23 +32,6 @@ where
     HEAP: Storage<STR>,
     STR: Str + ?Sized + 'static,
 {
-    /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexStr::from_ref)
-    /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
-    ///
-    /// # Note
-    /// Using this is only recommended when using the associated [to_heap](FlexStr::to_heap)
-    /// and [try_to_heap](FlexStr::try_to_heap) functions.
-    /// ```
-    /// use flexstr::{FlexStrCore, LocalStr};
-    ///
-    /// let s = LocalStr::from_ref_heap("test");
-    /// assert!(s.is_heap());
-    /// ```
-    #[inline(always)]
-    fn from_ref_heap(s: impl AsRef<STR>) -> Self::This {
-        Self::wrap(FlexStrInner::from_ref_heap(s))
-    }
-
     /// Create a new heap based string by wrapping the existing user provided heap string type (T).
     /// For [LocalStr] this will be an [Rc\<str\>](std::rc::Rc) and for [SharedStr] it will be an
     /// [Arc\<str\>](std::sync::Arc).

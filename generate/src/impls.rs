@@ -129,7 +129,7 @@ impl CodeFragment for FlexStruct {
         let ident = format_ident!("Flex{suffix}");
 
         Ok(quote! {
-            _comment_!("*** Regular Type ***\n");
+            _comment_!("*** String Type Struct ***\n");
             _blank_!();
 
             #doc_comm
@@ -371,6 +371,65 @@ impl CodeFragment for TryInline {
     }
 }
 
+struct FromRefHeap;
+
+impl CodeFragment for FromRefHeap {
+    fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix }
+
+        let str_type_use = str_type_use(suffix);
+
+        Ok(quote! {
+            #str_type_use
+            use crate::inner::FlexStrInner;
+        })
+    }
+
+    fn generate(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix, str_type }
+
+        let ident = format_ident!("Flex{suffix}");
+        let local_ident = format_ident!("Local{suffix}");
+        let path = str_path(suffix);
+        let heap = heap_str_example(suffix);
+        let str_type_use = str_type_use(suffix);
+
+        let comm_top = doc_comment(local_fmt!(
+            "Force the creation of a heap allocated string. Unlike to/into/[from_ref]({ident}::from_ref)"
+        ));
+        let note_first = doc_comment(local_fmt!(
+            "Using this is only recommended when using the associated [to_heap]({ident}::to_heap)"
+        ));
+        let note_last = doc_comment(local_fmt!(
+            "and [try_to_heap]({ident}::try_to_heap) functions."
+        ));
+
+        let doc_test = doc_test!(quote! {
+            #str_type_use
+            use flexstr::FlexStrCore;
+            use #path::#local_ident;
+            _blank_!();
+
+            let s = #local_ident::from_ref_heap(#heap);
+            assert!(s.is_heap());
+        })?;
+
+        Ok(quote! {
+            #comm_top
+            /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
+            ///
+            /// # Note
+            #note_first
+            #note_last
+            #doc_test
+            #[inline(always)]
+            pub fn from_ref_heap(s: impl AsRef<#str_type>) -> Self {
+                Self(FlexStrInner::from_ref_heap(s))
+            }
+        })
+    }
+}
+
 pub(crate) struct FlexImpls;
 
 impl CodeFragment for FlexImpls {
@@ -378,11 +437,13 @@ impl CodeFragment for FlexImpls {
         let from_static_uses = FromStatic.uses(vars)?;
         let from_ref_uses = FromRef.uses(vars)?;
         let try_inline_uses = TryInline.uses(vars)?;
+        let from_ref_heap = FromRefHeap.uses(vars)?;
 
         Ok(quote! {
             #from_static_uses
             #from_ref_uses
             #try_inline_uses
+            #from_ref_heap
             use crate::storage::Storage;
         })
     }
@@ -395,13 +456,21 @@ impl CodeFragment for FlexImpls {
         let from_static = FromStatic.generate(vars)?;
         let from_ref = FromRef.generate(vars)?;
         let try_inline = TryInline.generate(vars)?;
+        let from_ref_heap = FromRefHeap.generate(vars)?;
 
         Ok(quote! {
+            _comment_!("### Const Fn Init Functions ###");
+            _blank_!();
+
             impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
                 #ident<'str, SIZE, BPAD, HPAD, HEAP>
             {
                 #from_static
             }
+
+            _blank_!();
+            _comment_!("### Regular Init Functions ###");
+            _blank_!();
 
             impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
                 #ident<'str, SIZE, BPAD, HPAD, HEAP>
@@ -412,6 +481,9 @@ impl CodeFragment for FlexImpls {
 
                 _blank_!();
                 #try_inline
+
+                _blank_!();
+                #from_ref_heap
             }
         })
     }

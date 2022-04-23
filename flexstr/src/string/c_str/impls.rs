@@ -15,7 +15,7 @@ use crate::storage::Storage;
 use crate::traits::private::FlexStrCoreInner;
 use crate::traits::{private, FlexStrCore};
 
-// *** Regular Type ***
+// *** String Type Struct ***
 
 /// A flexible string type that transparently wraps a string literal, inline string, or an
 /// [`Rc<CStr>`](std::rc::Rc)
@@ -83,6 +83,8 @@ where
     }
 }
 
+// ### Const Fn Init Functions ###
+
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
 {
@@ -101,6 +103,9 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
         Self(FlexStrInner::from_static(s))
     }
 }
+
+// ### Regular Init Functions ###
+
 impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     FlexCStr<'str, SIZE, BPAD, HPAD, HEAP>
 where
@@ -153,6 +158,27 @@ where
     #[inline(always)]
     pub fn try_inline<S: AsRef<CStr>>(s: S) -> Result<Self, S> {
         FlexStrInner::try_inline(s).map(Self)
+    }
+
+    /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexCStr::from_ref)
+    /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
+    ///
+    /// # Note
+    /// Using this is only recommended when using the associated [to_heap](FlexCStr::to_heap)
+    /// and [try_to_heap](FlexCStr::try_to_heap) functions.
+    /// ```
+    /// use std::ffi::CStr;
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::c_str::LocalCStr;
+    ///
+    /// let s = LocalCStr::from_ref_heap(
+    ///     CStr::from_bytes_with_nul(b"This is too long to inline!\0").unwrap(),
+    /// );
+    /// assert!(s.is_heap());
+    /// ```
+    #[inline(always)]
+    pub fn from_ref_heap(s: impl AsRef<CStr>) -> Self {
+        Self(FlexStrInner::from_ref_heap(s))
     }
 }
 
