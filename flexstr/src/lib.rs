@@ -15,7 +15,7 @@ mod traits;
 pub use crate::string::std_str::{
     BoxedStr, BoxedStrRef, FlexStr, LocalStr, LocalStrRef, SharedStr, SharedStrRef, EMPTY,
 };
-pub use crate::traits::{FlexStrCore, FlexStrCoreRef};
+pub use crate::traits::FlexStrCore;
 
 /// Provides support for [BStr](bstr::BStr)-based [FlexBStr] strings
 #[cfg(feature = "bstr")]

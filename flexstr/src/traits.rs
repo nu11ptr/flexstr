@@ -32,27 +32,6 @@ where
     HEAP: Storage<STR>,
     STR: Str + ?Sized + 'static,
 {
-    /// Creates a new string from a `STR` reference. If the string is empty, an empty static string
-    /// is returned. If at or under the inline length limit, an inline string will be returned.
-    /// Otherwise, a heap based string will be allocated and returned. This is typically used to
-    /// create strings from a non-static borrowed `STR` where you don't have ownership.
-    /// ```
-    /// use flexstr::{FlexStrCore, LocalStr};
-    ///
-    /// let s = LocalStr::from_ref("");
-    /// assert!(s.is_static());
-    ///
-    /// let s = LocalStr::from_ref("test");
-    /// assert!(s.is_inline());
-    ///
-    /// let s = LocalStr::from_ref("This is too long to be inlined!!!!!!!");
-    /// assert!(s.is_heap());
-    /// ```
-    #[inline(always)]
-    fn from_ref(s: impl AsRef<STR>) -> Self::This {
-        Self::wrap(FlexStrInner::from_ref(s))
-    }
-
     /// Attempts to create an inlined string. Returns a new inline string on success or the original
     /// source string if it will not fit. Since the to/into/[from_ref](FlexStr::from_ref) functions
     /// will automatically inline when possible, this function is really only for special use cases.
@@ -95,6 +74,20 @@ where
     #[inline(always)]
     fn from_heap(t: HEAP) -> Self::This {
         Self::wrap(FlexStrInner::from_heap(t))
+    }
+
+    /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
+    /// simply wrapped and tied to the lifetime of the source string.
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStrRef};
+    ///
+    /// let abc = format!("{}", "abc");
+    /// let s = LocalStrRef::from_borrow(&abc);
+    /// assert!(s.is_borrow());
+    /// ```
+    #[inline(always)]
+    fn from_borrow(s: &'str STR) -> Self::This {
+        Self::wrap(FlexStrInner::from_borrow(s))
     }
 
     /// Extracts a string slice containing the entire [FlexStr] in the final string type
@@ -140,28 +133,6 @@ where
     #[inline(always)]
     fn is_heap(&self) -> bool {
         self.inner().is_heap()
-    }
-}
-
-/// This trait contains only borrowing related methods and is therefore implemented only by `Ref` types
-pub trait FlexStrCoreRef<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP, STR>:
-    private::FlexStrCoreInner<'str, SIZE, BPAD, HPAD, HEAP, STR>
-where
-    HEAP: Storage<STR>,
-    STR: Str + ?Sized + 'static,
-{
-    /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
-    /// simply wrapped and tied to the lifetime of the source string.
-    /// ```
-    /// use flexstr::{FlexStrCoreRef, LocalStrRef};
-    ///
-    /// let abc = format!("{}", "abc");
-    /// let s = LocalStrRef::from_borrow(&abc);
-    /// assert!(s.is_borrow());
-    /// ```
-    #[inline(always)]
-    fn from_borrow(s: &'str STR) -> Self::This {
-        Self::wrap(FlexStrInner::from_borrow(s))
     }
 
     /// Returns true if this is a wrapped string using borrowed storage

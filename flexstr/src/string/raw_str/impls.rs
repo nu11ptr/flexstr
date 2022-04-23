@@ -99,6 +99,37 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
         Self(FlexStrInner::from_static(s))
     }
 }
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexRawStr<'str, SIZE, BPAD, HPAD, HEAP>
+where
+    HEAP: Storage<[u8]>,
+{
+    /// Creates a new string from a `[u8]` reference. If the string is empty, an empty static string
+    /// is returned. If at or under the inline length limit, an inline string will be returned.
+    /// Otherwise, a heap based string will be allocated and returned. This is typically used to
+    /// create strings from a non-static borrowed `[u8]` where you don't have ownership.
+    ///
+    /// # NOTE
+    /// Don't use this for string literals or other `'static` strings. Use `from_static` or
+    /// the macros instead. Those simply wrap instead of copy and/or allocate.
+    /// ```
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::raw_str::LocalRawStr;
+    ///
+    /// let s = LocalRawStr::from_ref(flexstr::raw_str::EMPTY);
+    /// assert!(s.is_static());
+    ///
+    /// let s = LocalRawStr::from_ref(b"inline");
+    /// assert!(s.is_inline());
+    ///
+    /// let s = LocalRawStr::from_ref(b"This is too long to inline!");
+    /// assert!(s.is_heap());
+    /// ```
+    #[inline(always)]
+    pub fn from_ref(s: impl AsRef<[u8]>) -> Self {
+        Self(FlexStrInner::from_ref(s))
+    }
+}
 
 // *** Type Aliases ***
 

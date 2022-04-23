@@ -101,6 +101,38 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
         Self(FlexStrInner::from_static(s))
     }
 }
+impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
+    FlexOsStr<'str, SIZE, BPAD, HPAD, HEAP>
+where
+    HEAP: Storage<OsStr>,
+{
+    /// Creates a new string from a `OsStr` reference. If the string is empty, an empty static string
+    /// is returned. If at or under the inline length limit, an inline string will be returned.
+    /// Otherwise, a heap based string will be allocated and returned. This is typically used to
+    /// create strings from a non-static borrowed `OsStr` where you don't have ownership.
+    ///
+    /// # NOTE
+    /// Don't use this for string literals or other `'static` strings. Use `from_static` or
+    /// the macros instead. Those simply wrap instead of copy and/or allocate.
+    /// ```
+    /// use std::ffi::OsStr;
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::os_str::LocalOsStr;
+    ///
+    /// let s = LocalOsStr::from_ref(OsStr::new(""));
+    /// assert!(s.is_static());
+    ///
+    /// let s = LocalOsStr::from_ref(OsStr::new("inline"));
+    /// assert!(s.is_inline());
+    ///
+    /// let s = LocalOsStr::from_ref(OsStr::new("This is too long to inline!"));
+    /// assert!(s.is_heap());
+    /// ```
+    #[inline(always)]
+    pub fn from_ref(s: impl AsRef<OsStr>) -> Self {
+        Self(FlexStrInner::from_ref(s))
+    }
+}
 
 // *** Type Aliases ***
 
