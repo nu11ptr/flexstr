@@ -318,16 +318,71 @@ impl CodeFragment for FromRef {
     }
 }
 
+struct TryInline;
+
+impl CodeFragment for TryInline {
+    fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix }
+
+        let str_type_use = str_type_use(suffix);
+
+        Ok(quote! {
+            #str_type_use
+            use crate::inner::FlexStrInner;
+        })
+    }
+
+    fn generate(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
+        import_vars! { vars => suffix, str_type }
+
+        let ident = format_ident!("Flex{suffix}");
+        let local_ident = format_ident!("Local{suffix}");
+        let path = str_path(suffix);
+        let inline = inline_str_example(suffix);
+        let str_type_use = str_type_use(suffix);
+
+        let note = doc_comment(local_fmt!(
+            "Since the to/into/[from_ref]({ident}::from_ref) functions will automatically inline when"
+        ));
+
+        let doc_test = doc_test!(quote! {
+            #str_type_use
+            use flexstr::FlexStrCore;
+            use #path::#local_ident;
+            _blank_!();
+
+            let s = #local_ident::try_inline(#inline).unwrap();
+            assert!(s.is_inline());
+        })?;
+
+        Ok(quote! {
+            /// Attempts to create an inlined string. Returns a new inline string on success or the original
+            /// source string if it will not fit.
+            ///
+            /// # Note
+            #note
+            /// possible, this function is really only for special use cases.
+            #doc_test
+            #[inline(always)]
+            pub fn try_inline<S: AsRef<#str_type>>(s: S) -> Result<Self, S> {
+                FlexStrInner::try_inline(s).map(Self)
+            }
+        })
+    }
+}
+
 pub(crate) struct FlexImpls;
 
 impl CodeFragment for FlexImpls {
     fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
         let from_static_uses = FromStatic.uses(vars)?;
         let from_ref_uses = FromRef.uses(vars)?;
+        let try_inline_uses = TryInline.uses(vars)?;
 
         Ok(quote! {
             #from_static_uses
             #from_ref_uses
+            #try_inline_uses
             use crate::storage::Storage;
         })
     }
@@ -339,6 +394,7 @@ impl CodeFragment for FlexImpls {
 
         let from_static = FromStatic.generate(vars)?;
         let from_ref = FromRef.generate(vars)?;
+        let try_inline = TryInline.generate(vars)?;
 
         Ok(quote! {
             impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
@@ -353,6 +409,9 @@ impl CodeFragment for FlexImpls {
                 HEAP: Storage<#str_type>
             {
                 #from_ref
+
+                _blank_!();
+                #try_inline
             }
         })
     }

@@ -132,6 +132,25 @@ where
     pub fn from_ref(s: impl AsRef<Path>) -> Self {
         Self(FlexStrInner::from_ref(s))
     }
+
+    /// Attempts to create an inlined string. Returns a new inline string on success or the original
+    /// source string if it will not fit.
+    ///
+    /// # Note
+    /// Since the to/into/[from_ref](FlexPath::from_ref) functions will automatically inline when
+    /// possible, this function is really only for special use cases.
+    /// ```
+    /// use std::path::Path;
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::path::LocalPath;
+    ///
+    /// let s = LocalPath::try_inline(Path::new("inline")).unwrap();
+    /// assert!(s.is_inline());
+    /// ```
+    #[inline(always)]
+    pub fn try_inline<S: AsRef<Path>>(s: S) -> Result<Self, S> {
+        FlexStrInner::try_inline(s).map(Self)
+    }
 }
 
 // *** Type Aliases ***

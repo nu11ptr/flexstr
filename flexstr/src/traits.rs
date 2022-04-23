@@ -32,23 +32,11 @@ where
     HEAP: Storage<STR>,
     STR: Str + ?Sized + 'static,
 {
-    /// Attempts to create an inlined string. Returns a new inline string on success or the original
-    /// source string if it will not fit. Since the to/into/[from_ref](FlexStr::from_ref) functions
-    /// will automatically inline when possible, this function is really only for special use cases.
-    /// ```
-    /// use flexstr::{FlexStrCore, LocalStr};
-    ///
-    /// let s = LocalStr::try_inline("test").unwrap();
-    /// assert!(s.is_inline());
-    /// ```
-    #[inline(always)]
-    fn try_inline<S: AsRef<STR>>(s: S) -> Result<Self::This, S> {
-        FlexStrInner::try_inline(s).map(Self::wrap)
-    }
-
     /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexStr::from_ref)
     /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
-    /// Using this is generally only recommended when using the associated [to_heap](FlexStr::to_heap)
+    ///
+    /// # Note
+    /// Using this is only recommended when using the associated [to_heap](FlexStr::to_heap)
     /// and [try_to_heap](FlexStr::try_to_heap) functions.
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
@@ -63,8 +51,11 @@ where
 
     /// Create a new heap based string by wrapping the existing user provided heap string type (T).
     /// For [LocalStr] this will be an [Rc\<str\>](std::rc::Rc) and for [SharedStr] it will be an
-    /// [Arc\<str\>](std::sync::Arc). This would typically only be used if efficient unwrapping of heap
-    /// based data is needed at a later time.
+    /// [Arc\<str\>](std::sync::Arc).
+    ///
+    /// # Note
+    /// This would typically only be used if efficient unwrapping of heap based data is needed at a
+    /// later time.
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///

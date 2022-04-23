@@ -132,6 +132,25 @@ where
     pub fn from_ref(s: impl AsRef<OsStr>) -> Self {
         Self(FlexStrInner::from_ref(s))
     }
+
+    /// Attempts to create an inlined string. Returns a new inline string on success or the original
+    /// source string if it will not fit.
+    ///
+    /// # Note
+    /// Since the to/into/[from_ref](FlexOsStr::from_ref) functions will automatically inline when
+    /// possible, this function is really only for special use cases.
+    /// ```
+    /// use std::ffi::OsStr;
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::os_str::LocalOsStr;
+    ///
+    /// let s = LocalOsStr::try_inline(OsStr::new("inline")).unwrap();
+    /// assert!(s.is_inline());
+    /// ```
+    #[inline(always)]
+    pub fn try_inline<S: AsRef<OsStr>>(s: S) -> Result<Self, S> {
+        FlexStrInner::try_inline(s).map(Self)
+    }
 }
 
 // *** Type Aliases ***

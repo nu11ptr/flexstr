@@ -129,6 +129,24 @@ where
     pub fn from_ref(s: impl AsRef<str>) -> Self {
         Self(FlexStrInner::from_ref(s))
     }
+
+    /// Attempts to create an inlined string. Returns a new inline string on success or the original
+    /// source string if it will not fit.
+    ///
+    /// # Note
+    /// Since the to/into/[from_ref](FlexStr::from_ref) functions will automatically inline when
+    /// possible, this function is really only for special use cases.
+    /// ```
+    /// use flexstr::FlexStrCore;
+    /// use flexstr::LocalStr;
+    ///
+    /// let s = LocalStr::try_inline("inline").unwrap();
+    /// assert!(s.is_inline());
+    /// ```
+    #[inline(always)]
+    pub fn try_inline<S: AsRef<str>>(s: S) -> Result<Self, S> {
+        FlexStrInner::try_inline(s).map(Self)
+    }
 }
 
 // *** Type Aliases ***
