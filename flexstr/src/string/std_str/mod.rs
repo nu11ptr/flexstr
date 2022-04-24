@@ -1,6 +1,7 @@
 mod impls;
 
-use alloc::string::String;
+use alloc::borrow::Cow;
+use alloc::string::{String, ToString};
 use core::str;
 use core::str::Utf8Error;
 
@@ -54,6 +55,21 @@ impl Str for str {
     #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr()
+    }
+
+    #[inline]
+    fn to_string_type(&self) -> Self::StringType {
+        self.to_string()
+    }
+
+    #[inline(always)]
+    fn try_to_str(&self) -> Result<&str, crate::string::Utf8Error> {
+        Ok(self)
+    }
+
+    #[inline(always)]
+    fn to_string_lossy(&self) -> Cow<str> {
+        Cow::Borrowed(self)
     }
 }
 

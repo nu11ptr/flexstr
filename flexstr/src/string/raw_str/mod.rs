@@ -1,10 +1,12 @@
 mod impls;
 
+use alloc::borrow::Cow;
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::convert::Infallible;
 
 pub use self::impls::*;
-use crate::string::Str;
+use crate::string::{Str, Utf8Error};
 
 /// Empty raw string constant
 pub const EMPTY: &[u8] = b"";
@@ -51,6 +53,24 @@ impl Str for [u8] {
     #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr()
+    }
+
+    #[inline]
+    fn to_string_type(&self) -> Self::StringType {
+        self.to_vec()
+    }
+
+    #[inline(always)]
+    fn try_to_str(&self) -> Result<&str, Utf8Error> {
+        core::str::from_utf8(self).map_err(|err| Utf8Error::WithData {
+            valid_up_to: err.valid_up_to(),
+            error_len: err.error_len(),
+        })
+    }
+
+    #[inline(always)]
+    fn to_string_lossy(&self) -> Cow<str> {
+        String::from_utf8_lossy(self)
     }
 }
 

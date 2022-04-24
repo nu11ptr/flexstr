@@ -1,7 +1,10 @@
+use alloc::borrow::Cow;
+use alloc::string::{String, ToString};
 use core::mem;
 use core::ops::Deref;
 
 use crate::storage::WrongStorageType;
+use crate::string::Utf8Error;
 use crate::{BorrowStr, HeapStr, InlineStr, Storage, StorageType, Str, BAD_SIZE_OR_ALIGNMENT};
 
 /// This serves as the base type for the whole crate. Most methods are listed here.
@@ -211,6 +214,26 @@ where
                 StorageType::Borrow => self.borrow_str.as_str_type(),
             }
         }
+    }
+
+    #[inline]
+    pub fn to_string_type(&self) -> STR::StringType {
+        STR::to_string_type(self)
+    }
+
+    #[inline]
+    pub fn try_to_str(&self) -> Result<&str, Utf8Error> {
+        STR::try_to_str(self)
+    }
+
+    #[inline(always)]
+    pub fn try_to_string(&self) -> Result<String, Utf8Error> {
+        self.try_to_str().map(<str as ToString>::to_string)
+    }
+
+    #[inline]
+    pub fn to_string_lossy(&'str self) -> Cow<'str, str> {
+        STR::to_string_lossy(self)
     }
 
     #[inline(always)]

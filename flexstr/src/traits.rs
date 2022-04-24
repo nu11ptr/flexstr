@@ -1,4 +1,8 @@
+use alloc::borrow::Cow;
+use alloc::string::String;
+
 use crate::storage::WrongStorageType;
+use crate::string::Utf8Error;
 use crate::{Storage, Str};
 
 pub(crate) mod private {
@@ -52,6 +56,47 @@ where
     #[inline(always)]
     fn as_str_type(&'str self) -> &STR {
         self.inner().as_str_type()
+    }
+
+    /// Extracts a string slice containing the entire [FlexStr]
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = LocalStr::from_ref("abc");
+    /// assert_eq!(s.try_to_str().unwrap(), "abc");
+    /// ```
+    #[inline(always)]
+    fn try_to_str(&'str self) -> Result<&str, Utf8Error> {
+        self.inner().try_to_str()
+    }
+
+    /// Converts this [FlexStr] into a [String]. This should be more efficient than using the [ToString]
+    /// trait (which we cannot implement due to a blanket stdlib implementation) as this avoids the
+    /// [Display](alloc::fmt::Display)-based implementation.
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = LocalStr::from_ref("abc").try_to_string().unwrap();
+    /// assert_eq!(s, "abc");
+    /// ```
+    #[inline(always)]
+    fn try_to_string(&self) -> Result<String, Utf8Error> {
+        self.inner().try_to_string()
+    }
+
+    /// Convert the string into an owned or borrowed `str`. If the conversion is possible without
+    /// alternations a borrowed `str` will be returned. If it is not possible, non-unicode sequences
+    /// will be replaced with `U+FFFD REPLACEMENT CHARACTER` and an owned (`String`) will be returned
+    /// instead
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = LocalStr::from_ref("abc");
+    /// assert_eq!(s.to_string_lossy(), "abc");
+    /// ```
+    #[inline(always)]
+    fn to_string_lossy(&'str self) -> Cow<'str, str> {
+        self.inner().to_string_lossy()
     }
 
     /// Returns true if this [FlexStr] is empty

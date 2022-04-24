@@ -2,13 +2,14 @@
 
 mod impls;
 
+use alloc::borrow::Cow;
 use core::convert::Infallible;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 pub use self::impls::*;
 use crate::inner::FlexStrInner;
-use crate::string::Str;
+use crate::string::{Str, Utf8Error};
 
 #[cfg(unix)]
 const RAW_EMPTY: &[u8] = b"";
@@ -88,6 +89,21 @@ impl Str for Path {
     fn as_inline_ptr(&self) -> *const u8 {
         // TODO: Does os_str_bytes have a feature to help with this? Didn't see one
         unreachable!("Conversion back to raw pointer not supported on this platform");
+    }
+
+    #[inline]
+    fn to_string_type(&self) -> Self::StringType {
+        self.to_path_buf()
+    }
+
+    #[inline(always)]
+    fn try_to_str(&self) -> Result<&str, Utf8Error> {
+        self.to_str().ok_or(Utf8Error::Unknown)
+    }
+
+    #[inline(always)]
+    fn to_string_lossy(&self) -> Cow<str> {
+        self.to_string_lossy()
     }
 }
 

@@ -2,13 +2,14 @@
 
 mod impls;
 
+use alloc::borrow::Cow;
 use core::convert::Infallible;
 
-use bstr::{BStr, BString};
+use bstr::{BStr, BString, ByteSlice};
 
 pub use self::impls::*;
 use crate::inner::FlexStrInner;
-use crate::string::Str;
+use crate::string::{Str, Utf8Error};
 
 const RAW_EMPTY: &[u8] = b"";
 
@@ -54,6 +55,24 @@ impl Str for BStr {
     #[inline(always)]
     fn as_inline_ptr(&self) -> *const u8 {
         self.as_ptr()
+    }
+
+    #[inline]
+    fn to_string_type(&self) -> Self::StringType {
+        self.into()
+    }
+
+    #[inline(always)]
+    fn try_to_str(&self) -> Result<&str, Utf8Error> {
+        self.to_str().map_err(|err| Utf8Error::WithData {
+            valid_up_to: err.valid_up_to(),
+            error_len: err.error_len(),
+        })
+    }
+
+    #[inline(always)]
+    fn to_string_lossy(&self) -> Cow<str> {
+        self.to_str_lossy()
     }
 }
 

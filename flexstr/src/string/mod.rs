@@ -1,9 +1,50 @@
+use alloc::borrow::Cow;
+use core::fmt;
+
 pub(crate) mod b_str;
 pub(crate) mod c_str;
 pub(crate) mod os_str;
 pub(crate) mod path;
 pub(crate) mod raw_str;
 pub(crate) mod std_str;
+
+/// An error occurred during string conversion due to the source string not being UTF-8 compliant
+///
+/// # Note
+/// Usage of `Unknown` vs `WithData` variant is determined on a per string type basis. Currently,
+/// only [OsStr](std::ffi::OsStr) and [Path](std::path::Path) don't support `WithData`.
+#[derive(Copy, Clone, Debug)]
+pub enum Utf8Error {
+    /// The source string was not UTF-8, but no further information was available
+    Unknown,
+    /// The source string was not UTF-8. The enclosed data is equivalent to that of the methods
+    /// on the stdlib error of the [same name](core::str::Utf8Error).
+    WithData {
+        /// Equivalent to the method of the [same name](core::str::Utf8Error::valid_up_to) in stdlib
+        valid_up_to: usize,
+        /// Equivalent to the method of the [same name](core::str::Utf8Error::error_len) in stdlib
+        error_len: Option<usize>,
+    },
+}
+
+impl fmt::Display for Utf8Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Utf8Error::Unknown => {
+                f.write_str("The source string was not UTF-8. No further information is available")
+            }
+            Utf8Error::WithData { valid_up_to, .. } => {
+                write!(
+                    f,
+                    "The source string was not UTF-8. It is valid up to position {valid_up_to}"
+                )
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for Utf8Error {}
 
 /// Trait used for implementing a custom inner string type ([str], [OsStr](std::ffi::OsStr), [Cstr](std::ffi::CStr), etc.)
 pub trait Str {
@@ -37,223 +78,14 @@ pub trait Str {
 
     /// Returns a representation of the inline type as a pointer
     fn as_inline_ptr(&self) -> *const u8;
-}
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! define_flex_types {
-    ($ident:literal, $type:ty, $heap_type:ty) => {
-        use core::ops::Deref;
-        use $crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
+    /// Converts this str reference into a native heap allocated string
+    fn to_string_type(&self) -> Self::StringType;
 
-        paste! {
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<",
-            stringify!($heap_type), ">`](std::rc::Rc)")]
+    /// Converts this to a str, if possible, otherwise a UTF8 error is returned
+    fn try_to_str(&self) -> Result<&str, Utf8Error>;
 
-            // *** FlexStr ***
-            #[repr(transparent)]
-            pub struct [<Flex $ident >]<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
-                pub(crate) FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type>);
-
-            // *** FlexStr: Clone ***
-            impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
-                for [<Flex $ident >]<SIZE, PAD1, PAD2, HEAP>
-            where
-                HEAP: Storage<$type> + Clone,
-            {
-                #[inline(always)]
-                fn clone(&self) -> Self {
-                   Self(self.0.clone())
-                }
-            }
-
-            // *** FlexStr: Deref ***
-            impl<const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
-                for [<Flex $ident >]<SIZE, PAD1, PAD2, HEAP>
-            where
-                HEAP: Storage<$type>,
-            {
-                type Target = $type;
-
-                #[inline(always)]
-                fn deref(&self) -> &Self::Target {
-                   self.0.as_str_type()
-                }
-            }
-
-            // *** FlexStr: FlexStrCoreInner ***
-            impl<const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-                private::FlexStrCoreInner<'static, SIZE, BPAD, HPAD, HEAP, $type>
-                for [<Flex $ident >]<SIZE, BPAD, HPAD, HEAP>
-            where
-                HEAP: Storage<$type>,
-            {
-                type This = Self;
-
-                #[inline(always)]
-                fn wrap(
-                    inner: FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type>,
-                ) -> Self::This {
-                    Self(inner)
-                }
-
-                #[inline(always)]
-                fn inner(&self) -> &FlexStrInner<'static, SIZE, BPAD, HPAD, HEAP, $type> {
-                    &self.0
-                }
-            }
-
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Rc<",
-            stringify!($heap_type), ">`](std::rc::Rc), or a borrowed string (with appropriate lifetime)")]
-
-            // *** FlexStrRef ***
-            #[repr(transparent)]
-            pub struct [<Flex $ident Ref>]<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>(
-                FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, $type>);
-
-            // *** FlexStrRef: Clone ***
-            impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Clone
-                for [<Flex $ident Ref>]<'str, SIZE, PAD1, PAD2, HEAP>
-            where
-                HEAP: Storage<$type> + Clone,
-            {
-                #[inline(always)]
-                fn clone(&self) -> Self {
-                   Self(self.0.clone())
-                }
-            }
-
-            // *** FlexStrRef: Deref ***
-            impl<'str, const SIZE: usize, const PAD1: usize, const PAD2: usize, HEAP> Deref
-                for [<Flex $ident Ref>]<'str, SIZE, PAD1, PAD2, HEAP>
-            where
-                HEAP: Storage<$type>,
-            {
-                type Target = $type;
-
-                #[inline(always)]
-                fn deref(&self) -> &Self::Target {
-                   self.0.as_str_type()
-                }
-            }
-
-            // *** FlexStrRef: FlexStrCoreInner ***
-            impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-                private::FlexStrCoreInner<'str, SIZE, BPAD, HPAD, HEAP, $type>
-                for [<Flex $ident Ref>]<'str, SIZE, BPAD, HPAD, HEAP>
-            where
-                HEAP: Storage<$type>,
-            {
-                type This = Self;
-
-                #[inline(always)]
-                fn wrap(
-                    inner: FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, $type>,
-                ) -> Self::This {
-                    Self(inner)
-                }
-
-                #[inline(always)]
-                fn inner(&self) -> &FlexStrInner<'str, SIZE, BPAD, HPAD, HEAP, $type> {
-                    &self.0
-                }
-            }
-
-            // *** FlexStrRef: FlexStrCoreRef ***
-            impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
-                FlexStrCoreRef<'str, SIZE, BPAD, HPAD, HEAP, $type>
-                for [<Flex $ident Ref>]<'str, SIZE, BPAD, HPAD, HEAP>
-            where
-                HEAP: Storage<$type>,
-            {
-            }
-
-            /// A flexible base string type that transparently wraps a string literal, inline string, or a custom `HEAP` type.
-            ///
-            /// It is three machine words in size (3x usize) and can hold 22 bytes of inline string data on 64-bit platforms.
-            ///
-            /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            ///
-            /// # Note 2
-            /// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
-            /// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
-            /// creation.
-
-            // *** FlexStr3USize ***
-            pub type [<Flex $ident 3USize>]<HEAP> =
-                [<Flex $ident >]<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
-
-            /// A flexible base string type that transparently wraps a string literal, inline string, a custom `HEAP` type, or
-            /// a borrowed string (with appropriate lifetime specified).
-            ///
-            /// It is three machine words in size (3x usize) and can hold 22 bytes of inline string data on 64-bit platforms.
-            ///
-            /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            ///
-            /// # Note 2
-            /// Custom concrete types need to specify a `HEAP` type with an exact size of two machine words (16 bytes
-            /// on 64-bit, and 8 bytes on 32-bit). Any other sized parameter will result in a runtime panic on string
-            /// creation.
-
-            // *** FlexStrRef3USize ***
-            pub type [<Flex $ident Ref3USize>]<'str, HEAP> =
-                [<Flex $ident Ref>]<'str, STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>;
-
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or an [`Rc<",
-            stringify!($heap_type), ">`](std::rc::Rc)")]
-            ///
-            /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            pub type [<Local $ident >] = [<Flex $ident 3USize>]<Rc<$heap_type>>;
-
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or an [`Arc<",
-            stringify!($heap_type), ">`](std::sync::Arc)")]
-            ///
-            /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            pub type [<Shared $ident >] = [<Flex $ident 3USize>]<Arc<$heap_type>>;
-
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Rc<",
-            stringify!($heap_type), ">`](std::rc::Rc), or borrowed string (with appropriate lifetime)")]
-            ///
-            /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            pub type [<Local $ident Ref>]<'str> = [<Flex $ident Ref3USize>]<'str, Rc<$heap_type>>;
-
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Arc<",
-            stringify!($heap_type), ">`](std::sync::Arc), or borrowed string (with appropriate lifetime)")]
-            ///
-            /// # Note
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            pub type [<Shared $ident Ref>]<'str> = [<Flex $ident Ref3USize>]<'str, Arc<$heap_type>>;
-
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, or a [`Box<",
-            stringify!($heap_type), ">`](std::boxed::Box)")]
-            ///
-            /// # Note
-            #[doc = concat!("This type is included for convenience for those who need wrapped [`Box<", stringify!($heap_type),
-            ">`](std::boxed::Box)")]
-            #[doc = "support. Those who do not have this special use case are encouraged to use [Local" $ident "] or [Shared"
-            $ident "] for much better clone performance (without copy or additional allocation)"]
-            ///
-            /// # Note 2
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            pub type [<Boxed $ident >] = [<Flex $ident 3USize>]<Box<$heap_type>>;
-
-            #[doc = concat!("A flexible string type that transparently wraps a string literal, inline string, an [`Box<",
-            stringify!($heap_type), ">`](std::boxed::Box), or borrowed string (with appropriate lifetime)")]
-            ///
-            /// # Note
-            #[doc = concat!("This type is included for convenience for those who need wrapped [`Box<", stringify!($heap_type),
-            ">`](std::boxed::Box)")]
-            #[doc = "support. Those who do not have this special use case are encouraged to use [Local" $ident "Ref] or [Shared"
-            $ident "Ref] for much better clone performance (without copy or additional allocation)"]
-            ///
-            /// # Note 2
-            /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStrBase]
-            pub type [<Boxed $ident Ref>]<'str> = [<Flex $ident Ref3USize>]<'str, Box<$heap_type>>;
-        }
-    };
+    /// Converts this to a str if no alternations needed or an owned `String` with `U+FFFD` chars
+    /// if required
+    fn to_string_lossy(&self) -> Cow<str>;
 }
