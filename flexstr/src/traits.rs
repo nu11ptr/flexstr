@@ -58,6 +58,18 @@ where
         self.inner().as_str_type()
     }
 
+    /// Converts this string into its native heap-based string type (ie. `String`, `CString`, `PathBuf`, etc.)
+    /// ```
+    /// use flexstr::{FlexStrCore, LocalStr};
+    ///
+    /// let s = LocalStr::from_ref("abc");
+    /// assert_eq!(s.to_string_type(), "abc");
+    /// ```
+    #[inline(always)]
+    fn to_string_type(&self) -> STR::StringType {
+        self.inner().to_string_type()
+    }
+
     /// Extracts a string slice containing the entire [FlexStr]
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
