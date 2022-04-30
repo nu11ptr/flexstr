@@ -14,7 +14,7 @@ const STR: &str = "Str";
 
 fn str_type_use(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == B_STR => quote! { use bstr::BStr; },
+        TokenValue::String(s) if s == B_STR => quote! { use bstr::{B, BStr}; },
         TokenValue::String(s) if s == C_STR => quote! { use std::ffi::CStr; },
         TokenValue::String(s) if s == OS_STR => quote! { use std::ffi::OsStr; },
         TokenValue::String(s) if s == PATH => quote! { use std::path::Path; },
@@ -39,7 +39,7 @@ fn str_path(suffix: &TokenValue) -> TokenStream {
 fn static_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
         TokenValue::String(s) if s == B_STR => {
-            quote! { (b"This is a string literal" as &[u8]).into() }
+            quote! { B("This is a string literal").into() }
         }
         TokenValue::String(s) if s == C_STR => {
             quote! { CStr::from_bytes_with_nul(b"This is a string literal\0").unwrap() }
@@ -55,7 +55,7 @@ fn static_str_example(suffix: &TokenValue) -> TokenStream {
 
 fn empty_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == B_STR => quote! { b"" as &[u8] },
+        TokenValue::String(s) if s == B_STR => quote! { B("") },
         TokenValue::String(s) if s == C_STR => {
             quote! { flexstr::c_str::EMPTY }
         }
@@ -70,7 +70,7 @@ fn empty_str_example(suffix: &TokenValue) -> TokenStream {
 
 fn inline_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == B_STR => quote! { b"inline" as &[u8] },
+        TokenValue::String(s) if s == B_STR => quote! { B("inline") },
         TokenValue::String(s) if s == C_STR => {
             quote! { CStr::from_bytes_with_nul(b"inline\0").unwrap() }
         }
@@ -86,7 +86,7 @@ fn inline_str_example(suffix: &TokenValue) -> TokenStream {
 fn heap_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
         TokenValue::String(s) if s == B_STR => {
-            quote! { b"This is too long to inline!" as &[u8] }
+            quote! { B("This is too long to inline!") }
         }
         TokenValue::String(s) if s == C_STR => {
             quote! { CStr::from_bytes_with_nul(b"This is too long to inline!\0").unwrap() }
