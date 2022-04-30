@@ -163,7 +163,7 @@ where
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///
-    /// let s = LocalStr::from_ref_heap("test");
+    /// let s = LocalStr::from_ref("This is too large to be inlined!");
     /// assert!(s.is_heap());
     /// ```
     #[inline(always)]

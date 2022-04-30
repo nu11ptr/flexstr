@@ -14,7 +14,7 @@ const STR: &str = "Str";
 
 fn str_type_use(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == B_STR => quote! { use bstr::{B, BStr}; },
+        TokenValue::String(s) if s == B_STR => quote! { use bstr::BStr; },
         TokenValue::String(s) if s == C_STR => quote! { use std::ffi::CStr; },
         TokenValue::String(s) if s == OS_STR => quote! { use std::ffi::OsStr; },
         TokenValue::String(s) if s == PATH => quote! { use std::path::Path; },
@@ -39,7 +39,7 @@ fn str_path(suffix: &TokenValue) -> TokenStream {
 fn static_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
         TokenValue::String(s) if s == B_STR => {
-            quote! { B("This is a string literal").into() }
+            quote! { bstr::B("This is a string literal").into() }
         }
         TokenValue::String(s) if s == C_STR => {
             quote! { CStr::from_bytes_with_nul(b"This is a string literal\0").unwrap() }
@@ -55,7 +55,7 @@ fn static_str_example(suffix: &TokenValue) -> TokenStream {
 
 fn empty_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == B_STR => quote! { B("") },
+        TokenValue::String(s) if s == B_STR => quote! { bstr::B("") },
         TokenValue::String(s) if s == C_STR => {
             quote! { flexstr::c_str::EMPTY }
         }
@@ -70,7 +70,7 @@ fn empty_str_example(suffix: &TokenValue) -> TokenStream {
 
 fn inline_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
-        TokenValue::String(s) if s == B_STR => quote! { B("inline") },
+        TokenValue::String(s) if s == B_STR => quote! { bstr::B("inline") },
         TokenValue::String(s) if s == C_STR => {
             quote! { CStr::from_bytes_with_nul(b"inline\0").unwrap() }
         }
@@ -86,7 +86,7 @@ fn inline_str_example(suffix: &TokenValue) -> TokenStream {
 fn heap_str_example(suffix: &TokenValue) -> TokenStream {
     match suffix {
         TokenValue::String(s) if s == B_STR => {
-            quote! { B("This is too long to inline!") }
+            quote! { bstr::B("This is too long to inline!") }
         }
         TokenValue::String(s) if s == C_STR => {
             quote! { CStr::from_bytes_with_nul(b"This is too long to inline!\0").unwrap() }
@@ -359,55 +359,6 @@ impl CodeFragment for TryInline {
     }
 }
 
-struct FromRefHeap;
-
-impl CodeFragment for FromRefHeap {
-    fn uses(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
-        import_vars! { vars => suffix }
-
-        let str_type_use = str_type_use(suffix);
-
-        Ok(quote! {
-            #str_type_use
-            use crate::inner::FlexStrInner;
-        })
-    }
-
-    fn generate(&self, vars: &TokenVars) -> Result<TokenStream, Error> {
-        import_vars! { vars => suffix, str_type }
-
-        let ident = format_ident!("Flex{suffix}");
-        let local_ident = format_ident!("Local{suffix}");
-        let path = str_path(suffix);
-        let heap = heap_str_example(suffix);
-        let str_type_use = str_type_use(suffix);
-
-        let comm_top = doc_comment(local_fmt!(
-            "Force the creation of a heap allocated string. Unlike to/into/[from_ref]({ident}::from_ref)"
-        ));
-
-        let doc_test = doc_test!(quote! {
-            #str_type_use
-            use flexstr::FlexStrCore;
-            use #path::#local_ident;
-            _blank_!();
-
-            let s = #local_ident::from_ref_heap(#heap);
-            assert!(s.is_heap());
-        })?;
-
-        Ok(quote! {
-            #comm_top
-            /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
-            #doc_test
-            #[inline(always)]
-            pub fn from_ref_heap(s: impl AsRef<#str_type>) -> Self {
-                Self(FlexStrInner::from_ref_heap(s))
-            }
-        })
-    }
-}
-
 struct FromBorrow;
 
 impl CodeFragment for FromBorrow {
@@ -459,14 +410,12 @@ impl CodeFragment for FlexImpls {
         let from_static_uses = FromStatic.uses(vars)?;
         let from_ref_uses = FromRef.uses(vars)?;
         let try_inline_uses = TryInline.uses(vars)?;
-        let from_ref_heap = FromRefHeap.uses(vars)?;
         let from_borrow = FromBorrow.uses(vars)?;
 
         Ok(quote! {
             #from_static_uses
             #from_ref_uses
             #try_inline_uses
-            #from_ref_heap
             #from_borrow
             use crate::storage::Storage;
         })
@@ -480,7 +429,6 @@ impl CodeFragment for FlexImpls {
         let from_static = FromStatic.generate(vars)?;
         let from_ref = FromRef.generate(vars)?;
         let try_inline = TryInline.generate(vars)?;
-        let from_ref_heap = FromRefHeap.generate(vars)?;
         let from_borrow = FromBorrow.generate(vars)?;
 
         Ok(quote! {
@@ -506,9 +454,6 @@ impl CodeFragment for FlexImpls {
 
                 _blank_!();
                 #try_inline
-
-                _blank_!();
-                #from_ref_heap
 
                 _blank_!();
                 #from_borrow

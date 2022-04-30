@@ -8,7 +8,7 @@ use alloc::rc::Rc;
 use alloc::sync::Arc;
 use core::ops::Deref;
 
-use bstr::{BStr, B};
+use bstr::BStr;
 
 use crate::custom::{PTR_SIZED_PAD, STRING_SIZED_INLINE};
 use crate::inner::FlexStrInner;
@@ -82,11 +82,11 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
     /// Creates a wrapped static string literal. This function is equivalent to using the macro and
     /// is `const fn` so it can be used to initialize a constant at compile time with zero runtime cost.
     /// ```
-    /// use bstr::{B, BStr};
+    /// use bstr::BStr;
     /// use flexstr::FlexStrCore;
     /// use flexstr::b_str::LocalBStr;
     ///
-    /// let s = LocalBStr::from_static(B("This is a string literal").into());
+    /// let s = LocalBStr::from_static(bstr::B("This is a string literal").into());
     /// assert!(s.is_static());
     /// ```
     #[inline(always)]
@@ -111,17 +111,17 @@ where
     /// Don't use this for string literals or other `'static` strings. Use `from_static` or
     /// the macros instead. Those simply wrap instead of copy and/or allocate.
     /// ```
-    /// use bstr::{B, BStr};
+    /// use bstr::BStr;
     /// use flexstr::FlexStrCore;
     /// use flexstr::b_str::LocalBStr;
     ///
-    /// let s = LocalBStr::from_ref(B(""));
+    /// let s = LocalBStr::from_ref(bstr::B(""));
     /// assert!(s.is_static());
     ///
-    /// let s = LocalBStr::from_ref(B("inline"));
+    /// let s = LocalBStr::from_ref(bstr::B("inline"));
     /// assert!(s.is_inline());
     ///
-    /// let s = LocalBStr::from_ref(B("This is too long to inline!"));
+    /// let s = LocalBStr::from_ref(bstr::B("This is too long to inline!"));
     /// assert!(s.is_heap());
     /// ```
     #[inline(always)]
@@ -136,11 +136,11 @@ where
     /// Since the to/into/[from_ref](FlexBStr::from_ref) functions will automatically inline when
     /// possible, this function is really only for special use cases.
     /// ```
-    /// use bstr::{B, BStr};
+    /// use bstr::BStr;
     /// use flexstr::FlexStrCore;
     /// use flexstr::b_str::LocalBStr;
     ///
-    /// let s = LocalBStr::try_inline(B("inline")).unwrap();
+    /// let s = LocalBStr::try_inline(bstr::B("inline")).unwrap();
     /// assert!(s.is_inline());
     /// ```
     #[inline(always)]
@@ -148,29 +148,14 @@ where
         FlexStrInner::try_inline(s).map(Self)
     }
 
-    /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexBStr::from_ref)
-    /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
-    /// ```
-    /// use bstr::{B, BStr};
-    /// use flexstr::FlexStrCore;
-    /// use flexstr::b_str::LocalBStr;
-    ///
-    /// let s = LocalBStr::from_ref_heap(B("This is too long to inline!"));
-    /// assert!(s.is_heap());
-    /// ```
-    #[inline(always)]
-    pub fn from_ref_heap(s: impl AsRef<BStr>) -> Self {
-        Self(FlexStrInner::from_ref_heap(s))
-    }
-
     /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
     /// simply wrapped and tied to the lifetime of the source string.
     /// ```
-    /// use bstr::{B, BStr};
+    /// use bstr::BStr;
     /// use flexstr::FlexStrCore;
     /// use flexstr::b_str::LocalBStr;
     ///
-    /// let s = LocalBStr::from_borrow(B("This is a string literal").into());
+    /// let s = LocalBStr::from_borrow(bstr::B("This is a string literal").into());
     /// assert!(s.is_borrow());
     /// ```
     #[inline(always)]

@@ -143,20 +143,6 @@ where
         FlexStrInner::try_inline(s).map(Self)
     }
 
-    /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexStr::from_ref)
-    /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
-    /// ```
-    /// use flexstr::FlexStrCore;
-    /// use flexstr::LocalStr;
-    ///
-    /// let s = LocalStr::from_ref_heap("This is too long to inline!");
-    /// assert!(s.is_heap());
-    /// ```
-    #[inline(always)]
-    pub fn from_ref_heap(s: impl AsRef<str>) -> Self {
-        Self(FlexStrInner::from_ref_heap(s))
-    }
-
     /// Creates a wrapped borrowed string literal. The string is not copied but the reference is
     /// simply wrapped and tied to the lifetime of the source string.
     /// ```
