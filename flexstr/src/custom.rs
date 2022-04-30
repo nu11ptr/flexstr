@@ -15,8 +15,8 @@ pub use crate::string::Str;
 pub(crate) const BAD_SIZE_OR_ALIGNMENT: &str = "OOPS! It seems you are trying to create a custom `FlexStr` but have \
 violated the invariants on size and alignment. It is recommended to only try and use `FlexStr3USize` \
 and pick a storage type with a size of exactly two machine words (16 bytes on 64-bit, 8 bytes on 32-bit). \
-Creating a custom type based directly on the `FlexStrBase` union is possible, but it is difficult to calculate \
-all the type parameters correctly and is therefore not recommended.";
+Creating a custom sized type is possible, but it is difficult to calculate alll the type parameters \
+correctly and is therefore not recommended.";
 
 /// Type that supplies internal padding to the internal union structures
 #[derive(Clone, Copy)]

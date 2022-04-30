@@ -19,7 +19,7 @@ pub const EMPTY: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
 impl Str for CStr {
     type StringType = CString;
     type HeapType = [u8];
-    type ConvertError = CStrNullError;
+    type ConvertError = CStrNulError;
 
     #[inline]
     fn from_inline_data(bytes: &[u8]) -> &Self {
@@ -84,35 +84,33 @@ impl Str for CStr {
     }
 }
 
-/// This error is returned when trying to create a new [FlexCStr] from a [&\[u8\]] sequence without
+/// This error is returned when trying to create a new [FlexCStr] from a `&[u8]` sequence without
 /// a trailing null
 #[derive(Clone, Copy, Debug)]
-pub enum CStrNullError {
+pub enum CStrNulError {
     /// No required null byte was found
-    NoNullByteFound,
+    NoNulByteFound,
 
     /// An interior null byte was found - the position is enclosed
-    InteriorNullByte(usize),
+    InteriorNulByte(usize),
 }
 
-impl Display for CStrNullError {
+impl Display for CStrNulError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             // TODO: Replace with 'flex_fmt'
-            CStrNullError::InteriorNullByte(pos) => f.write_str(&format!(
+            CStrNulError::InteriorNulByte(pos) => f.write_str(&format!(
                 "The byte slice had an interior null byte (Pos: {pos})"
             )),
-            CStrNullError::NoNullByteFound => {
-                f.write_str("The byte slice had no trailing null byte")
-            }
+            CStrNulError::NoNulByteFound => f.write_str("The byte slice had no trailing null byte"),
         }
     }
 }
 
-impl Error for CStrNullError {}
+impl Error for CStrNulError {}
 
 #[inline]
-const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
+const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNulError> {
     // We go through all this work just to make this const fn :-) If using stdlib it is a one liner
     // Didn't see any signs it would be made const fn anytime soon
 
@@ -136,11 +134,11 @@ const fn try_from_raw(s: &[u8]) -> Result<&CStr, CStrNullError> {
             Ok(s)
         } else {
             // Interior null byte
-            Err(CStrNullError::InteriorNullByte(pos))
+            Err(CStrNulError::InteriorNulByte(pos))
         }
     } else {
         // No null byte
-        Err(CStrNullError::NoNullByteFound)
+        Err(CStrNulError::NoNulByteFound)
     }
 }
 
@@ -152,17 +150,17 @@ impl<'str, const SIZE: usize, const BPAD: usize, const HPAD: usize, HEAP>
 
     /// Tries to create a wrapped static string literal from a raw byte slice. If it is successful, a
     /// [FlexCStr] will be created using static wrapped storage. If unsuccessful (because encoding is
-    /// incorrect) a [CStrNullError] is returned. This is `const fn` so it can be used to initialize
+    /// incorrect) a [CStrNulError] is returned. This is `const fn` so it can be used to initialize
     /// a constant at compile time with zero runtime cost.
     /// ```
     /// use flexstr::FlexStrCore;
-    /// use flexstr::c_str::{CStrNullError, LocalCStr};
+    /// use flexstr::c_str::{CStrNulError, LocalCStr};
     ///
-    /// const S: Result<LocalCStr, CStrNullError> = LocalCStr::try_from_static_raw(b"This is a valid CStr\0");
+    /// const S: Result<LocalCStr, CStrNulError> = LocalCStr::try_from_static_raw(b"This is a valid CStr\0");
     /// assert!(S.unwrap().is_static());
     /// ```
     #[inline]
-    pub const fn try_from_static_raw(s: &'static [u8]) -> Result<Self, CStrNullError> {
+    pub const fn try_from_static_raw(s: &'static [u8]) -> Result<Self, CStrNulError> {
         // '?' not allowed in const fn
         match try_from_raw(s) {
             Ok(s) => Ok(Self(FlexStrInner::from_static(s))),

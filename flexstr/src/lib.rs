@@ -33,7 +33,7 @@ pub mod b_str {
 #[cfg_attr(docsrs, doc(cfg(feature = "c_str")))]
 pub mod c_str {
     pub use crate::string::c_str::{
-        BoxedCStr, BoxedCStrRef, CStrNullError, FlexCStr, LocalCStr, LocalCStrRef, SharedCStr,
+        BoxedCStr, BoxedCStrRef, CStrNulError, FlexCStr, LocalCStr, LocalCStrRef, SharedCStr,
         SharedCStrRef, EMPTY,
     };
 }
