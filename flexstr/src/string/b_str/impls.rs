@@ -150,10 +150,6 @@ where
 
     /// Force the creation of a heap allocated string. Unlike to/into/[from_ref](FlexBStr::from_ref)
     /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
-    ///
-    /// # Note
-    /// Using this is only recommended when using the associated [to_heap](FlexBStr::to_heap)
-    /// and [try_to_heap](FlexBStr::try_to_heap) functions.
     /// ```
     /// use bstr::BStr;
     /// use flexstr::FlexStrCore;

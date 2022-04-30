@@ -84,7 +84,7 @@ impl Str for CStr {
     }
 }
 
-/// This error is returned when trying to create a new [FlexStrBase] from a [&\[u8\]] sequence without
+/// This error is returned when trying to create a new [FlexCStr] from a [&\[u8\]] sequence without
 /// a trailing null
 #[derive(Clone, Copy, Debug)]
 pub enum CStrNullError {

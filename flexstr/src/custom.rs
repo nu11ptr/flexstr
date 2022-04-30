@@ -34,35 +34,35 @@ impl<const N: usize> Pad<N> {
 
 pub use crate::string::std_str::FlexStr3USize;
 
-/// Provides support for custom [BStr](bstr::BStr)-based [FlexStrBase](crate::FlexStrBase) strings
+/// Provides support for custom [BStr](bstr::BStr)-based [FlexBStr](crate::b_str::FlexBStr) strings
 #[cfg(feature = "b_str")]
 #[cfg_attr(docsrs, doc(cfg(feature = "b_str")))]
 pub mod b_str {
     pub use crate::string::b_str::FlexBStr3USize;
 }
 
-/// Provides support for custom [CStr](std::ffi::CStr)-based [FlexStrBase](crate::FlexStrBase) strings
+/// Provides support for custom [CStr](std::ffi::CStr)-based [FlexCStr](crate::c_str::FlexCStr) strings
 #[cfg(feature = "c_str")]
 #[cfg_attr(docsrs, doc(cfg(feature = "c_str")))]
 pub mod c_str {
     pub use crate::string::c_str::FlexCStr3USize;
 }
 
-/// Provides support for custom [OsStr](std::ffi::OsStr)-based [FlexStrBase](crate::FlexStrBase) strings
+/// Provides support for custom [OsStr](std::ffi::OsStr)-based [FlexOsStr](crate::os_str::FlexOsStr) strings
 #[cfg(feature = "os_str")]
 #[cfg_attr(docsrs, doc(cfg(feature = "os_str")))]
 pub mod os_str {
     pub use crate::string::os_str::FlexOsStr3USize;
 }
 
-/// Provides support for custom [Path](std::path::Path)-based [FlexStrBase](crate::FlexStrBase) strings
+/// Provides support for custom [Path](std::path::Path)-based [FlexPath](crate::path::FlexPath) strings
 #[cfg(feature = "path")]
 #[cfg_attr(docsrs, doc(cfg(feature = "path")))]
 pub mod path {
     pub use crate::string::path::FlexPath3USize;
 }
 
-/// Provides support for custom raw [`[u8]`](slice)-based [FlexStrBase](crate::FlexStrBase) strings
+/// Provides support for custom raw [`[u8]`](slice)-based [FlexRawStr](crate::raw_str::FlexRawStr) strings
 #[cfg(feature = "raw_str")]
 #[cfg_attr(docsrs, doc(cfg(feature = "raw_str")))]
 pub mod raw_str {

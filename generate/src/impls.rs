@@ -385,12 +385,6 @@ impl CodeFragment for FromRefHeap {
         let comm_top = doc_comment(local_fmt!(
             "Force the creation of a heap allocated string. Unlike to/into/[from_ref]({ident}::from_ref)"
         ));
-        let note_first = doc_comment(local_fmt!(
-            "Using this is only recommended when using the associated [to_heap]({ident}::to_heap)"
-        ));
-        let note_last = doc_comment(local_fmt!(
-            "and [try_to_heap]({ident}::try_to_heap) functions."
-        ));
 
         let doc_test = doc_test!(quote! {
             #str_type_use
@@ -405,10 +399,6 @@ impl CodeFragment for FromRefHeap {
         Ok(quote! {
             #comm_top
             /// functions, this will not attempt to inline first even if the string is a candidate for inlining.
-            ///
-            /// # Note
-            #note_first
-            #note_last
             #doc_test
             #[inline(always)]
             pub fn from_ref_heap(s: impl AsRef<#str_type>) -> Self {

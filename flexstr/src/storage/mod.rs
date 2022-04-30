@@ -16,8 +16,8 @@ use crate::string::Str;
 
 // *** Wrong Storage Type ***
 
-/// Error type returned from [try_as_static_str](crate::FlexStr::try_as_static_str) or
-/// [try_to_heap](crate::FlexStr::try_to_heap) when this [FlexStr](crate::FlexStr) does not contain the expected type of storage
+/// Error type returned from [try_as_static_str](crate::FlexStr::try_as_static_str) when this
+/// [FlexStr](crate::FlexStr) does not contain the expected type of storage
 #[derive(Copy, Clone, Debug)]
 pub struct WrongStorageType {
     /// The expected storage type of the string
@@ -41,17 +41,17 @@ impl std::error::Error for WrongStorageType {}
 
 // *** Storage Type ***
 
-/// Represents the storage type used by a particular [FlexStrBase](crate::FlexStrBase)
+/// Represents the storage type used by a particular [FlexStr](crate::FlexStr)
 #[derive(Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum StorageType {
-    /// Denotes that this [FlexStrBase](crate::FlexStrBase) is a wrapped string literal
+    /// Denotes that this [FlexStr](crate::FlexStr) is a wrapped string literal
     Static,
-    /// Denotes that this [FlexStrBase](crate::FlexStrBase) is inlined
+    /// Denotes that this [FlexStr](crate::FlexStr) is inlined
     Inline,
-    /// Denotes that this [FlexStrBase](crate::FlexStrBase) uses heap-based storage
+    /// Denotes that this [FlexStr](crate::FlexStr) uses heap-based storage
     Heap,
-    /// Denotes that this [FlexStrBase](crate::FlexStrBase) uses borrowed storage
+    /// Denotes that this [FlexStr](crate::FlexStr) uses borrowed storage
     Borrow,
 }
 

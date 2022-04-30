@@ -32,8 +32,8 @@ where
     HEAP: Storage<STR> + 'static,
     STR: Str + ?Sized + 'static,
 {
-    /// Attempts to extract a static inline string literal if one is stored inside this [LocalStr].
-    /// Returns [WrongStorageType] if this is not a static string literal.
+    /// Attempts to extract a static inline string literal if one is stored inside this [LocalStr](crate::LocalStr).
+    /// Returns [WrongStorageType](crate::WrongStorageType) if this is not a static string literal.
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///
@@ -46,7 +46,7 @@ where
         self.inner().try_as_static_str()
     }
 
-    /// Extracts a string slice containing the entire [FlexStr] in the final string type
+    /// Extracts a string slice containing the entire [FlexStr](crate::FlexStr) in the final string type
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///
@@ -70,7 +70,7 @@ where
         self.inner().to_string_type()
     }
 
-    /// Extracts a string slice containing the entire [FlexStr]
+    /// Extracts a string slice containing the entire [FlexStr](crate::FlexStr)
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///
@@ -82,9 +82,9 @@ where
         self.inner().try_to_str()
     }
 
-    /// Converts this [FlexStr] into a [String]. This should be more efficient than using the [ToString]
-    /// trait (which we cannot implement due to a blanket stdlib implementation) as this avoids the
-    /// [Display](alloc::fmt::Display)-based implementation.
+    /// Converts this [FlexStr](crate::FlexStr) into a [String]. This should be more efficient than
+    /// using the [ToString] trait (which we cannot implement due to a blanket stdlib implementation)
+    /// as this avoids the [Display](alloc::fmt::Display)-based implementation.
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///
@@ -111,7 +111,7 @@ where
         self.inner().to_string_lossy()
     }
 
-    /// Returns true if this [FlexStr] is empty
+    /// Returns true if this [FlexStr](crate::FlexStr) is empty
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///
@@ -123,7 +123,7 @@ where
         self.inner().is_empty()
     }
 
-    /// Returns the length of this [FlexStr] in bytes (not chars or graphemes)
+    /// Returns the length of this [FlexStr](crate::FlexStr) in bytes (not chars or graphemes)
     /// ```
     /// use flexstr::{FlexStrCore, LocalStr};
     ///
