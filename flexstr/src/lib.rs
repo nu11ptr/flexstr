@@ -19,8 +19,8 @@ pub use crate::string::Utf8Error;
 pub use crate::traits::FlexStrCore;
 
 /// Provides support for [BStr](bstr::BStr)-based [FlexBStr] strings
-#[cfg(feature = "bstr")]
-#[cfg_attr(docsrs, doc(cfg(feature = "bstr")))]
+#[cfg(feature = "b_str")]
+#[cfg_attr(docsrs, doc(cfg(feature = "b_str")))]
 pub mod b_str {
     pub use crate::string::b_str::{
         BoxedBStr, BoxedBStrRef, FlexBStr, LocalBStr, LocalBStrRef, SharedBStr, SharedBStrRef,
@@ -28,8 +28,8 @@ pub mod b_str {
 }
 
 /// Provides support for [CStr](std::ffi::CStr)-based [FlexCStr] strings
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "c_str")]
+#[cfg_attr(docsrs, doc(cfg(feature = "c_str")))]
 pub mod c_str {
     pub use crate::string::c_str::{
         BoxedCStr, BoxedCStrRef, CStrNullError, FlexCStr, LocalCStr, LocalCStrRef, SharedCStr,
@@ -38,8 +38,8 @@ pub mod c_str {
 }
 
 /// Provides support for [OsStr](std::ffi::OsStr)-based [FlexOsStr] strings
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "os_str")]
+#[cfg_attr(docsrs, doc(cfg(feature = "os_str")))]
 pub mod os_str {
     pub use crate::string::os_str::{
         BoxedOsStr, BoxedOsStrRef, FlexOsStr, LocalOsStr, LocalOsStrRef, SharedOsStr,
@@ -48,8 +48,8 @@ pub mod os_str {
 }
 
 /// Provides support for [Path](std::path::Path)-based [FlexPath] strings
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "path")]
+#[cfg_attr(docsrs, doc(cfg(feature = "path")))]
 pub mod path {
     pub use crate::string::path::{
         BoxedPath, BoxedPathRef, FlexPath, LocalPath, LocalPathRef, SharedPath, SharedPathRef,
@@ -57,6 +57,8 @@ pub mod path {
 }
 
 /// Provides support for raw [\[u8\]](slice)-based [FlexRawStr] strings
+#[cfg(feature = "raw_str")]
+#[cfg_attr(docsrs, doc(cfg(feature = "raw_str")))]
 pub mod raw_str {
     pub use crate::string::raw_str::{
         BoxedRawStr, BoxedRawStrRef, FlexRawStr, LocalRawStr, LocalRawStrRef, SharedRawStr,

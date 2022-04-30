@@ -1,4 +1,4 @@
-#![cfg(feature = "std")]
+#![cfg(feature = "c_str")]
 
 mod impls;
 

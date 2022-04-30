@@ -16,6 +16,12 @@ all-features = true
 rustc-args = ["--cfg", "docsrs"]
 
 [features]
+b_str = ["bstr"]
+c_str = ["std"]
+os_str = ["std"]
+path = ["std"]
+raw_str = []
+
 default = ["std"]
 fast_format = ["ufmt", "ufmt-write"]
 fp_convert = ["ryu"]
@@ -23,10 +29,8 @@ int_convert = ["itoa"]
 std = []
 
 [dependencies]
-# TODO: Figure out features and how it relates to our features
-bstr = {version = "0.2", optional = true }
+bstr = { version = "0.2", optional = true }
 itoa = { version = "1", optional = true }
-paste = "1"
 ryu = { version = "1", optional = true }
 serde = { version = "1", optional = true }
 static_assertions = "1"

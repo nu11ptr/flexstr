@@ -1,4 +1,4 @@
-#![cfg(feature = "std")]
+#![cfg(feature = "path")]
 
 mod impls;
 

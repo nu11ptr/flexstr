@@ -1,3 +1,5 @@
+#![cfg(feature = "raw_str")]
+
 mod impls;
 
 use alloc::borrow::Cow;
