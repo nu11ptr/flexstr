@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use compact_str::CompactStr;
+use compact_str::CompactString;
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
 use flexstr::{AFlexStr, AFlexStr_, FlexStr, FlexStr_, Repeat};
 use kstring::KString;
@@ -75,8 +75,8 @@ clone!(
     |len| -> FlexStr_ { (&*"x".repeat(len)).into() },
     "AFlexStr_",
     |len| -> AFlexStr_ { (&*"x".repeat(len)).into() },
-    "CompactStr",
-    |len| -> CompactStr { "x".repeat(len).into() },
+    "CompactString",
+    |len| -> CompactString { "x".repeat(len).into() },
     "KString",
     |len| -> KString { "x".repeat(len).into() },
     "SmartString",

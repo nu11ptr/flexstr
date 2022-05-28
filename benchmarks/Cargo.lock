@@ -27,7 +27,7 @@ dependencies = [
  "criterion",
  "flexstr 0.8.0",
  "flexstr 0.8.1",
- "flexstr 0.8.1 (git+https://github.com/nu11ptr/flexstr)",
+ "flexstr 0.9.2",
  "kstring",
  "smartstring",
  "smol_str",
@@ -206,16 +206,16 @@ checksum = "a44498e554d7c8e2f2949d1652c3bfb5dbd4a2d801c54560b76a4697c7edace2"
 [[package]]
 name = "flexstr"
 version = "0.8.1"
+source = "git+https://github.com/nu11ptr/flexstr#ade032ae931c8ccf16eb6c3f1abb3beb8dec11cf"
+
+[[package]]
+name = "flexstr"
+version = "0.9.2"
 dependencies = [
  "itoa 1.0.1",
  "ryu",
  "static_assertions",
 ]
-
-[[package]]
-name = "flexstr"
-version = "0.8.1"
-source = "git+https://github.com/nu11ptr/flexstr#ade032ae931c8ccf16eb6c3f1abb3beb8dec11cf"
 
 [[package]]
 name = "half"
