@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use compact_str::CompactStr;
+use compact_str::CompactString;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use flexstr::{AFlexStr, AFlexStr_, FlexStr, FlexStr_, Repeat, ToAFlexStr, ToFlexStr};
 use kstring::KString;
@@ -67,8 +67,8 @@ create!(
     |s: &str| FlexStr_::from(s),
     "AFlexStr_",
     |s: &str| AFlexStr_::from(s),
-    "CompactStr",
-    |s: &str| CompactStr::new(s),
+    "CompactString",
+    |s: &str| CompactString::new(s),
     "KString",
     |s: &str| KString::from_ref(s),
     "SmartString",
