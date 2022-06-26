@@ -86,7 +86,7 @@ Optional features:
 ```toml
 [dependencies.flexstr]
 version = "0.9"
-features = ["fast_format, fp_convert", "int_convert", "serde"]
+features = ["fast_format", "fp_convert", "int_convert", "serde"]
 ```
 
 ## How Does It Work?
