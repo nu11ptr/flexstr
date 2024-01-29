@@ -25,7 +25,7 @@ harness = false
 [dependencies]
 
 [dev-dependencies]
-compact_str = "0.3"
+compact_str = "0.4"
 criterion = { version = "0.3", features = ["real_blackbox"] }
 flexstr = { path = "../flexstr", features = ["fp_convert", "int_convert"] }
 flexstr_080 = { package = "flexstr", version = "0.8.0" }
