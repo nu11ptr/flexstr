@@ -90,13 +90,14 @@ pub mod traits;
 
 use alloc::rc::Rc;
 use alloc::string::String;
+#[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 use core::fmt::{Arguments, Write};
 use core::mem;
 use core::mem::ManuallyDrop;
 use core::ops::Deref;
 
-use static_assertions::{assert_eq_align, assert_eq_size, assert_impl_all, assert_not_impl_any};
+use static_assertions::{assert_eq_align, assert_eq_size, assert_not_impl_any};
 
 use crate::storage::heap::HeapStr;
 use crate::storage::inline::InlineFlexStr;
@@ -120,8 +121,13 @@ mod test_readme {
 }
 
 assert_eq_size!(LocalStr, String);
-assert_eq_size!(SharedStr, String);
 assert_not_impl_any!(LocalStr: Send, Sync);
+
+#[cfg(target_has_atomic = "ptr")]
+use static_assertions::assert_impl_all;
+#[cfg(target_has_atomic = "ptr")]
+assert_eq_size!(SharedStr, String);
+#[cfg(target_has_atomic = "ptr")]
 assert_impl_all!(SharedStr: Send, Sync);
 
 assert_eq_size!(HeapStr<PTR_SIZED_PAD, Rc<str>>, InlineFlexStr<STRING_SIZED_INLINE>);
@@ -172,6 +178,7 @@ pub type LocalStr = FlexStrBase<Rc<str>>;
 ///
 /// # Note
 /// Since this is just a type alias for a generic type, full documentation can be found here: [FlexStr]
+#[cfg(target_has_atomic = "ptr")]
 pub type SharedStr = FlexStrBase<Arc<str>>;
 
 // *** Clone ***

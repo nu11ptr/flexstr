@@ -3,8 +3,11 @@ use core::mem::ManuallyDrop;
 use core::ops::Deref;
 
 use crate::{
-    FlexStr, HeapStr, LocalStr, SharedStr, StorageType, PTR_SIZED_PAD, STRING_SIZED_INLINE,
+    FlexStr, HeapStr, LocalStr, StorageType, PTR_SIZED_PAD, STRING_SIZED_INLINE,
 };
+
+#[cfg(target_has_atomic = "ptr")]
+use crate::SharedStr;
 
 // *** Repeat custom trait ***
 
@@ -560,11 +563,13 @@ impl_float_local_str!(f32, f64);
 /// let a = "This is a heap allocated string!!!!!".to_shared_str();
 /// assert!(a.is_heap());
 /// ```
+#[cfg(target_has_atomic = "ptr")]
 pub trait ToSharedStr {
     /// Converts the source to a [SharedStr] without consuming it
     fn to_shared_str(&self) -> SharedStr;
 }
 
+#[cfg(target_has_atomic = "ptr")]
 impl<HEAP> ToSharedStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
 where
     HEAP: Clone + Deref<Target = str>,
@@ -582,6 +587,7 @@ where
     }
 }
 
+#[cfg(target_has_atomic = "ptr")]
 impl ToSharedStr for str {
     /// ```
     /// use flexstr::ToSharedStr;
@@ -596,6 +602,7 @@ impl ToSharedStr for str {
     }
 }
 
+#[cfg(target_has_atomic = "ptr")]
 impl ToSharedStr for bool {
     /// ```
     /// use flexstr::ToSharedStr;
@@ -610,6 +617,7 @@ impl ToSharedStr for bool {
     }
 }
 
+#[cfg(target_has_atomic = "ptr")]
 impl ToSharedStr for char {
     /// ```
     /// use flexstr::ToSharedStr;
@@ -725,11 +733,13 @@ impl IntoLocalStr for String {
 /// let a = shared_str!("This is a wrapped static string literal no matter how long it is!!!!!");
 /// assert!(a.is_static());
 /// ```
+#[cfg(target_has_atomic = "ptr")]
 pub trait IntoSharedStr {
     /// Converts the source to an [SharedStr] while consuming the original
     fn into_shared_str(self) -> SharedStr;
 }
 
+#[cfg(target_has_atomic = "ptr")]
 impl<HEAP> IntoSharedStr for FlexStr<STRING_SIZED_INLINE, PTR_SIZED_PAD, PTR_SIZED_PAD, HEAP>
 where
     HEAP: Deref<Target = str>,
@@ -749,6 +759,7 @@ where
     }
 }
 
+#[cfg(target_has_atomic = "ptr")]
 impl IntoSharedStr for String {
     /// ```
     /// use flexstr::IntoSharedStr;
