@@ -198,7 +198,7 @@ where
 {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        str::partial_cmp(self, other)
+        str::partial_cmp(self, &**other)
     }
 }
 
