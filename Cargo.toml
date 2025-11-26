@@ -1,3 +1,32 @@
 [workspace]
 members = ["flexstr"]
 exclude = ["benchmarks"]
+
+[package]
+name = "flexstry"
+version = "0.10.0"
+authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "A flexible, simple to use, immutable, clone-efficient string type for Rust"
+repository = "https://github.com/nu11ptr/flexstr"
+documentation = "https://docs.rs/flexstr"
+keywords = ["string", "rc_str", "arc_str", "refcount", "inline"]
+categories = [
+    "data-structures",
+    "memory-management",
+    "no-std",
+    "text-processing",
+]
+readme = "README.md"
+edition = "2024"
+
+[features]
+default = ["std", "str"]
+safe = []
+std = []
+
+bytes = []
+cstr = []
+osstr = []
+path = []
+str = []
