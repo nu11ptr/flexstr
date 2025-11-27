@@ -1,5 +1,9 @@
 use alloc::{boxed::Box, rc::Rc, string::String, sync::Arc};
 use core::ops::Deref;
+#[cfg(feature = "osstr")]
+use std::ffi::OsStr;
+#[cfg(feature = "path")]
+use std::path::Path;
 
 use crate::Flex;
 
@@ -18,6 +22,16 @@ impl<S: Deref<Target = str>> Flex<'_, str, S> {
             Flex::Inlined(inline) => bytes_as_str(inline.as_ref()),
             Flex::Stored(a) => &*a,
         }
+    }
+
+    #[cfg(feature = "osstr")]
+    pub fn as_os_str(&self) -> &OsStr {
+        OsStr::new(self.as_str())
+    }
+
+    #[cfg(feature = "path")]
+    pub fn as_path(&self) -> &Path {
+        Path::new(self.as_str())
     }
 }
 
