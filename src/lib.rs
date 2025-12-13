@@ -5,6 +5,9 @@
 
 extern crate alloc;
 
+#[doc = include_str!("../README.md")]
+mod readme_tests {}
+
 #[cfg(feature = "bytes")]
 pub mod bytes;
 #[cfg(feature = "cstr")]
@@ -23,6 +26,7 @@ pub use str::*;
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
+use core::fmt;
 use core::ops::Deref;
 
 use crate::inline::{INLINE_CAPACITY, InlineBytes};
@@ -58,7 +62,7 @@ pub enum Flex<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
     Boxed(Box<S>),
 }
 
-impl<'s, S: StringOps + 'static, R: RefCounted<S>> Flex<'s, S, R> {
+impl<'s, S: ?Sized + StringOps + 'static, R: RefCounted<S>> Flex<'s, S, R> {
     fn copy(&self) -> Flex<'s, S, R> {
         match self {
             Flex::Borrowed(s) => Flex::Borrowed(s),
@@ -79,7 +83,7 @@ where
 }
 
 impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Flex<'s, S, R> {
-    pub fn from_borrowed(s: &'s S) -> Flex<'s, S, R> {
+    pub const fn from_borrowed(s: &'s S) -> Flex<'s, S, R> {
         Flex::Borrowed(s)
     }
 
@@ -130,7 +134,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Flex<'s, S, R> {
     }
 }
 
-impl<'s, S: StringOps, R: RefCounted<S>> Flex<'s, S, R>
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Flex<'s, S, R>
 where
     S::Owned: From<Box<S>>,
 {
@@ -144,7 +148,7 @@ where
     }
 }
 
-impl<'s, S: StringOps + 'static> Flex<'s, S, Arc<S>>
+impl<'s, S: ?Sized + StringOps + 'static> Flex<'s, S, Arc<S>>
 where
     Arc<S>: for<'a> From<&'a S>,
     Rc<S>: for<'a> From<&'a S>,
@@ -168,7 +172,7 @@ where
     }
 }
 
-impl<'s, S: StringOps + 'static> Flex<'s, S, Rc<S>>
+impl<'s, S: ?Sized + StringOps + 'static> Flex<'s, S, Rc<S>>
 where
     Rc<S>: for<'a> From<&'a S>,
     Arc<S>: for<'a> From<&'a S>,
@@ -194,7 +198,7 @@ where
 
 // *** From<&S> ***
 
-impl<'s, S: StringOps, R: RefCounted<S>> From<&'s S> for Flex<'s, S, R> {
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> From<&'s S> for Flex<'s, S, R> {
     #[inline(always)]
     fn from(s: &'s S) -> Self {
         Flex::from_borrowed(s)
@@ -203,7 +207,7 @@ impl<'s, S: StringOps, R: RefCounted<S>> From<&'s S> for Flex<'s, S, R> {
 
 // *** Clone ***
 
-impl<'s, S: StringOps + 'static, R: RefCounted<S>> Clone for Flex<'s, S, R> {
+impl<'s, S: ?Sized + StringOps + 'static, R: RefCounted<S>> Clone for Flex<'s, S, R> {
     #[inline(always)]
     fn clone(&self) -> Self {
         self.copy()
@@ -212,7 +216,7 @@ impl<'s, S: StringOps + 'static, R: RefCounted<S>> Clone for Flex<'s, S, R> {
 
 // *** AsRef<S> ***
 
-impl<'s, S: StringOps, R: RefCounted<S>> AsRef<S> for Flex<'s, S, R> {
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<S> for Flex<'s, S, R> {
     #[inline(always)]
     fn as_ref(&self) -> &S {
         self.as_borrowed_type()
@@ -221,11 +225,22 @@ impl<'s, S: StringOps, R: RefCounted<S>> AsRef<S> for Flex<'s, S, R> {
 
 // *** Deref<Target = S> ***
 
-impl<'s, S: StringOps, R: RefCounted<S>> Deref for Flex<'s, S, R> {
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Deref for Flex<'s, S, R> {
     type Target = S;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         self.as_borrowed_type()
+    }
+}
+
+// *** Display ***
+
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> fmt::Display for Flex<'s, S, R>
+where
+    S: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        S::fmt(self.as_borrowed_type(), f)
     }
 }
