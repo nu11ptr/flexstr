@@ -22,6 +22,7 @@ pub use str::*;
 
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
+use alloc::{rc::Rc, sync::Arc};
 use core::ops::Deref;
 
 use crate::inline::{INLINE_CAPACITY, InlineBytes};
@@ -139,6 +140,54 @@ where
             Flex::Inlined(s) => <S as ToOwned>::to_owned(S::bytes_as_self(&s)),
             Flex::RefCounted(s) => <S as ToOwned>::to_owned(&s),
             Flex::Boxed(s) => s.into(),
+        }
+    }
+}
+
+impl<'s, S: StringOps + 'static> Flex<'s, S, Arc<S>>
+where
+    Arc<S>: for<'a> From<&'a S>,
+    Rc<S>: for<'a> From<&'a S>,
+{
+    pub fn to_local(&self) -> Flex<'s, S, Rc<S>> {
+        match self {
+            Flex::Borrowed(s) => Flex::Borrowed(s),
+            Flex::Inlined(s) => Flex::Inlined(s.clone()),
+            Flex::RefCounted(s) => Flex::RefCounted(Rc::from(s)),
+            Flex::Boxed(s) => Flex::copy_into_owned(s),
+        }
+    }
+
+    pub fn into_local(self) -> Flex<'s, S, Rc<S>> {
+        match self {
+            Flex::Borrowed(s) => Flex::Borrowed(s),
+            Flex::Inlined(s) => Flex::Inlined(s),
+            Flex::RefCounted(s) => Flex::RefCounted(Rc::from(&s)),
+            Flex::Boxed(s) => Flex::Boxed(s),
+        }
+    }
+}
+
+impl<'s, S: StringOps + 'static> Flex<'s, S, Rc<S>>
+where
+    Rc<S>: for<'a> From<&'a S>,
+    Arc<S>: for<'a> From<&'a S>,
+{
+    pub fn to_shared(&self) -> Flex<'s, S, Arc<S>> {
+        match self {
+            Flex::Borrowed(s) => Flex::Borrowed(s),
+            Flex::Inlined(s) => Flex::Inlined(s.clone()),
+            Flex::RefCounted(s) => Flex::RefCounted(Arc::from(&s)),
+            Flex::Boxed(s) => Flex::copy_into_owned(s),
+        }
+    }
+
+    pub fn into_shared(self) -> Flex<'s, S, Arc<S>> {
+        match self {
+            Flex::Borrowed(s) => Flex::Borrowed(s),
+            Flex::Inlined(s) => Flex::Inlined(s),
+            Flex::RefCounted(s) => Flex::RefCounted(Arc::from(&s)),
+            Flex::Boxed(s) => Flex::Boxed(s),
         }
     }
 }
