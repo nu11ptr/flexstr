@@ -23,11 +23,12 @@ Lastly, I think this might be the only inline/clone efficient string crate I'm a
 
 ## Features
 
-* Just a simple enum
-* Borrowed, inlined, reference counted, and boxed strings in a singe type 
+* Simple: just an enum
+* Borrowed, inlined, reference counted, and boxed strings in a singe type
 * O(1) clone
     * NOTE: first `clone` when variant is `Boxed` is O(n)
 * Lazy on import (no unexpected allocations)
+* No dependencies
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
     * NOTE: This does induce a performance penalty
