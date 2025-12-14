@@ -18,10 +18,10 @@ mod bytes;
 mod cstr;
 /// Module for inline strings
 mod inline;
-#[cfg(feature = "osstr")]
+#[cfg(all(feature = "std", feature = "osstr"))]
 /// Module for `OsStr`-based strings
 mod osstr;
-#[cfg(feature = "path")]
+#[cfg(all(feature = "std", feature = "path"))]
 /// Module for `Path`-based strings
 mod path;
 #[cfg(feature = "str")]
@@ -34,9 +34,9 @@ pub use inline::{INLINE_CAPACITY, InlineStr};
 pub use bytes::{LocalBytes, SharedBytes};
 #[cfg(feature = "cstr")]
 pub use cstr::{LocalCStr, SharedCStr};
-#[cfg(feature = "osstr")]
+#[cfg(all(feature = "std", feature = "osstr"))]
 pub use osstr::{LocalOsStr, SharedOsStr};
-#[cfg(feature = "path")]
+#[cfg(all(feature = "std", feature = "path"))]
 pub use path::{LocalPath, SharedPath};
 #[cfg(feature = "str")]
 pub use str::{LocalStr, SharedStr};
@@ -46,6 +46,8 @@ use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
 use core::fmt;
 use core::ops::Deref;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 // *** StringOps ***
 
@@ -55,6 +57,7 @@ pub trait StringOps: ToOwned {
     fn bytes_as_self(bytes: &[u8]) -> &Self;
 
     /// Convert a string type to bytes (excludes nul for CStr)
+    #[inline]
     fn self_as_bytes(&self) -> &[u8] {
         self.self_as_raw_bytes()
     }
@@ -332,7 +335,6 @@ where
 // *** From<&S> ***
 
 impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> From<&'s S> for FlexStr<'s, S, R> {
-    #[inline(always)]
     fn from(s: &'s S) -> Self {
         FlexStr::from_borrowed(s)
     }
@@ -341,7 +343,6 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> From<&'s S> for FlexStr<'s, S,
 // *** Clone ***
 
 impl<'s, S: ?Sized + StringOps + 'static, R: RefCounted<S>> Clone for FlexStr<'s, S, R> {
-    #[inline(always)]
     fn clone(&self) -> Self {
         self.copy()
     }
@@ -350,7 +351,6 @@ impl<'s, S: ?Sized + StringOps + 'static, R: RefCounted<S>> Clone for FlexStr<'s
 // *** AsRef<S> ***
 
 impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<S> for FlexStr<'s, S, R> {
-    #[inline(always)]
     fn as_ref(&self) -> &S {
         self.as_borrowed_type()
     }
@@ -361,7 +361,6 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<S> for FlexStr<'s, S, R>
 impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Deref for FlexStr<'s, S, R> {
     type Target = S;
 
-    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         self.as_borrowed_type()
     }
@@ -375,5 +374,42 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         S::fmt(self.as_borrowed_type(), f)
+    }
+}
+
+// *** PartialEq ***
+
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> PartialEq for FlexStr<'s, S, R>
+where
+    S: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        S::eq(self.as_borrowed_type(), other.as_borrowed_type())
+    }
+}
+
+// *** Serialize ***
+
+#[cfg(feature = "serde")]
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Serialize for FlexStr<'s, S, R>
+where
+    S: Serialize,
+{
+    fn serialize<SER: Serializer>(&self, serializer: SER) -> Result<SER::Ok, SER::Error> {
+        S::serialize(self.as_borrowed_type(), serializer)
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringOps, R: RefCounted<S>> Deserialize<'de> for FlexStr<'static, S, R>
+where
+    Box<S>: Deserialize<'de>,
+{
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // TODO: See TODO in InlineStr::deserialize for more details.
+        // This one isn't as egregious since Boxed isn't inherently wrong here.
+        Box::deserialize(deserializer).map(FlexStr::Boxed)
     }
 }

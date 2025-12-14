@@ -1,9 +1,12 @@
 #[cfg(not(feature = "std"))]
-use alloc::string::String;
+use alloc::{boxed::Box, string::String};
 use core::marker::PhantomData;
 use core::ops::Deref;
 
 use crate::StringOps;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 // This must be the size of the String type minus 2 bytes for the length and discriminator
 /// The capacity of the inline bytes type
@@ -62,7 +65,7 @@ impl<S: ?Sized + StringOps> InlineStr<S> {
 
             // Transmute to a regular array
             core::mem::transmute::<
-                [std::mem::MaybeUninit<u8>; INLINE_CAPACITY],
+                [core::mem::MaybeUninit<u8>; INLINE_CAPACITY],
                 [u8; INLINE_CAPACITY],
             >(inline)
         };
@@ -123,7 +126,6 @@ impl<S: ?Sized + StringOps> Clone for InlineStr<S> {
 // *** AsRef<S> ***
 
 impl<S: ?Sized + StringOps> AsRef<S> for InlineStr<S> {
-    #[inline(always)]
     fn as_ref(&self) -> &S {
         self.as_borrowed_type()
     }
@@ -134,8 +136,53 @@ impl<S: ?Sized + StringOps> AsRef<S> for InlineStr<S> {
 impl<S: ?Sized + StringOps> Deref for InlineStr<S> {
     type Target = S;
 
-    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         self.as_borrowed_type()
+    }
+}
+
+// *** PartialEq ***
+
+impl<S: ?Sized + StringOps> PartialEq for InlineStr<S>
+where
+    S: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        S::eq(self.as_borrowed_type(), other.as_borrowed_type())
+    }
+}
+
+// *** Serialize ***
+
+#[cfg(feature = "serde")]
+impl<S: ?Sized + StringOps> Serialize for InlineStr<S>
+where
+    S: Serialize,
+{
+    fn serialize<SER: Serializer>(&self, serializer: SER) -> Result<SER::Ok, SER::Error> {
+        S::serialize(self.as_borrowed_type(), serializer)
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringOps> Deserialize<'de> for InlineStr<S>
+where
+    Box<S>: Deserialize<'de>,
+{
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // TODO: This is inefficent, we should ideally deserialize directly into the InlineStr type.
+        // However, Deserialize is not implmented for all types of &S, so likely that would mean
+        // a non-generic implementation for each type of S, likely via a Visitor pattern. That also
+        // means we'd have to understand how serde serializes each type, and this might be brittle if
+        // that ever changes (for example, OsStr is a bit special). For now, this is a quick way to
+        // make it work, albeit at the cost of an allocation and a copy.
+        let s = Box::deserialize(deserializer)?;
+
+        InlineStr::try_from_type(&*s).map_err(|_| {
+            let bytes = S::self_as_raw_bytes(&*s);
+            serde::de::Error::invalid_length(bytes.len(), &"string too long for inline storage")
+        })
     }
 }

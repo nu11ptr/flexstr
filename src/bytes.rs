@@ -1,6 +1,8 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 use alloc::{rc::Rc, sync::Arc};
 
-use crate::{FlexStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineStr, RefCounted, StringOps};
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
 pub type LocalBytes<'s> = FlexStr<'s, [u8], Rc<[u8]>>;
@@ -18,12 +20,12 @@ const _: () = assert!(
 );
 
 impl StringOps for [u8] {
-    #[inline(always)]
+    #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         bytes
     }
 
-    #[inline(always)]
+    #[inline]
     fn self_as_raw_bytes(&self) -> &[u8] {
         self
     }
@@ -33,8 +35,19 @@ impl StringOps for [u8] {
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
 impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
-    #[inline(always)]
     fn from(v: Vec<u8>) -> Self {
         FlexStr::from_owned(v)
+    }
+}
+
+// *** TryFrom<&[u8]> for InlineStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
+impl<'s> TryFrom<&'s [u8]> for InlineStr<[u8]> {
+    type Error = &'s [u8];
+
+    #[inline]
+    fn try_from(s: &'s [u8]) -> Result<Self, Self::Error> {
+        InlineStr::try_from_type(s)
     }
 }

@@ -1,7 +1,7 @@
 use alloc::{ffi::CString, rc::Rc, sync::Arc};
 use core::ffi::CStr;
 
-use crate::{FlexStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineStr, RefCounted, StringOps};
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
 pub type LocalCStr<'s> = FlexStr<'s, CStr, Rc<CStr>>;
@@ -34,25 +34,25 @@ impl<R: RefCounted<CStr>> FlexStr<'_, CStr, R> {
 
 impl StringOps for CStr {
     #[cfg(feature = "safe")]
-    #[inline(always)]
+    #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         // PANIC SAFETY: We know the bytes are a valid CStr
         CStr::from_bytes_with_nul(bytes).expect("Missing NUL byte")
     }
 
     #[cfg(not(feature = "safe"))]
-    #[inline(always)]
+    #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         // SAFETY: We know the bytes are a valid CStr
         unsafe { CStr::from_bytes_with_nul_unchecked(bytes) }
     }
 
-    #[inline(always)]
+    #[inline]
     fn self_as_bytes(&self) -> &[u8] {
         self.to_bytes()
     }
 
-    #[inline(always)]
+    #[inline]
     fn self_as_raw_bytes(&self) -> &[u8] {
         self.to_bytes_with_nul()
     }
@@ -62,9 +62,20 @@ impl StringOps for CStr {
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
 impl<'s, R: RefCounted<CStr>> From<CString> for FlexStr<'s, CStr, R> {
-    #[inline(always)]
     fn from(s: CString) -> Self {
         FlexStr::from_owned(s)
+    }
+}
+
+// *** TryFrom<&CStr> for InlineStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
+impl<'s> TryFrom<&'s CStr> for InlineStr<CStr> {
+    type Error = &'s CStr;
+
+    #[inline]
+    fn try_from(s: &'s CStr) -> Result<Self, Self::Error> {
+        InlineStr::try_from_type(s)
     }
 }
 
@@ -72,7 +83,6 @@ impl<'s, R: RefCounted<CStr>> From<CString> for FlexStr<'s, CStr, R> {
 
 // NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
 impl<R: RefCounted<CStr>> AsRef<[u8]> for FlexStr<'_, CStr, R> {
-    #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
     }

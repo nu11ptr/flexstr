@@ -30,6 +30,7 @@ Lastly, I think this might be the only inline/clone efficient string crate I'm a
 * Same size a a `String` (3 words wide, even inside an `Option`)
 * Lazy on import (no unexpected allocations)
 * No dependencies
+    * NOTE: `serde` optional for serialization/deserialization
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
     * NOTE: This does induce a performance penalty
@@ -39,6 +40,9 @@ Lastly, I think this might be the only inline/clone efficient string crate I'm a
 
 * **safe** = Use all safe functions and add `forbid(unsafe_code)` (performance penalty)
 * **std** = Use `std` (default)
+* **serde** = add `serde` dependency and adds serialization/deserialization
+
+### String Type Features:
 * **str** = Enable `str`-based strings (default)
 * **bytes** = Enable byte-based strings (`[u8]`)
 * **cstr** = Enable `CStr`-based strings
@@ -53,7 +57,7 @@ It is just an enum that looks like this - you can probably guess much of how it 
 
 // `S` is just the string type (typically `str`)
 // `R` is just an `Arc<str>` or `Rc<str>`.
-pub enum Flex<'s, S, R> {
+pub enum FlexStr<'s, S, R> {
     Borrowed(&'s S),
     Inlined(InlineStr<S>),
     RefCounted(R),
@@ -61,8 +65,8 @@ pub enum Flex<'s, S, R> {
 }
 
 // Now we can declare some friendly types we can actually use
-pub type LocalStr<'s> = Flex<'s, str, Rc<str>>;
-pub type SharedStr<'s> = Flex<'s, str, Arc<str>>;
+pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
+pub type SharedStr<'s> = FlexStr<'s, str, Arc<str>>;
 ```
 
 Even that you don't really need to concern yourself with. You can just use it how you would expect a simple wrapper to behave.

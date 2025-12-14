@@ -1,12 +1,9 @@
-#[cfg(not(feature = "std"))]
-compile_error!("OsStr support is not available without the 'std' feature");
-
 use alloc::{rc::Rc, sync::Arc};
-
-use crate::{FlexStr, RefCounted, StringOps};
 use std::ffi::{OsStr, OsString};
 #[cfg(feature = "path")]
 use std::path::Path;
+
+use crate::{FlexStr, InlineStr, RefCounted, StringOps};
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
@@ -38,7 +35,7 @@ impl<R: RefCounted<OsStr>> FlexStr<'_, OsStr, R> {
 
 impl StringOps for OsStr {
     #[cfg(all(feature = "safe", target_family = "windows"))]
-    #[inline(always)]
+    #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         // TODO: With a 3rd party crate, we could use: os_str_bytes::OsStrBytes::assert_from_raw_bytes()
         // But is this any better? They likely use unsafe internally anyway.
@@ -47,7 +44,7 @@ impl StringOps for OsStr {
     }
 
     #[cfg(all(feature = "safe", target_family = "unix"))]
-    #[inline(always)]
+    #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         use std::os::unix::prelude::OsStrExt;
 
@@ -55,13 +52,13 @@ impl StringOps for OsStr {
     }
 
     #[cfg(not(feature = "safe"))]
-    #[inline(always)]
+    #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         // SAFETY: We know the bytes are a valid OsStr
         unsafe { OsStr::from_encoded_bytes_unchecked(bytes) }
     }
 
-    #[inline(always)]
+    #[inline]
     fn self_as_raw_bytes(&self) -> &[u8] {
         self.as_encoded_bytes()
     }
@@ -71,9 +68,20 @@ impl StringOps for OsStr {
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
 impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
-    #[inline(always)]
     fn from(s: OsString) -> Self {
         FlexStr::from_owned(s)
+    }
+}
+
+// *** TryFrom<&OsStr> for InlineStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
+impl<'s> TryFrom<&'s OsStr> for InlineStr<OsStr> {
+    type Error = &'s OsStr;
+
+    #[inline]
+    fn try_from(s: &'s OsStr) -> Result<Self, Self::Error> {
+        InlineStr::try_from_type(s)
     }
 }
 
@@ -81,7 +89,6 @@ impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
 
 // NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
 impl<R: RefCounted<OsStr>> AsRef<[u8]> for FlexStr<'_, OsStr, R> {
-    #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
     }
@@ -89,7 +96,6 @@ impl<R: RefCounted<OsStr>> AsRef<[u8]> for FlexStr<'_, OsStr, R> {
 
 #[cfg(feature = "path")]
 impl<R: RefCounted<OsStr>> AsRef<Path> for FlexStr<'_, OsStr, R> {
-    #[inline(always)]
     fn as_ref(&self) -> &Path {
         self.as_path()
     }

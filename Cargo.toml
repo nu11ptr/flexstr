@@ -23,7 +23,7 @@ edition = "2024"
 [features]
 default = ["std", "str"]
 safe = []
-std = []
+std = ["serde?/std"]
 
 bytes = []
 cstr = []
@@ -31,6 +31,14 @@ osstr = []
 path = ["osstr"]
 str = []
 
+[dependencies.serde]
+version = "1"
+default-features = false
+optional = true
+
+[dev-dependencies.serde_json]
+version = "1"
+
 [package.metadata.docs.rs]
-all-features = true
+features = ["bytes", "cstr", "osstr", "path", "serde", "std", "str"]
 rustdoc-args = ["--cfg", "docsrs"]
