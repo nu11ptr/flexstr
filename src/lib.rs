@@ -28,7 +28,7 @@ mod path;
 /// Module for `str`-based strings
 mod str;
 
-pub use inline::{INLINE_CAPACITY, InlineStr};
+pub use inline::{INLINE_CAPACITY, InlineFlexStr};
 
 #[cfg(feature = "bytes")]
 pub use bytes::{LocalBytes, SharedBytes};
@@ -89,7 +89,7 @@ pub enum FlexStr<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
     /// Borrowed string - borrowed strings are imported as `&S`
     Borrowed(&'s S),
     /// Inline string - owned strings that are small enough to be stored inline
-    Inlined(InlineStr<S>),
+    Inlined(InlineFlexStr<S>),
     /// Reference counted string - owned strings that are too large for inline storage
     RefCounted(R),
     /// Boxed string - heap allocated strings are imported as `Box<S>`
@@ -179,7 +179,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
         let bytes = S::self_as_raw_bytes(s);
 
         if bytes.len() <= INLINE_CAPACITY {
-            FlexStr::Inlined(InlineStr::from_bytes(bytes))
+            FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
         } else {
             FlexStr::RefCounted(s.into())
         }
@@ -408,7 +408,7 @@ where
     Box<S>: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // TODO: See TODO in InlineStr::deserialize for more details.
+        // TODO: See TODO in InlineFlexStr::deserialize for more details.
         // This one isn't as egregious since Boxed isn't inherently wrong here.
         Box::deserialize(deserializer).map(FlexStr::Boxed)
     }

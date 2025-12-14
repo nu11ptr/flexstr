@@ -59,7 +59,7 @@ It is just an enum that looks like this - you can probably guess much of how it 
 // `R` is just an `Arc<str>` or `Rc<str>`.
 pub enum FlexStr<'s, S, R> {
     Borrowed(&'s S),
-    Inlined(InlineStr<S>),
+    Inlined(InlineFlexStr<S>),
     RefCounted(R),
     Boxed(Box<S>),
 }

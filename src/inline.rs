@@ -14,13 +14,13 @@ pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 
 /// Inline bytes type - used to store small strings inline
 #[derive(Debug)]
-pub struct InlineStr<S: ?Sized + StringOps> {
+pub struct InlineFlexStr<S: ?Sized + StringOps> {
     inline: [u8; INLINE_CAPACITY],
     len: u8,
     marker: PhantomData<S>,
 }
 
-impl<S: ?Sized + StringOps> InlineStr<S> {
+impl<S: ?Sized + StringOps> InlineFlexStr<S> {
     /// Attempt to create an inlined string from a borrowed string. Returns `None` if the string is too long.
     pub fn try_from_type(s: &S) -> Result<Self, &S> {
         let bytes = S::self_as_raw_bytes(s);
@@ -113,7 +113,7 @@ impl<S: ?Sized + StringOps> InlineStr<S> {
 
 // *** Clone ***
 
-impl<S: ?Sized + StringOps> Clone for InlineStr<S> {
+impl<S: ?Sized + StringOps> Clone for InlineFlexStr<S> {
     fn clone(&self) -> Self {
         Self {
             inline: self.inline,
@@ -125,7 +125,7 @@ impl<S: ?Sized + StringOps> Clone for InlineStr<S> {
 
 // *** AsRef<S> ***
 
-impl<S: ?Sized + StringOps> AsRef<S> for InlineStr<S> {
+impl<S: ?Sized + StringOps> AsRef<S> for InlineFlexStr<S> {
     fn as_ref(&self) -> &S {
         self.as_borrowed_type()
     }
@@ -133,7 +133,7 @@ impl<S: ?Sized + StringOps> AsRef<S> for InlineStr<S> {
 
 // *** Deref<Target = S> ***
 
-impl<S: ?Sized + StringOps> Deref for InlineStr<S> {
+impl<S: ?Sized + StringOps> Deref for InlineFlexStr<S> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
@@ -143,7 +143,7 @@ impl<S: ?Sized + StringOps> Deref for InlineStr<S> {
 
 // *** PartialEq ***
 
-impl<S: ?Sized + StringOps> PartialEq for InlineStr<S>
+impl<S: ?Sized + StringOps> PartialEq for InlineFlexStr<S>
 where
     S: PartialEq,
 {
@@ -155,7 +155,7 @@ where
 // *** Serialize ***
 
 #[cfg(feature = "serde")]
-impl<S: ?Sized + StringOps> Serialize for InlineStr<S>
+impl<S: ?Sized + StringOps> Serialize for InlineFlexStr<S>
 where
     S: Serialize,
 {
@@ -167,12 +167,12 @@ where
 // *** Deserialize ***
 
 #[cfg(feature = "serde")]
-impl<'de, S: ?Sized + StringOps> Deserialize<'de> for InlineStr<S>
+impl<'de, S: ?Sized + StringOps> Deserialize<'de> for InlineFlexStr<S>
 where
     Box<S>: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // TODO: This is inefficent, we should ideally deserialize directly into the InlineStr type.
+        // TODO: This is inefficent, we should ideally deserialize directly into the InlineFlexStr type.
         // However, Deserialize is not implmented for all types of &S, so likely that would mean
         // a non-generic implementation for each type of S, likely via a Visitor pattern. That also
         // means we'd have to understand how serde serializes each type, and this might be brittle if
@@ -180,7 +180,7 @@ where
         // make it work, albeit at the cost of an allocation and a copy.
         let s = Box::deserialize(deserializer)?;
 
-        InlineStr::try_from_type(&*s).map_err(|_| {
+        InlineFlexStr::try_from_type(&*s).map_err(|_| {
             let bytes = S::self_as_raw_bytes(&*s);
             serde::de::Error::invalid_length(bytes.len(), &"string too long for inline storage")
         })

@@ -1,7 +1,7 @@
 #![cfg(feature = "cstr")]
 
 #[cfg(feature = "serde")]
-use flexstry::{InlineStr, LocalCStr, SharedCStr};
+use flexstry::{InlineFlexStr, LocalCStr, SharedCStr};
 
 use core::ffi::CStr;
 
@@ -22,5 +22,5 @@ fn serialize_deserialize_test_shared_cstr() {
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_inline_cstr() {
-    common::serialize::serialize_deserialize_test::<InlineStr<CStr>, CStr>(c"test");
+    common::serialize::serialize_deserialize_test::<InlineFlexStr<CStr>, CStr>(c"test");
 }

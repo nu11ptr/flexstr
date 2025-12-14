@@ -1,7 +1,7 @@
 use alloc::{ffi::CString, rc::Rc, sync::Arc};
 use core::ffi::CStr;
 
-use crate::{FlexStr, InlineStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
 pub type LocalCStr<'s> = FlexStr<'s, CStr, Rc<CStr>>;
@@ -67,15 +67,15 @@ impl<'s, R: RefCounted<CStr>> From<CString> for FlexStr<'s, CStr, R> {
     }
 }
 
-// *** TryFrom<&CStr> for InlineStr ***
+// *** TryFrom<&CStr> for InlineFlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
-impl<'s> TryFrom<&'s CStr> for InlineStr<CStr> {
+impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
     type Error = &'s CStr;
 
     #[inline]
     fn try_from(s: &'s CStr) -> Result<Self, Self::Error> {
-        InlineStr::try_from_type(s)
+        InlineFlexStr::try_from_type(s)
     }
 }
 

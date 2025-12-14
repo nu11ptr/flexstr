@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{FlexStr, InlineStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
 
 /// Local `Path` type (NOTE: This can't be shared between threads)
 pub type LocalPath<'s> = FlexStr<'s, Path, Rc<Path>>;
@@ -54,15 +54,15 @@ impl<'s, R: RefCounted<Path>> From<PathBuf> for FlexStr<'s, Path, R> {
     }
 }
 
-// *** TryFrom<&Path> for InlineStr ***
+// *** TryFrom<&Path> for InlineFlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
-impl<'s> TryFrom<&'s Path> for InlineStr<Path> {
+impl<'s> TryFrom<&'s Path> for InlineFlexStr<Path> {
     type Error = &'s Path;
 
     #[inline]
     fn try_from(s: &'s Path) -> Result<Self, Self::Error> {
-        InlineStr::try_from_type(s)
+        InlineFlexStr::try_from_type(s)
     }
 }
 

@@ -1,7 +1,7 @@
 #![cfg(feature = "bytes")]
 
 #[cfg(feature = "serde")]
-use flexstry::{InlineStr, LocalBytes, SharedBytes};
+use flexstry::{InlineFlexStr, LocalBytes, SharedBytes};
 
 mod common;
 
@@ -20,5 +20,5 @@ fn serialize_deserialize_test_shared_bytes() {
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_inline_bytes() {
-    common::serialize::serialize_deserialize_test::<InlineStr<[u8]>, [u8]>(b"test");
+    common::serialize::serialize_deserialize_test::<InlineFlexStr<[u8]>, [u8]>(b"test");
 }

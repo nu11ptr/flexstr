@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 use alloc::{rc::Rc, sync::Arc};
 
-use crate::{FlexStr, InlineStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
 pub type LocalBytes<'s> = FlexStr<'s, [u8], Rc<[u8]>>;
@@ -40,14 +40,14 @@ impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
     }
 }
 
-// *** TryFrom<&[u8]> for InlineStr ***
+// *** TryFrom<&[u8]> for InlineFlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
-impl<'s> TryFrom<&'s [u8]> for InlineStr<[u8]> {
+impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<[u8]> {
     type Error = &'s [u8];
 
     #[inline]
     fn try_from(s: &'s [u8]) -> Result<Self, Self::Error> {
-        InlineStr::try_from_type(s)
+        InlineFlexStr::try_from_type(s)
     }
 }

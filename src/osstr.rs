@@ -3,7 +3,7 @@ use std::ffi::{OsStr, OsString};
 #[cfg(feature = "path")]
 use std::path::Path;
 
-use crate::{FlexStr, InlineStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
@@ -73,15 +73,15 @@ impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
     }
 }
 
-// *** TryFrom<&OsStr> for InlineStr ***
+// *** TryFrom<&OsStr> for InlineFlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
-impl<'s> TryFrom<&'s OsStr> for InlineStr<OsStr> {
+impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
     type Error = &'s OsStr;
 
     #[inline]
     fn try_from(s: &'s OsStr) -> Result<Self, Self::Error> {
-        InlineStr::try_from_type(s)
+        InlineFlexStr::try_from_type(s)
     }
 }
 
