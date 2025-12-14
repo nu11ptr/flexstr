@@ -117,6 +117,36 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
         FlexStr::Borrowed(s)
     }
 
+    /// Returns true if this is a borrowed string
+    pub fn is_borrowed(&self) -> bool {
+        matches!(self, FlexStr::Borrowed(_))
+    }
+
+    /// Returns true if this is an inlined string
+    pub fn is_inlined(&self) -> bool {
+        matches!(self, FlexStr::Inlined(_))
+    }
+
+    /// Returns true if this is a reference counted string
+    pub fn is_ref_counted(&self) -> bool {
+        matches!(self, FlexStr::RefCounted(_))
+    }
+
+    /// Returns true if this is a boxed string
+    pub fn is_boxed(&self) -> bool {
+        matches!(self, FlexStr::Boxed(_))
+    }
+
+    /// Returns true if this is a string that is on the heap
+    pub fn is_on_heap(&self) -> bool {
+        matches!(self, FlexStr::RefCounted(_) | FlexStr::Boxed(_))
+    }
+
+    /// Returns true if this is a string that is off the heap
+    pub fn is_off_heap(&self) -> bool {
+        matches!(self, FlexStr::Borrowed(_) | FlexStr::Inlined(_))
+    }
+
     fn copy_into_owned(s: &S) -> FlexStr<'static, S, R> {
         let bytes = S::self_as_bytes(s);
 

@@ -53,7 +53,7 @@ It is just an enum that looks like this - you can probably guess much of how it 
 
 // `S` is just the string type (typically `str`)
 // `R` is just an `Arc<str>` or `Rc<str>`.
-pub enum Flex<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
+pub enum Flex<'s, S, R> {
     Borrowed(&'s S),
     Inlined(InlineBytes),
     RefCounted(R),
@@ -72,13 +72,19 @@ use flexstry::*;
 
 // This will be a "Borrowed" variant
 let hello: SharedStr<'_> = "hello".into();
+assert!(hello.is_borrowed());
+
 // This will be a "Boxed" variant
 let world: SharedStr<'_> = "world".to_string().into();
+assert!(world.is_boxed());
 
 // This is now "Inlined" (since it is short)
 let hello = hello.into_owned();
+assert!(hello.is_inlined());
+
 // This is now "Inlined" as well (since it is short)
 let world = world.clone();
+assert!(world.is_inlined());
 
 println!("{hello} {world}");
 ```
