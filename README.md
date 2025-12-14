@@ -27,6 +27,7 @@ Lastly, I think this might be the only inline/clone efficient string crate I'm a
 * Borrowed, inlined, reference counted, and boxed strings in a singe type
 * O(1) clone
     * NOTE: first `clone` when variant is `Boxed` is O(n)
+* Same size a a `String` (3 words wide, even inside an `Option`)
 * Lazy on import (no unexpected allocations)
 * No dependencies
 * Optional `no_std`
