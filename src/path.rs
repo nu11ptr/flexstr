@@ -12,6 +12,9 @@ pub type LocalPath<'s> = FlexStr<'s, Path, Rc<Path>>;
 /// Shared `Path` type
 pub type SharedPath<'s> = FlexStr<'s, Path, Arc<Path>>;
 
+/// Inline `Path` type
+pub type InlinePath = InlineFlexStr<Path>;
+
 const _: () = assert!(
     size_of::<Option<LocalPath>>() <= size_of::<PathBuf>(),
     "Option<LocalPath> must be less than or equal to the size of PathBuf"

@@ -9,6 +9,9 @@ pub type LocalCStr<'s> = FlexStr<'s, CStr, Rc<CStr>>;
 /// Shared `CStr` type
 pub type SharedCStr<'s> = FlexStr<'s, CStr, Arc<CStr>>;
 
+/// Inline `CStr` type
+pub type InlineCStr = InlineFlexStr<CStr>;
+
 // NOTE: This one is a bit different because CString is just a Box<[u8]>. Instead of equal size,
 // we should be at most one machine word larger.
 const _: () = assert!(

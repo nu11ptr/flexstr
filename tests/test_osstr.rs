@@ -3,7 +3,7 @@
 use std::ffi::OsStr;
 
 #[cfg(feature = "serde")]
-use flexstry::{InlineFlexStr, LocalOsStr, SharedOsStr};
+use flexstry::{InlineOsStr, LocalOsStr, SharedOsStr};
 
 mod common;
 
@@ -22,7 +22,5 @@ fn serialize_deserialize_test_shared_osstr() {
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_inline_osstr() {
-    common::serialize::serialize_deserialize_test::<InlineFlexStr<OsStr>, OsStr>(OsStr::new(
-        "test",
-    ));
+    common::serialize::serialize_deserialize_test::<InlineOsStr, OsStr>(OsStr::new("test"));
 }

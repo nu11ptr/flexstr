@@ -1,7 +1,7 @@
 #![cfg(feature = "str")]
 
 #[cfg(feature = "serde")]
-use flexstry::{InlineFlexStr, LocalStr, SharedStr};
+use flexstry::{InlineStr, LocalStr, SharedStr};
 
 mod common;
 
@@ -20,5 +20,5 @@ fn serialize_deserialize_test_shared_str() {
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_inline_str() {
-    common::serialize::serialize_deserialize_test::<InlineFlexStr<str>, str>("test");
+    common::serialize::serialize_deserialize_test::<InlineStr, str>("test");
 }

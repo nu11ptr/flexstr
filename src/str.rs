@@ -12,6 +12,9 @@ pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
 /// Shared `str` type
 pub type SharedStr<'s> = FlexStr<'s, str, Arc<str>>;
 
+/// Inline `str` type
+pub type InlineStr = InlineFlexStr<str>;
+
 const _: () = assert!(
     size_of::<Option<LocalStr>>() <= size_of::<String>(),
     "Option<LocalStr> must be less than or equal to the size of String"

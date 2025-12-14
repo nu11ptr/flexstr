@@ -31,15 +31,15 @@ mod str;
 pub use inline::{INLINE_CAPACITY, InlineFlexStr};
 
 #[cfg(feature = "bytes")]
-pub use bytes::{LocalBytes, SharedBytes};
+pub use bytes::{InlineBytes, LocalBytes, SharedBytes};
 #[cfg(feature = "cstr")]
-pub use cstr::{LocalCStr, SharedCStr};
+pub use cstr::{InlineCStr, LocalCStr, SharedCStr};
 #[cfg(all(feature = "std", feature = "osstr"))]
-pub use osstr::{LocalOsStr, SharedOsStr};
+pub use osstr::{InlineOsStr, LocalOsStr, SharedOsStr};
 #[cfg(all(feature = "std", feature = "path"))]
-pub use path::{LocalPath, SharedPath};
+pub use path::{InlinePath, LocalPath, SharedPath};
 #[cfg(feature = "str")]
-pub use str::{LocalStr, SharedStr};
+pub use str::{InlineStr, LocalStr, SharedStr};
 
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};

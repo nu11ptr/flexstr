@@ -11,6 +11,9 @@ pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
 /// Shared `OsStr` type
 pub type SharedOsStr<'s> = FlexStr<'s, OsStr, Arc<OsStr>>;
 
+/// Inline `OsStr` type
+pub type InlineOsStr = InlineFlexStr<OsStr>;
+
 const _: () = assert!(
     size_of::<Option<LocalOsStr>>() <= size_of::<OsString>(),
     "Option<LocalOsStr> must be less than or equal to the size of OsString"
