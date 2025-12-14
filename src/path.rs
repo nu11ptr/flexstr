@@ -8,13 +8,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{Flex, RefCounted, StringOps};
+use crate::{FlexStr, RefCounted, StringOps};
 
 /// Local `Path` type (NOTE: This can't be shared between threads)
-pub type LocalPath<'s> = Flex<'s, Path, Rc<Path>>;
+pub type LocalPath<'s> = FlexStr<'s, Path, Rc<Path>>;
 
 /// Shared `Path` type
-pub type SharedPath<'s> = Flex<'s, Path, Arc<Path>>;
+pub type SharedPath<'s> = FlexStr<'s, Path, Arc<Path>>;
 
 const _: () = assert!(
     size_of::<Option<LocalPath>>() <= size_of::<PathBuf>(),
@@ -25,7 +25,7 @@ const _: () = assert!(
     "Option<SharedPath> must be less than or equal to the size of PathBuf"
 );
 
-impl<R: RefCounted<Path>> Flex<'_, Path, R> {
+impl<R: RefCounted<Path>> FlexStr<'_, Path, R> {
     /// Borrow the Path as a `&Path`
     pub fn as_path(&self) -> &Path {
         self.as_borrowed_type()
@@ -52,24 +52,24 @@ impl StringOps for Path {
 // *** From<PathBuf> ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<Path>> From<PathBuf> for Flex<'s, Path, R> {
+impl<'s, R: RefCounted<Path>> From<PathBuf> for FlexStr<'s, Path, R> {
     #[inline(always)]
     fn from(p: PathBuf) -> Self {
-        Flex::from_owned(p)
+        FlexStr::from_owned(p)
     }
 }
 
 // *** AsRef<OsStr>, and AsRef<[u8]> ***
 
 // NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl<R: RefCounted<Path>> AsRef<[u8]> for Flex<'_, Path, R> {
+impl<R: RefCounted<Path>> AsRef<[u8]> for FlexStr<'_, Path, R> {
     #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
     }
 }
 
-impl<R: RefCounted<Path>> AsRef<OsStr> for Flex<'_, Path, R> {
+impl<R: RefCounted<Path>> AsRef<OsStr> for FlexStr<'_, Path, R> {
     #[inline(always)]
     fn as_ref(&self) -> &OsStr {
         self.as_os_str()

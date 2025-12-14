@@ -1,12 +1,12 @@
 use alloc::{rc::Rc, sync::Arc};
 
-use crate::{Flex, RefCounted, StringOps};
+use crate::{FlexStr, RefCounted, StringOps};
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
-pub type LocalBytes<'s> = Flex<'s, [u8], Rc<[u8]>>;
+pub type LocalBytes<'s> = FlexStr<'s, [u8], Rc<[u8]>>;
 
 /// Shared `[u8]` type
-pub type SharedBytes<'s> = Flex<'s, [u8], Arc<[u8]>>;
+pub type SharedBytes<'s> = FlexStr<'s, [u8], Arc<[u8]>>;
 
 const _: () = assert!(
     size_of::<Option<LocalBytes>>() <= size_of::<Vec<u8>>(),
@@ -32,9 +32,9 @@ impl StringOps for [u8] {
 // *** From<Vec<u8>> ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for Flex<'s, [u8], R> {
+impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
     #[inline(always)]
     fn from(v: Vec<u8>) -> Self {
-        Flex::from_owned(v)
+        FlexStr::from_owned(v)
     }
 }

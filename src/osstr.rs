@@ -3,16 +3,16 @@ compile_error!("OsStr support is not available without the 'std' feature");
 
 use alloc::{rc::Rc, sync::Arc};
 
-use crate::{Flex, RefCounted, StringOps};
+use crate::{FlexStr, RefCounted, StringOps};
 use std::ffi::{OsStr, OsString};
 #[cfg(feature = "path")]
 use std::path::Path;
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
-pub type LocalOsStr<'s> = Flex<'s, OsStr, Rc<OsStr>>;
+pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
 
 /// Shared `OsStr` type
-pub type SharedOsStr<'s> = Flex<'s, OsStr, Arc<OsStr>>;
+pub type SharedOsStr<'s> = FlexStr<'s, OsStr, Arc<OsStr>>;
 
 const _: () = assert!(
     size_of::<Option<LocalOsStr>>() <= size_of::<OsString>(),
@@ -23,7 +23,7 @@ const _: () = assert!(
     "Option<SharedOsStr> must be less than or equal to the size of OsString"
 );
 
-impl<R: RefCounted<OsStr>> Flex<'_, OsStr, R> {
+impl<R: RefCounted<OsStr>> FlexStr<'_, OsStr, R> {
     /// Borrow the OsStr as an `&OsStr`
     pub fn as_os_str(&self) -> &OsStr {
         self.as_borrowed_type()
@@ -70,17 +70,17 @@ impl StringOps for OsStr {
 // *** From<OsString> ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<OsStr>> From<OsString> for Flex<'s, OsStr, R> {
+impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
     #[inline(always)]
     fn from(s: OsString) -> Self {
-        Flex::from_owned(s)
+        FlexStr::from_owned(s)
     }
 }
 
 // *** AsRef<Path>, and AsRef<[u8]> ***
 
 // NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl<R: RefCounted<OsStr>> AsRef<[u8]> for Flex<'_, OsStr, R> {
+impl<R: RefCounted<OsStr>> AsRef<[u8]> for FlexStr<'_, OsStr, R> {
     #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
@@ -88,7 +88,7 @@ impl<R: RefCounted<OsStr>> AsRef<[u8]> for Flex<'_, OsStr, R> {
 }
 
 #[cfg(feature = "path")]
-impl<R: RefCounted<OsStr>> AsRef<Path> for Flex<'_, OsStr, R> {
+impl<R: RefCounted<OsStr>> AsRef<Path> for FlexStr<'_, OsStr, R> {
     #[inline(always)]
     fn as_ref(&self) -> &Path {
         self.as_path()

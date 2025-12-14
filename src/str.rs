@@ -4,13 +4,13 @@ use std::ffi::OsStr;
 #[cfg(feature = "path")]
 use std::path::Path;
 
-use crate::{Flex, RefCounted, StringOps};
+use crate::{FlexStr, RefCounted, StringOps};
 
 /// Local `str` type (NOTE: This can't be shared between threads)
-pub type LocalStr<'s> = Flex<'s, str, Rc<str>>;
+pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
 
 /// Shared `str` type
-pub type SharedStr<'s> = Flex<'s, str, Arc<str>>;
+pub type SharedStr<'s> = FlexStr<'s, str, Arc<str>>;
 
 const _: () = assert!(
     size_of::<Option<LocalStr>>() <= size_of::<String>(),
@@ -21,7 +21,7 @@ const _: () = assert!(
     "Option<SharedStr> must be less than or equal to the size of String"
 );
 
-impl<R: RefCounted<str>> Flex<'_, str, R> {
+impl<R: RefCounted<str>> FlexStr<'_, str, R> {
     /// Borrow the str as an `&str`
     pub fn as_str(&self) -> &str {
         self.as_borrowed_type()
@@ -63,17 +63,17 @@ impl StringOps for str {
 // *** From<String> ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<str>> From<String> for Flex<'s, str, R> {
+impl<'s, R: RefCounted<str>> From<String> for FlexStr<'s, str, R> {
     #[inline(always)]
     fn from(s: String) -> Self {
-        Flex::from_owned(s)
+        FlexStr::from_owned(s)
     }
 }
 
 // *** AsRef<OsStr>, AsRef<Path>, and AsRef<[u8]> ***
 
 // NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl<'s, R: RefCounted<str>> AsRef<[u8]> for Flex<'s, str, R> {
+impl<'s, R: RefCounted<str>> AsRef<[u8]> for FlexStr<'s, str, R> {
     #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
@@ -81,14 +81,14 @@ impl<'s, R: RefCounted<str>> AsRef<[u8]> for Flex<'s, str, R> {
 }
 
 #[cfg(feature = "osstr")]
-impl<R: RefCounted<str>> AsRef<OsStr> for Flex<'_, str, R> {
+impl<R: RefCounted<str>> AsRef<OsStr> for FlexStr<'_, str, R> {
     fn as_ref(&self) -> &OsStr {
         self.as_os_str()
     }
 }
 
 #[cfg(feature = "path")]
-impl<R: RefCounted<str>> AsRef<Path> for Flex<'_, str, R> {
+impl<R: RefCounted<str>> AsRef<Path> for FlexStr<'_, str, R> {
     fn as_ref(&self) -> &Path {
         self.as_path()
     }
