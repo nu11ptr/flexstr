@@ -28,7 +28,7 @@ impl<R: RefCounted<CStr>> FlexStr<'_, CStr, R> {
 
     /// Borrow the CStr as bytes with a trailing NUL byte
     pub fn as_bytes_with_nul(&self) -> &[u8] {
-        self.self_as_raw_bytes()
+        self.as_raw_bytes()
     }
 }
 

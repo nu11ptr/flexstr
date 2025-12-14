@@ -28,7 +28,7 @@ mod path;
 /// Module for `str`-based strings
 mod str;
 
-pub use inline::{INLINE_CAPACITY, InlineBytes};
+pub use inline::{INLINE_CAPACITY, InlineStr};
 
 #[cfg(feature = "bytes")]
 pub use bytes::{LocalBytes, SharedBytes};
@@ -86,7 +86,7 @@ pub enum FlexStr<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
     /// Borrowed string - borrowed strings are imported as `&S`
     Borrowed(&'s S),
     /// Inline string - owned strings that are small enough to be stored inline
-    Inlined(InlineBytes),
+    Inlined(InlineStr<S>),
     /// Reference counted string - owned strings that are too large for inline storage
     RefCounted(R),
     /// Boxed string - heap allocated strings are imported as `Box<S>`
@@ -176,7 +176,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
         let bytes = S::self_as_raw_bytes(s);
 
         if bytes.len() <= INLINE_CAPACITY {
-            FlexStr::Inlined(InlineBytes::from_bytes(bytes))
+            FlexStr::Inlined(InlineStr::from_bytes(bytes))
         } else {
             FlexStr::RefCounted(s.into())
         }
@@ -208,7 +208,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     pub fn as_borrowed_type(&self) -> &S {
         match self {
             FlexStr::Borrowed(s) => s,
-            FlexStr::Inlined(s) => S::bytes_as_self(s),
+            FlexStr::Inlined(s) => s,
             FlexStr::RefCounted(s) => s,
             FlexStr::Boxed(s) => s,
         }
@@ -218,9 +218,19 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     pub fn to_owned_type(&self) -> S::Owned {
         match self {
             FlexStr::Borrowed(s) => <S as ToOwned>::to_owned(s),
-            FlexStr::Inlined(s) => <S as ToOwned>::to_owned(S::bytes_as_self(s)),
+            FlexStr::Inlined(s) => <S as ToOwned>::to_owned(s),
             FlexStr::RefCounted(s) => <S as ToOwned>::to_owned(s),
             FlexStr::Boxed(s) => <S as ToOwned>::to_owned(s),
+        }
+    }
+
+    /// Borrow the string as a raw byte slice (NOTE: includes trailing NUL for CStr)
+    pub fn as_raw_bytes(&self) -> &[u8] {
+        match self {
+            FlexStr::Borrowed(s) => S::self_as_raw_bytes(s),
+            FlexStr::Inlined(s) => s.as_raw_bytes(),
+            FlexStr::RefCounted(s) => S::self_as_raw_bytes(s),
+            FlexStr::Boxed(s) => S::self_as_raw_bytes(s),
         }
     }
 
@@ -228,8 +238,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             FlexStr::Borrowed(s) => S::self_as_bytes(s),
-            // NOTE: The double conversion is necessary today for types like CStr that have a trailing NUL byte
-            FlexStr::Inlined(s) => S::self_as_bytes(S::bytes_as_self(s)),
+            FlexStr::Inlined(s) => s.as_bytes(),
             FlexStr::RefCounted(s) => S::self_as_bytes(s),
             FlexStr::Boxed(s) => S::self_as_bytes(s),
         }
@@ -245,7 +254,7 @@ where
     pub fn into_owned_type(self) -> S::Owned {
         match self {
             FlexStr::Borrowed(s) => <S as ToOwned>::to_owned(s),
-            FlexStr::Inlined(s) => <S as ToOwned>::to_owned(S::bytes_as_self(&s)),
+            FlexStr::Inlined(s) => <S as ToOwned>::to_owned(&s),
             FlexStr::RefCounted(s) => <S as ToOwned>::to_owned(&s),
             FlexStr::Boxed(s) => s.into(),
         }

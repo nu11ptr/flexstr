@@ -1,6 +1,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
+use core::marker::PhantomData;
 use core::ops::Deref;
+
+use crate::StringOps;
 
 // This must be the size of the String type minus 2 bytes for the length and discriminator
 /// The capacity of the inline bytes type
@@ -8,12 +11,13 @@ pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 
 /// Inline bytes type - used to store small strings inline
 #[derive(Debug)]
-pub struct InlineBytes {
+pub struct InlineStr<S: ?Sized + StringOps> {
     inline: [u8; INLINE_CAPACITY],
     len: u8,
+    marker: PhantomData<S>,
 }
 
-impl InlineBytes {
+impl<S: ?Sized + StringOps> InlineStr<S> {
     pub(crate) fn from_bytes(s: &[u8]) -> Self {
         let mut inline = [0u8; INLINE_CAPACITY];
         let len = s.len();
@@ -24,37 +28,64 @@ impl InlineBytes {
         Self {
             inline,
             len: len as u8,
+            marker: PhantomData,
         }
     }
 
-    /// Borrow the inline bytes as a slice
-    pub fn as_bytes(&self) -> &[u8] {
+    /// Returns true if this is an empty string
+    pub fn is_empty(&self) -> bool {
+        self.as_bytes().is_empty()
+    }
+
+    /// Returns the length of this string in bytes
+    pub fn len(&self) -> usize {
+        self.as_bytes().len()
+    }
+
+    /// Borrow the inline bytes as a raw byte slice (NOTE: includes trailing NUL for CStr)
+    pub fn as_raw_bytes(&self) -> &[u8] {
         &self.inline[..self.len as usize]
+    }
+
+    /// Borrow a string reference as `&S`
+    pub fn as_borrowed_type(&self) -> &S {
+        S::bytes_as_self(self.as_raw_bytes())
+    }
+
+    /// Borrow the inline bytes as bytes
+    pub fn as_bytes(&self) -> &[u8] {
+        S::self_as_bytes(self.as_borrowed_type())
     }
 }
 
-// TODO: We can probably derive this, but that might change if we add a MaybeUninit<u8> as the unsafe option
-impl Clone for InlineBytes {
+// *** Clone ***
+
+impl<S: ?Sized + StringOps> Clone for InlineStr<S> {
     fn clone(&self) -> Self {
         Self {
             inline: self.inline,
             len: self.len,
+            marker: PhantomData,
         }
     }
 }
 
-impl AsRef<[u8]> for InlineBytes {
+// *** AsRef<S> ***
+
+impl<S: ?Sized + StringOps> AsRef<S> for InlineStr<S> {
     #[inline(always)]
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
+    fn as_ref(&self) -> &S {
+        self.as_borrowed_type()
     }
 }
 
-impl Deref for InlineBytes {
-    type Target = [u8];
+// *** Deref<Target = S> ***
+
+impl<S: ?Sized + StringOps> Deref for InlineStr<S> {
+    type Target = S;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
-        self.as_bytes()
+        self.as_borrowed_type()
     }
 }

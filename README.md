@@ -55,7 +55,7 @@ It is just an enum that looks like this - you can probably guess much of how it 
 // `R` is just an `Arc<str>` or `Rc<str>`.
 pub enum Flex<'s, S, R> {
     Borrowed(&'s S),
-    Inlined(InlineBytes),
+    Inlined(InlineStr<S>),
     RefCounted(R),
     Boxed(Box<S>),
 }
