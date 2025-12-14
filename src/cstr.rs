@@ -53,3 +53,13 @@ impl<'s, R: RefCounted<CStr>> From<CString> for Flex<'s, CStr, R> {
         Flex::from_owned(s)
     }
 }
+
+// *** AsRef<[u8]> ***
+
+// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
+impl<R: RefCounted<CStr>> AsRef<[u8]> for Flex<'_, CStr, R> {
+    #[inline(always)]
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}

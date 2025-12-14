@@ -127,9 +127,18 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Flex<'s, S, R> {
     pub fn to_owned_type(&self) -> S::Owned {
         match self {
             Flex::Borrowed(s) => <S as ToOwned>::to_owned(s),
-            Flex::Inlined(s) => <S as ToOwned>::to_owned(S::bytes_as_self(&s)),
-            Flex::RefCounted(s) => <S as ToOwned>::to_owned(&s),
+            Flex::Inlined(s) => <S as ToOwned>::to_owned(S::bytes_as_self(s)),
+            Flex::RefCounted(s) => <S as ToOwned>::to_owned(s),
             Flex::Boxed(s) => <S as ToOwned>::to_owned(s),
+        }
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            Flex::Borrowed(s) => S::self_as_bytes(s),
+            Flex::Inlined(s) => s,
+            Flex::RefCounted(s) => S::self_as_bytes(s),
+            Flex::Boxed(s) => S::self_as_bytes(s),
         }
     }
 }
@@ -181,7 +190,7 @@ where
         match self {
             Flex::Borrowed(s) => Flex::Borrowed(s),
             Flex::Inlined(s) => Flex::Inlined(s.clone()),
-            Flex::RefCounted(s) => Flex::RefCounted(Arc::from(&s)),
+            Flex::RefCounted(s) => Flex::RefCounted(Arc::from(s)),
             Flex::Boxed(s) => Flex::copy_into_owned(s),
         }
     }

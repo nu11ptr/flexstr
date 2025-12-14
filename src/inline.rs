@@ -13,7 +13,6 @@ pub struct InlineBytes {
 impl InlineBytes {
     pub(crate) fn from_bytes(s: &[u8]) -> Self {
         let mut inline = [0u8; INLINE_CAPACITY];
-        let s = s.as_ref();
         let len = s.len();
 
         // PANIC SAFETY: Caller responsible for ensuring the slice is not too long

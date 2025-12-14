@@ -72,7 +72,15 @@ impl<'s, R: RefCounted<OsStr>> From<OsString> for Flex<'s, OsStr, R> {
     }
 }
 
-// *** AsRef<Path> ***
+// *** AsRef<Path>, and AsRef<[u8]> ***
+
+// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
+impl<R: RefCounted<OsStr>> AsRef<[u8]> for Flex<'_, OsStr, R> {
+    #[inline(always)]
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
 
 #[cfg(feature = "path")]
 impl<R: RefCounted<OsStr>> AsRef<Path> for Flex<'_, OsStr, R> {

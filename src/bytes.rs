@@ -14,12 +14,6 @@ const _: () = assert!(
     "Option<SharedBytes> must be less than or equal to the size of Vec<u8>"
 );
 
-impl<R: RefCounted<[u8]>> Flex<'_, [u8], R> {
-    pub fn as_bytes(&self) -> &[u8] {
-        self.as_borrowed_type()
-    }
-}
-
 impl StringOps for [u8] {
     #[inline(always)]
     fn bytes_as_self(bytes: &[u8]) -> &Self {

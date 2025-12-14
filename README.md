@@ -70,19 +70,17 @@ Even that you don't really need to concern yourself with. You can just use it ho
 ```rust
 use flexstry::*;
 
-fn main() {
-  // This will be a "Borrowed" variant
-  let hello: SharedStr<'_> = "hello".into();
-  // This will be a "Boxed" variant
-  let world: SharedStr<'_> = "world".to_string().into();
+// This will be a "Borrowed" variant
+let hello: SharedStr<'_> = "hello".into();
+// This will be a "Boxed" variant
+let world: SharedStr<'_> = "world".to_string().into();
 
-  // This is now "Inlined" (since it is short)
-  let hello = hello.into_owned();
-  // This is now "Inlined" as well (since it is short)
-  let world = world.clone();
+// This is now "Inlined" (since it is short)
+let hello = hello.into_owned();
+// This is now "Inlined" as well (since it is short)
+let world = world.clone();
 
-  println!("{hello} {world}");
-}
+println!("{hello} {world}");
 ```
 
 
