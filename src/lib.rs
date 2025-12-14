@@ -56,6 +56,16 @@ pub trait StringOps: ToOwned {
 
     /// Convert a string type to bytes
     fn self_as_bytes(&self) -> &[u8];
+
+    /// Returns true if this is an empty string
+    fn is_empty(&self) -> bool {
+        self.self_as_bytes().is_empty()
+    }
+
+    /// Returns the length of this string in bytes
+    fn len(&self) -> usize {
+        self.self_as_bytes().len()
+    }
 }
 
 // *** RefCounted ***
@@ -86,6 +96,16 @@ pub enum FlexStr<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
     RefCounted(R),
     /// Boxed string - heap allocated strings are imported as `Box<S>`
     Boxed(Box<S>),
+}
+
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R>
+where
+    for<'a> &'a S: Default,
+{
+    /// Create a new empty string. This is a Borrowed variant.
+    pub fn empty() -> FlexStr<'s, S, R> {
+        FlexStr::Borrowed(Default::default())
+    }
 }
 
 impl<'s, S: ?Sized + StringOps + 'static, R: RefCounted<S>> FlexStr<'s, S, R> {
@@ -145,6 +165,16 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     /// Returns true if this is a string that is off the heap
     pub fn is_off_heap(&self) -> bool {
         matches!(self, FlexStr::Borrowed(_) | FlexStr::Inlined(_))
+    }
+
+    /// Returns true if this is an empty string
+    pub fn is_empty(&self) -> bool {
+        self.as_borrowed_type().is_empty()
+    }
+
+    /// Returns the length of this string in bytes
+    pub fn len(&self) -> usize {
+        self.as_borrowed_type().len()
     }
 
     fn copy_into_owned(s: &S) -> FlexStr<'static, S, R> {
@@ -279,6 +309,18 @@ where
             FlexStr::RefCounted(s) => FlexStr::RefCounted(Arc::from(&s)),
             FlexStr::Boxed(s) => FlexStr::Boxed(s),
         }
+    }
+}
+
+// *** Default ***
+
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Default for FlexStr<'s, S, R>
+where
+    for<'a> &'a S: Default,
+{
+    /// Create a new string from a default value
+    fn default() -> FlexStr<'s, S, R> {
+        FlexStr::empty()
     }
 }
 

@@ -46,6 +46,18 @@ impl StringOps for CStr {
     fn self_as_bytes(&self) -> &[u8] {
         self.to_bytes_with_nul()
     }
+
+    // NOTE: Need to overload since it has a trailing NUL byte
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.to_bytes().is_empty()
+    }
+
+    // NOTE: Need to overload since it has a trailing NUL byte
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.to_bytes().len()
+    }
 }
 
 // *** From<CString> ***
