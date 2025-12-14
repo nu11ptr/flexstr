@@ -4,12 +4,21 @@ compile_error!("OsStr support is not available without the 'std' feature");
 use alloc::{rc::Rc, sync::Arc};
 
 use crate::{Flex, RefCounted, StringOps};
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 #[cfg(feature = "path")]
 use std::path::Path;
 
 pub type LocalOsStr<'s> = Flex<'s, OsStr, Rc<OsStr>>;
 pub type SharedOsStr<'s> = Flex<'s, OsStr, Arc<OsStr>>;
+
+const _: () = assert!(
+    size_of::<Option<LocalOsStr>>() <= size_of::<OsString>(),
+    "Option<LocalOsStr> must be exactly the same size as OsString"
+);
+const _: () = assert!(
+    size_of::<Option<SharedOsStr>>() <= size_of::<OsString>(),
+    "Option<SharedOsStr> must be exactly the same size as OsString"
+);
 
 impl<R: RefCounted<OsStr>> Flex<'_, OsStr, R> {
     pub fn as_os_str(&self) -> &OsStr {
@@ -47,13 +56,27 @@ impl StringOps for OsStr {
         unsafe { OsStr::from_encoded_bytes_unchecked(bytes) }
     }
 
+    #[inline(always)]
     fn self_as_bytes(&self) -> &[u8] {
         self.as_encoded_bytes()
     }
 }
 
+// *** From<OsString> ***
+
+// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
+impl<'s, R: RefCounted<OsStr>> From<OsString> for Flex<'s, OsStr, R> {
+    #[inline(always)]
+    fn from(s: OsString) -> Self {
+        Flex::from_owned(s)
+    }
+}
+
+// *** AsRef<Path> ***
+
 #[cfg(feature = "path")]
 impl<R: RefCounted<OsStr>> AsRef<Path> for Flex<'_, OsStr, R> {
+    #[inline(always)]
     fn as_ref(&self) -> &Path {
         self.as_path()
     }
