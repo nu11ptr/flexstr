@@ -35,6 +35,20 @@ impl<R: RefCounted<CStr>> FlexStr<'_, CStr, R> {
     }
 }
 
+impl InlineFlexStr<CStr> {
+    /// Borrow the CStr as an `&CStr`
+    #[inline]
+    pub fn as_cstr(&self) -> &CStr {
+        self.as_borrowed_type()
+    }
+
+    /// Borrow the CStr as bytes with a trailing NUL byte
+    #[inline]
+    pub fn as_bytes_with_nul(&self) -> &[u8] {
+        self.as_raw_bytes()
+    }
+}
+
 impl StringOps for CStr {
     #[cfg(feature = "safe")]
     #[inline]
@@ -86,6 +100,16 @@ impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
 
 // NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
 impl<R: RefCounted<CStr>> AsRef<[u8]> for FlexStr<'_, CStr, R> {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+// *** AsRef<[u8]> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
+impl AsRef<[u8]> for InlineFlexStr<CStr> {
+    #[inline]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
     }

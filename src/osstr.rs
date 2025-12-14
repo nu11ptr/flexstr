@@ -36,6 +36,21 @@ impl<R: RefCounted<OsStr>> FlexStr<'_, OsStr, R> {
     }
 }
 
+impl InlineFlexStr<OsStr> {
+    /// Borrow the OsStr as an `&OsStr`
+    #[inline]
+    pub fn as_os_str(&self) -> &OsStr {
+        self.as_borrowed_type()
+    }
+
+    /// Borrow the OsStr as a `&Path`
+    #[cfg(feature = "path")]
+    #[inline]
+    pub fn as_path(&self) -> &Path {
+        self.as_os_str().as_ref()
+    }
+}
+
 impl StringOps for OsStr {
     #[cfg(all(feature = "safe", target_family = "windows"))]
     #[inline]
@@ -99,6 +114,24 @@ impl<R: RefCounted<OsStr>> AsRef<[u8]> for FlexStr<'_, OsStr, R> {
 
 #[cfg(feature = "path")]
 impl<R: RefCounted<OsStr>> AsRef<Path> for FlexStr<'_, OsStr, R> {
+    fn as_ref(&self) -> &Path {
+        self.as_path()
+    }
+}
+
+// *** AsRef<OsStr>, AsRef<Path>, and AsRef<[u8]> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
+impl AsRef<[u8]> for InlineFlexStr<OsStr> {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+#[cfg(feature = "path")]
+impl AsRef<Path> for InlineFlexStr<OsStr> {
+    #[inline]
     fn as_ref(&self) -> &Path {
         self.as_path()
     }

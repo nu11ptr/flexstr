@@ -43,6 +43,28 @@ impl<R: RefCounted<str>> FlexStr<'_, str, R> {
     }
 }
 
+impl InlineStr {
+    /// Borrow the str as an `&str`
+    #[inline]
+    pub fn as_str(&self) -> &str {
+        self.as_borrowed_type()
+    }
+
+    /// Borrow the str as an `&OsStr`
+    #[cfg(all(feature = "std", feature = "osstr"))]
+    #[inline]
+    pub fn as_os_str(&self) -> &OsStr {
+        self.as_str().as_ref()
+    }
+
+    /// Borrow the str as a `&Path`
+    #[cfg(all(feature = "std", feature = "path"))]
+    #[inline]
+    pub fn as_path(&self) -> &Path {
+        self.as_str().as_ref()
+    }
+}
+
 impl StringOps for str {
     #[cfg(feature = "safe")]
     #[inline]
@@ -103,6 +125,32 @@ impl<R: RefCounted<str>> AsRef<OsStr> for FlexStr<'_, str, R> {
 
 #[cfg(all(feature = "std", feature = "path"))]
 impl<R: RefCounted<str>> AsRef<Path> for FlexStr<'_, str, R> {
+    fn as_ref(&self) -> &Path {
+        self.as_path()
+    }
+}
+
+// *** AsRef<OsStr>, AsRef<Path>, and AsRef<[u8]> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
+impl AsRef<[u8]> for InlineFlexStr<str> {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+#[cfg(all(feature = "std", feature = "osstr"))]
+impl AsRef<OsStr> for InlineFlexStr<str> {
+    #[inline]
+    fn as_ref(&self) -> &OsStr {
+        self.as_os_str()
+    }
+}
+
+#[cfg(all(feature = "std", feature = "path"))]
+impl AsRef<Path> for InlineFlexStr<str> {
+    #[inline]
     fn as_ref(&self) -> &Path {
         self.as_path()
     }

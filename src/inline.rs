@@ -9,7 +9,7 @@ use crate::StringOps;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 // This must be the size of the String type minus 2 bytes for the length and discriminator
-/// The capacity of the inline bytes type
+/// The capacity of the [InlineFlexStr] type in bytes
 pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 
 /// Inline bytes type - used to store small strings inline
