@@ -44,7 +44,7 @@ impl StringOps for Path {
     }
 
     #[inline(always)]
-    fn self_as_bytes(&self) -> &[u8] {
+    fn self_as_raw_bytes(&self) -> &[u8] {
         OsStr::self_as_bytes(self.as_os_str())
     }
 }

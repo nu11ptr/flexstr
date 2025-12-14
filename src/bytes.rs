@@ -24,7 +24,7 @@ impl StringOps for [u8] {
     }
 
     #[inline(always)]
-    fn self_as_bytes(&self) -> &[u8] {
+    fn self_as_raw_bytes(&self) -> &[u8] {
         self
     }
 }

@@ -55,7 +55,8 @@ impl StringOps for str {
         unsafe { str::from_utf8_unchecked(bytes) }
     }
 
-    fn self_as_bytes(&self) -> &[u8] {
+    #[inline(always)]
+    fn self_as_raw_bytes(&self) -> &[u8] {
         self.as_bytes()
     }
 }

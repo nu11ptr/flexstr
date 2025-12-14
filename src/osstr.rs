@@ -62,7 +62,7 @@ impl StringOps for OsStr {
     }
 
     #[inline(always)]
-    fn self_as_bytes(&self) -> &[u8] {
+    fn self_as_raw_bytes(&self) -> &[u8] {
         self.as_encoded_bytes()
     }
 }

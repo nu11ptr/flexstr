@@ -54,18 +54,13 @@ pub trait StringOps: ToOwned {
     /// Convert bytes to a string type
     fn bytes_as_self(bytes: &[u8]) -> &Self;
 
-    /// Convert a string type to bytes
-    fn self_as_bytes(&self) -> &[u8];
-
-    /// Returns true if this is an empty string
-    fn is_empty(&self) -> bool {
-        self.self_as_bytes().is_empty()
+    /// Convert a string type to bytes (excludes nul for CStr)
+    fn self_as_bytes(&self) -> &[u8] {
+        self.self_as_raw_bytes()
     }
 
-    /// Returns the length of this string in bytes
-    fn len(&self) -> usize {
-        self.self_as_bytes().len()
-    }
+    /// Convert a string type to raw bytes (inludes nul for CStr)
+    fn self_as_raw_bytes(&self) -> &[u8];
 }
 
 // *** RefCounted ***
@@ -169,16 +164,16 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
 
     /// Returns true if this is an empty string
     pub fn is_empty(&self) -> bool {
-        self.as_borrowed_type().is_empty()
+        self.as_bytes().is_empty()
     }
 
     /// Returns the length of this string in bytes
     pub fn len(&self) -> usize {
-        self.as_borrowed_type().len()
+        self.as_bytes().len()
     }
 
     fn copy_into_owned(s: &S) -> FlexStr<'static, S, R> {
-        let bytes = S::self_as_bytes(s);
+        let bytes = S::self_as_raw_bytes(s);
 
         if bytes.len() <= INLINE_CAPACITY {
             FlexStr::Inlined(InlineBytes::from_bytes(bytes))
@@ -233,7 +228,8 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             FlexStr::Borrowed(s) => S::self_as_bytes(s),
-            FlexStr::Inlined(s) => s,
+            // NOTE: The double conversion is necessary today for types like CStr that have a trailing NUL byte
+            FlexStr::Inlined(s) => S::self_as_bytes(S::bytes_as_self(s)),
             FlexStr::RefCounted(s) => S::self_as_bytes(s),
             FlexStr::Boxed(s) => S::self_as_bytes(s),
         }

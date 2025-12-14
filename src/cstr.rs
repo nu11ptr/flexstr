@@ -25,6 +25,11 @@ impl<R: RefCounted<CStr>> FlexStr<'_, CStr, R> {
     pub fn as_cstr(&self) -> &CStr {
         self.as_borrowed_type()
     }
+
+    /// Borrow the CStr as bytes with a trailing NUL byte
+    pub fn as_bytes_with_nul(&self) -> &[u8] {
+        self.self_as_raw_bytes()
+    }
 }
 
 impl StringOps for CStr {
@@ -44,19 +49,12 @@ impl StringOps for CStr {
 
     #[inline(always)]
     fn self_as_bytes(&self) -> &[u8] {
+        self.to_bytes()
+    }
+
+    #[inline(always)]
+    fn self_as_raw_bytes(&self) -> &[u8] {
         self.to_bytes_with_nul()
-    }
-
-    // NOTE: Need to overload since it has a trailing NUL byte
-    #[inline(always)]
-    fn is_empty(&self) -> bool {
-        self.to_bytes().is_empty()
-    }
-
-    // NOTE: Need to overload since it has a trailing NUL byte
-    #[inline(always)]
-    fn len(&self) -> usize {
-        self.to_bytes().len()
     }
 }
 
