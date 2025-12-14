@@ -3,8 +3,11 @@ use alloc::string::String;
 use core::ops::Deref;
 
 // This must be the size of the String type minus 2 bytes for the length and discriminator
-pub(crate) const INLINE_CAPACITY: usize = size_of::<String>() - 2;
+/// The capacity of the inline bytes type
+pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 
+/// Inline bytes type - used to store small strings inline
+#[derive(Debug)]
 pub struct InlineBytes {
     inline: [u8; INLINE_CAPACITY],
     len: u8,
@@ -24,6 +27,7 @@ impl InlineBytes {
         }
     }
 
+    /// Borrow the inline bytes as a slice
     pub fn as_bytes(&self) -> &[u8] {
         &self.inline[..self.len as usize]
     }

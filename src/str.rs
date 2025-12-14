@@ -6,7 +6,10 @@ use std::path::Path;
 
 use crate::{Flex, RefCounted, StringOps};
 
+/// Local `str` type (NOTE: This can't be shared between threads)
 pub type LocalStr<'s> = Flex<'s, str, Rc<str>>;
+
+/// Shared `str` type
 pub type SharedStr<'s> = Flex<'s, str, Arc<str>>;
 
 const _: () = assert!(
@@ -19,16 +22,19 @@ const _: () = assert!(
 );
 
 impl<R: RefCounted<str>> Flex<'_, str, R> {
+    /// Borrow the str as an `&str`
     pub fn as_str(&self) -> &str {
         self.as_borrowed_type()
     }
 
     #[cfg(feature = "osstr")]
+    /// Borrow the str as an `&OsStr`
     pub fn as_os_str(&self) -> &OsStr {
         self.as_str().as_ref()
     }
 
     #[cfg(feature = "path")]
+    /// Borrow the str as a `&Path`
     pub fn as_path(&self) -> &Path {
         self.as_str().as_ref()
     }

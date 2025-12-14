@@ -8,7 +8,10 @@ use std::ffi::{OsStr, OsString};
 #[cfg(feature = "path")]
 use std::path::Path;
 
+/// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = Flex<'s, OsStr, Rc<OsStr>>;
+
+/// Shared `OsStr` type
 pub type SharedOsStr<'s> = Flex<'s, OsStr, Arc<OsStr>>;
 
 const _: () = assert!(
@@ -21,11 +24,13 @@ const _: () = assert!(
 );
 
 impl<R: RefCounted<OsStr>> Flex<'_, OsStr, R> {
+    /// Borrow the OsStr as an `&OsStr`
     pub fn as_os_str(&self) -> &OsStr {
         self.as_borrowed_type()
     }
 
     #[cfg(feature = "path")]
+    /// Borrow the OsStr as a `&Path`
     pub fn as_path(&self) -> &Path {
         self.as_os_str().as_ref()
     }

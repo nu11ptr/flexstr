@@ -10,7 +10,10 @@ use std::{
 
 use crate::{Flex, RefCounted, StringOps};
 
+/// Local `Path` type (NOTE: This can't be shared between threads)
 pub type LocalPath<'s> = Flex<'s, Path, Rc<Path>>;
+
+/// Shared `Path` type
 pub type SharedPath<'s> = Flex<'s, Path, Arc<Path>>;
 
 const _: () = assert!(
@@ -22,6 +25,18 @@ const _: () = assert!(
     "Option<SharedPath> must be less than or equal to the size of PathBuf"
 );
 
+impl<R: RefCounted<Path>> Flex<'_, Path, R> {
+    /// Borrow the Path as a `&Path`
+    pub fn as_path(&self) -> &Path {
+        self.as_borrowed_type()
+    }
+
+    /// Borrow the Path as an `&OsStr`
+    pub fn as_os_str(&self) -> &OsStr {
+        self.as_path().as_os_str()
+    }
+}
+
 impl StringOps for Path {
     #[inline(always)]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
@@ -31,16 +46,6 @@ impl StringOps for Path {
     #[inline(always)]
     fn self_as_bytes(&self) -> &[u8] {
         OsStr::self_as_bytes(self.as_os_str())
-    }
-}
-
-impl<R: RefCounted<Path>> Flex<'_, Path, R> {
-    pub fn as_path(&self) -> &Path {
-        self.as_borrowed_type()
-    }
-
-    pub fn as_os_str(&self) -> &OsStr {
-        self.as_path().as_os_str()
     }
 }
 

@@ -93,5 +93,5 @@ This is currently experimental, however, I will be using this at a startup in pr
 This project is licensed optionally under either:
 
 * Apache License, Version 2.0, (LICENSE-APACHE
-  or https://www.apache.org/licenses/LICENSE-2.0)
-* MIT license (LICENSE-MIT or https://opensource.org/licenses/MIT)
+  or <https://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license (LICENSE-MIT or <https://opensource.org/licenses/MIT>)

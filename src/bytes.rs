@@ -2,7 +2,10 @@ use alloc::{rc::Rc, sync::Arc};
 
 use crate::{Flex, RefCounted, StringOps};
 
+/// Local `[u8]` type (NOTE: This can't be shared between threads)
 pub type LocalBytes<'s> = Flex<'s, [u8], Rc<[u8]>>;
+
+/// Shared `[u8]` type
 pub type SharedBytes<'s> = Flex<'s, [u8], Arc<[u8]>>;
 
 const _: () = assert!(

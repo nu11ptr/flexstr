@@ -3,7 +3,10 @@ use core::ffi::CStr;
 
 use crate::{Flex, RefCounted, StringOps};
 
+/// Local `CStr` type (NOTE: This can't be shared between threads)
 pub type LocalCStr<'s> = Flex<'s, CStr, Rc<CStr>>;
+
+/// Shared `CStr` type
 pub type SharedCStr<'s> = Flex<'s, CStr, Arc<CStr>>;
 
 // NOTE: This one is a bit different because CString is just a Box<[u8]>. Instead of equal size,
@@ -18,6 +21,7 @@ const _: () = assert!(
 );
 
 impl<R: RefCounted<CStr>> Flex<'_, CStr, R> {
+    /// Borrow the CStr as an `&CStr`
     pub fn as_cstr(&self) -> &CStr {
         self.as_borrowed_type()
     }
