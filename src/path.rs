@@ -15,11 +15,11 @@ pub type SharedPath<'s> = Flex<'s, Path, Arc<Path>>;
 
 const _: () = assert!(
     size_of::<Option<LocalPath>>() <= size_of::<PathBuf>(),
-    "Option<LocalPath> must be exactly the same size as PathBuf"
+    "Option<LocalPath> must be less than or equal to the size of PathBuf"
 );
 const _: () = assert!(
     size_of::<Option<SharedPath>>() <= size_of::<PathBuf>(),
-    "Option<SharedPath> must be exactly the same size as PathBuf"
+    "Option<SharedPath> must be less than or equal to the size of PathBuf"
 );
 
 impl StringOps for Path {

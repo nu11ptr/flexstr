@@ -13,11 +13,11 @@ pub type SharedOsStr<'s> = Flex<'s, OsStr, Arc<OsStr>>;
 
 const _: () = assert!(
     size_of::<Option<LocalOsStr>>() <= size_of::<OsString>(),
-    "Option<LocalOsStr> must be exactly the same size as OsString"
+    "Option<LocalOsStr> must be less than or equal to the size of OsString"
 );
 const _: () = assert!(
     size_of::<Option<SharedOsStr>>() <= size_of::<OsString>(),
-    "Option<SharedOsStr> must be exactly the same size as OsString"
+    "Option<SharedOsStr> must be less than or equal to the size of OsString"
 );
 
 impl<R: RefCounted<OsStr>> Flex<'_, OsStr, R> {

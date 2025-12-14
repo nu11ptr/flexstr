@@ -11,11 +11,11 @@ pub type SharedStr<'s> = Flex<'s, str, Arc<str>>;
 
 const _: () = assert!(
     size_of::<Option<LocalStr>>() <= size_of::<String>(),
-    "Option<LocalStr> must be exactly the same size as String"
+    "Option<LocalStr> must be less than or equal to the size of String"
 );
 const _: () = assert!(
     size_of::<Option<SharedStr>>() <= size_of::<String>(),
-    "Option<SharedStr> must be exactly the same size as String"
+    "Option<SharedStr> must be less than or equal to the size of String"
 );
 
 impl<R: RefCounted<str>> Flex<'_, str, R> {
