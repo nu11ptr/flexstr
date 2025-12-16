@@ -102,7 +102,7 @@ where
     Self: Sized,
 {
     /// Borrow a string reference as `&S`
-    fn as_borrowed_type(&self) -> &S;
+    fn as_ref_type(&self) -> &S;
 
     /// Borrow the string as bytes
     fn as_bytes(&self) -> &[u8];
@@ -131,7 +131,7 @@ where
     where
         S: AsRef<str>,
     {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 
     #[cfg(all(feature = "std", feature = "osstr"))]
@@ -140,7 +140,7 @@ where
     where
         S: AsRef<OsStr>,
     {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 
     #[cfg(all(feature = "std", feature = "path"))]
@@ -149,7 +149,7 @@ where
     where
         S: AsRef<Path>,
     {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 
     #[cfg(feature = "cstr")]
@@ -158,7 +158,7 @@ where
     where
         S: AsRef<CStr>,
     {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 
     /// Consume a string and convert it to a [String]
@@ -392,7 +392,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     }
 
     /// Borrow a string reference as `&S`
-    pub fn as_borrowed_type(&self) -> &S {
+    pub fn as_ref_type(&self) -> &S {
         match self {
             FlexStr::Borrowed(s) => s,
             FlexStr::Inlined(s) => s,
@@ -507,8 +507,8 @@ where
 // *** StringLike ***
 
 impl<S: ?Sized + StringOps + 'static, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
-    fn as_borrowed_type(&self) -> &S {
-        <Self>::as_borrowed_type(self)
+    fn as_ref_type(&self) -> &S {
+        <Self>::as_ref_type(self)
     }
 
     fn as_bytes(&self) -> &[u8] {
@@ -562,7 +562,7 @@ where
     S: AsRef<str>,
 {
     fn as_ref(&self) -> &str {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -572,7 +572,7 @@ where
     S: AsRef<OsStr>,
 {
     fn as_ref(&self) -> &OsStr {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -582,7 +582,7 @@ where
     S: AsRef<Path>,
 {
     fn as_ref(&self) -> &Path {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -592,7 +592,7 @@ where
     S: AsRef<CStr>,
 {
     fn as_ref(&self) -> &CStr {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -602,7 +602,7 @@ where
     S: AsRef<[u8]>,
 {
     fn as_ref(&self) -> &[u8] {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -612,7 +612,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Deref for FlexStr<'s, S, R> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
-        self.as_borrowed_type()
+        self.as_ref_type()
     }
 }
 
@@ -623,7 +623,7 @@ where
     S: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        S::fmt(self.as_borrowed_type(), f)
+        S::fmt(self.as_ref_type(), f)
     }
 }
 
@@ -634,7 +634,7 @@ where
     S: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        S::eq(self.as_borrowed_type(), other.as_borrowed_type())
+        S::eq(self.as_ref_type(), other.as_ref_type())
     }
 }
 
@@ -646,7 +646,7 @@ where
     S: Serialize,
 {
     fn serialize<SER: Serializer>(&self, serializer: SER) -> Result<SER::Ok, SER::Error> {
-        S::serialize(self.as_borrowed_type(), serializer)
+        S::serialize(self.as_ref_type(), serializer)
     }
 }
 

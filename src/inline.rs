@@ -102,13 +102,13 @@ impl<S: ?Sized + StringOps> InlineFlexStr<S> {
     }
 
     /// Borrow a string reference as `&S`
-    pub fn as_borrowed_type(&self) -> &S {
+    pub fn as_ref_type(&self) -> &S {
         S::bytes_as_self(self.as_raw_bytes())
     }
 
     /// Borrow the inline bytes as bytes
     pub fn as_bytes(&self) -> &[u8] {
-        S::self_as_bytes(self.as_borrowed_type())
+        S::self_as_bytes(self.as_ref_type())
     }
 
     /// Consume a string and convert it to an owned string.
@@ -121,15 +121,15 @@ impl<S: ?Sized + StringOps> InlineFlexStr<S> {
 
     /// Convert a string reference to an owned string.
     pub fn to_owned_type(&self) -> S::Owned {
-        self.as_borrowed_type().to_owned()
+        self.as_ref_type().to_owned()
     }
 }
 
 // *** StringLike ***
 
 impl<S: ?Sized + StringOps + 'static> StringLike<S> for InlineFlexStr<S> {
-    fn as_borrowed_type(&self) -> &S {
-        <Self>::as_borrowed_type(self)
+    fn as_ref_type(&self) -> &S {
+        <Self>::as_ref_type(self)
     }
 
     fn as_bytes(&self) -> &[u8] {
@@ -167,7 +167,7 @@ where
     S: AsRef<str>,
 {
     fn as_ref(&self) -> &str {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -177,7 +177,7 @@ where
     S: AsRef<OsStr>,
 {
     fn as_ref(&self) -> &OsStr {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -187,7 +187,7 @@ where
     S: AsRef<Path>,
 {
     fn as_ref(&self) -> &Path {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -197,7 +197,7 @@ where
     S: AsRef<CStr>,
 {
     fn as_ref(&self) -> &CStr {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 
@@ -207,7 +207,7 @@ where
     S: AsRef<[u8]>,
 {
     fn as_ref(&self) -> &[u8] {
-        self.as_borrowed_type().as_ref()
+        self.as_ref_type().as_ref()
     }
 }
 // *** Deref<Target = S> ***
@@ -216,7 +216,7 @@ impl<S: ?Sized + StringOps> Deref for InlineFlexStr<S> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
-        self.as_borrowed_type()
+        self.as_ref_type()
     }
 }
 
@@ -227,7 +227,7 @@ where
     S: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        S::eq(self.as_borrowed_type(), other.as_borrowed_type())
+        S::eq(self.as_ref_type(), other.as_ref_type())
     }
 }
 
@@ -239,7 +239,7 @@ where
     S: Serialize,
 {
     fn serialize<SER: Serializer>(&self, serializer: SER) -> Result<SER::Ok, SER::Error> {
-        S::serialize(self.as_borrowed_type(), serializer)
+        S::serialize(self.as_ref_type(), serializer)
     }
 }
 
