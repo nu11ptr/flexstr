@@ -12,6 +12,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// The capacity of the [InlineFlexStr] type in bytes
 pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 
+#[doc(alias = "InlineStr")]
+#[doc(alias = "InlineOsStr")]
+#[doc(alias = "InlinePath")]
+#[doc(alias = "InlineCStr")]
+#[doc(alias = "InlineBytes")]
 /// Inline bytes type - used to store small strings inline
 #[derive(Debug)]
 pub struct InlineFlexStr<S: ?Sized + StringOps> {
@@ -99,6 +104,19 @@ impl<S: ?Sized + StringOps> InlineFlexStr<S> {
     pub fn as_bytes(&self) -> &[u8] {
         S::self_as_bytes(self.as_borrowed_type())
     }
+
+    /// Consume a string and convert it to an owned string.
+    pub fn into_owned_type(self) -> S::Owned
+    where
+        S::Owned: From<Box<S>>,
+    {
+        self.to_owned_type()
+    }
+
+    /// Convert a string reference to an owned string.
+    pub fn to_owned_type(&self) -> S::Owned {
+        self.as_borrowed_type().to_owned()
+    }
 }
 
 // *** StringLike ***
@@ -110,6 +128,17 @@ impl<S: ?Sized + StringOps> StringLike<S> for InlineFlexStr<S> {
 
     fn as_bytes(&self) -> &[u8] {
         <Self>::as_bytes(self)
+    }
+
+    fn into_owned_type(self) -> S::Owned
+    where
+        S::Owned: From<Box<S>>,
+    {
+        <Self>::into_owned_type(self)
+    }
+
+    fn to_owned_type(&self) -> S::Owned {
+        <Self>::to_owned_type(self)
     }
 }
 

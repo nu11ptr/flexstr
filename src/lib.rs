@@ -41,6 +41,8 @@ pub use path::{InlinePath, LocalPath, SharedPath};
 #[cfg(feature = "str")]
 pub use str::{InlineStr, LocalStr, SharedStr};
 
+#[cfg(feature = "cstr")]
+use alloc::ffi::CString;
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
@@ -49,9 +51,9 @@ use core::ffi::CStr;
 use core::fmt;
 use core::ops::Deref;
 #[cfg(all(feature = "std", feature = "osstr"))]
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 #[cfg(all(feature = "std", feature = "path"))]
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -91,12 +93,24 @@ where
 // *** StringLike ***
 
 /// Trait for string types that provide various operations
-pub trait StringLike<S: ?Sized + StringOps> {
+pub trait StringLike<S: ?Sized + StringOps>
+where
+    Self: Sized,
+{
     /// Borrow a string reference as `&S`
     fn as_borrowed_type(&self) -> &S;
 
     /// Borrow the string as bytes
     fn as_bytes(&self) -> &[u8];
+
+    /// Consume a string and convert it to an owned string. `S::to_owned` is called on Borrowed/Inlined/RefCounted variants.
+    /// Boxed variants are converted directly into `S::Owned` (most likely without copy or allocation).
+    fn into_owned_type(self) -> S::Owned
+    where
+        S::Owned: From<Box<S>>;
+
+    /// Convert a string reference to an owned string. `S::to_owned` is called on all variants.
+    fn to_owned_type(&self) -> S::Owned;
 
     /// Returns true if this is an empty string
     fn is_empty(&self) -> bool {
@@ -141,6 +155,94 @@ pub trait StringLike<S: ?Sized + StringOps> {
         S: AsRef<CStr> + 's,
     {
         self.as_borrowed_type().as_ref()
+    }
+
+    /// Consume a string and convert it to a [String]
+    fn into_string(self) -> String
+    where
+        S::Owned: Into<String> + From<Box<S>>,
+    {
+        self.into_owned_type().into()
+    }
+
+    #[cfg(all(feature = "std", feature = "osstr"))]
+    /// Consume a string and convert it to an [OsString]
+    fn into_os_string(self) -> OsString
+    where
+        S::Owned: Into<OsString> + From<Box<S>>,
+    {
+        self.into_owned_type().into()
+    }
+
+    #[cfg(all(feature = "std", feature = "path"))]
+    /// Consume a string and convert it to a [PathBuf]
+    fn into_path_buf(self) -> PathBuf
+    where
+        S::Owned: Into<PathBuf> + From<Box<S>>,
+    {
+        self.into_owned_type().into()
+    }
+
+    #[cfg(feature = "cstr")]
+    /// Consume a string and convert it to a [CString]
+    fn into_c_string(self) -> CString
+    where
+        S::Owned: Into<CString> + From<Box<S>>,
+    {
+        self.into_owned_type().into()
+    }
+
+    #[cfg(feature = "bytes")]
+    /// Consume a string and convert it to a [`Vec<u8>`]
+    fn into_vec_bytes(self) -> Vec<u8>
+    where
+        S::Owned: Into<Vec<u8>> + From<Box<S>>,
+    {
+        self.into_owned_type().into()
+    }
+
+    /// Convert a string reference to a [String]
+    fn to_string(&self) -> String
+    where
+        S::Owned: Into<String>,
+    {
+        self.to_owned_type().into()
+    }
+
+    #[cfg(all(feature = "std", feature = "osstr"))]
+    /// Convert a string reference to an [OsString]
+    fn to_os_string(&self) -> OsString
+    where
+        S::Owned: Into<OsString>,
+    {
+        self.to_owned_type().into()
+    }
+
+    #[cfg(all(feature = "std", feature = "path"))]
+    /// Convert a string reference to a [PathBuf]
+    fn to_path_buf(&self) -> PathBuf
+    where
+        S::Owned: Into<PathBuf>,
+    {
+        self.to_owned_type().into()
+    }
+
+    #[cfg(feature = "cstr")]
+    /// Convert a string reference to a [CString]
+    fn to_c_string(&self) -> CString
+    where
+        S::Owned: Into<CString>,
+    {
+        self.to_owned_type().into()
+    }
+
+    #[cfg(feature = "bytes")]
+    /// Convert a string reference to a [`Vec<u8>`]
+    fn to_vec_bytes(&self) -> Vec<u8>
+    where
+        S::Owned: Into<Vec<u8>>,
+    {
+        self.to_owned_type().into()
     }
 }
 
@@ -206,6 +308,21 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     /// and results in a Borrowed variant.
     pub const fn from_borrowed(s: &'s S) -> FlexStr<'s, S, R> {
         FlexStr::Borrowed(s)
+    }
+
+    /// Create a new string from an inline string. This results in an Inlined variant.
+    pub fn from_inline(s: InlineFlexStr<S>) -> FlexStr<'s, S, R> {
+        FlexStr::Inlined(s)
+    }
+
+    /// Create a new string from a reference counted string. This results in a RefCounted variant.
+    pub fn from_ref_counted(s: R) -> FlexStr<'s, S, R> {
+        FlexStr::RefCounted(s)
+    }
+
+    /// Create a new string from a boxed string. This results in a Boxed variant.
+    pub fn from_boxed(s: Box<S>) -> FlexStr<'s, S, R> {
+        FlexStr::Boxed(s)
     }
 
     /// Returns true if this is a borrowed string
@@ -392,6 +509,17 @@ impl<S: ?Sized + StringOps, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R
 
     fn as_bytes(&self) -> &[u8] {
         <Self>::as_bytes(self)
+    }
+
+    fn into_owned_type(self) -> S::Owned
+    where
+        S::Owned: From<Box<S>>,
+    {
+        <Self>::into_owned_type(self)
+    }
+
+    fn to_owned_type(&self) -> S::Owned {
+        <Self>::to_owned_type(self)
     }
 }
 
