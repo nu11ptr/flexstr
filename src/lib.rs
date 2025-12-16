@@ -44,6 +44,10 @@ pub use str::{InlineStr, LocalStr, SharedStr};
 #[cfg(feature = "cstr")]
 use alloc::ffi::CString;
 #[cfg(not(feature = "std"))]
+use alloc::string::String;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
 #[cfg(feature = "cstr")]
@@ -93,7 +97,7 @@ where
 // *** StringLike ***
 
 /// Trait for string types that provide various operations
-pub trait StringLike<S: ?Sized + StringOps>
+pub trait StringLike<S: ?Sized + StringOps + 'static>
 where
     Self: Sized,
 {
@@ -123,36 +127,36 @@ where
     }
 
     /// Borrow the string as an `&str`
-    fn as_str<'s>(&'s self) -> &'s str
+    fn as_str(&self) -> &str
     where
-        S: AsRef<str> + 's,
+        S: AsRef<str>,
     {
         self.as_borrowed_type().as_ref()
     }
 
     #[cfg(all(feature = "std", feature = "osstr"))]
     /// Borrow the string as an `&OsStr`
-    fn as_os_str<'s>(&'s self) -> &'s OsStr
+    fn as_os_str(&self) -> &OsStr
     where
-        S: AsRef<OsStr> + 's,
+        S: AsRef<OsStr>,
     {
         self.as_borrowed_type().as_ref()
     }
 
     #[cfg(all(feature = "std", feature = "path"))]
     /// Borrow the string as a `&Path`
-    fn as_path<'s>(&'s self) -> &'s Path
+    fn as_path(&self) -> &Path
     where
-        S: AsRef<Path> + 's,
+        S: AsRef<Path>,
     {
         self.as_borrowed_type().as_ref()
     }
 
     #[cfg(feature = "cstr")]
     /// Borrow the string as a `&CStr`
-    fn as_c_str<'s>(&'s self) -> &'s CStr
+    fn as_c_str(&self) -> &CStr
     where
-        S: AsRef<CStr> + 's,
+        S: AsRef<CStr>,
     {
         self.as_borrowed_type().as_ref()
     }
@@ -502,7 +506,7 @@ where
 
 // *** StringLike ***
 
-impl<S: ?Sized + StringOps, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
+impl<S: ?Sized + StringOps + 'static, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
     fn as_borrowed_type(&self) -> &S {
         <Self>::as_borrowed_type(self)
     }

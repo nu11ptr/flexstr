@@ -121,7 +121,7 @@ impl<S: ?Sized + StringOps> InlineFlexStr<S> {
 
 // *** StringLike ***
 
-impl<S: ?Sized + StringOps> StringLike<S> for InlineFlexStr<S> {
+impl<S: ?Sized + StringOps + 'static> StringLike<S> for InlineFlexStr<S> {
     fn as_borrowed_type(&self) -> &S {
         <Self>::as_borrowed_type(self)
     }
