@@ -24,11 +24,6 @@ const _: () = assert!(
 );
 
 impl<R: RefCounted<CStr>> FlexStr<'_, CStr, R> {
-    /// Borrow the CStr as an `&CStr`
-    pub fn as_cstr(&self) -> &CStr {
-        self.as_borrowed_type()
-    }
-
     /// Borrow the CStr as bytes with a trailing NUL byte
     pub fn as_bytes_with_nul(&self) -> &[u8] {
         self.as_raw_bytes()
@@ -36,12 +31,6 @@ impl<R: RefCounted<CStr>> FlexStr<'_, CStr, R> {
 }
 
 impl InlineFlexStr<CStr> {
-    /// Borrow the CStr as an `&CStr`
-    #[inline]
-    pub fn as_cstr(&self) -> &CStr {
-        self.as_borrowed_type()
-    }
-
     /// Borrow the CStr as bytes with a trailing NUL byte
     #[inline]
     pub fn as_bytes_with_nul(&self) -> &[u8] {

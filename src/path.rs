@@ -24,32 +24,6 @@ const _: () = assert!(
     "Option<SharedPath> must be less than or equal to the size of PathBuf"
 );
 
-impl<R: RefCounted<Path>> FlexStr<'_, Path, R> {
-    /// Borrow the Path as a `&Path`
-    pub fn as_path(&self) -> &Path {
-        self.as_borrowed_type()
-    }
-
-    /// Borrow the Path as an `&OsStr`
-    pub fn as_os_str(&self) -> &OsStr {
-        self.as_path().as_os_str()
-    }
-}
-
-impl InlineFlexStr<Path> {
-    /// Borrow the Path as a `&Path`
-    #[inline]
-    pub fn as_path(&self) -> &Path {
-        self.as_borrowed_type()
-    }
-
-    /// Borrow the Path as an `&OsStr`
-    #[inline]
-    pub fn as_os_str(&self) -> &OsStr {
-        self.as_path().as_os_str()
-    }
-}
-
 impl StringOps for Path {
     #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {

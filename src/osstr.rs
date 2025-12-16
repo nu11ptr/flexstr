@@ -3,7 +3,7 @@ use std::ffi::{OsStr, OsString};
 #[cfg(feature = "path")]
 use std::path::Path;
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, StringLike as _, StringOps};
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
@@ -22,34 +22,6 @@ const _: () = assert!(
     size_of::<Option<SharedOsStr>>() <= size_of::<OsString>(),
     "Option<SharedOsStr> must be less than or equal to the size of OsString"
 );
-
-impl<R: RefCounted<OsStr>> FlexStr<'_, OsStr, R> {
-    /// Borrow the OsStr as an `&OsStr`
-    pub fn as_os_str(&self) -> &OsStr {
-        self.as_borrowed_type()
-    }
-
-    #[cfg(feature = "path")]
-    /// Borrow the OsStr as a `&Path`
-    pub fn as_path(&self) -> &Path {
-        self.as_os_str().as_ref()
-    }
-}
-
-impl InlineFlexStr<OsStr> {
-    /// Borrow the OsStr as an `&OsStr`
-    #[inline]
-    pub fn as_os_str(&self) -> &OsStr {
-        self.as_borrowed_type()
-    }
-
-    /// Borrow the OsStr as a `&Path`
-    #[cfg(feature = "path")]
-    #[inline]
-    pub fn as_path(&self) -> &Path {
-        self.as_os_str().as_ref()
-    }
-}
 
 impl StringOps for OsStr {
     #[cfg(all(feature = "safe", target_family = "windows"))]

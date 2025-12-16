@@ -3,7 +3,7 @@ use alloc::{boxed::Box, string::String};
 use core::marker::PhantomData;
 use core::ops::Deref;
 
-use crate::StringOps;
+use crate::{StringLike, StringOps};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -77,16 +77,6 @@ impl<S: ?Sized + StringOps> InlineFlexStr<S> {
         }
     }
 
-    /// Returns true if this is an empty string
-    pub fn is_empty(&self) -> bool {
-        self.as_bytes().is_empty()
-    }
-
-    /// Returns the length of this string in bytes
-    pub fn len(&self) -> usize {
-        self.as_bytes().len()
-    }
-
     #[cfg(feature = "safe")]
     /// Borrow the inline bytes as a raw byte slice (NOTE: includes trailing NUL for CStr)
     pub fn as_raw_bytes(&self) -> &[u8] {
@@ -108,6 +98,18 @@ impl<S: ?Sized + StringOps> InlineFlexStr<S> {
     /// Borrow the inline bytes as bytes
     pub fn as_bytes(&self) -> &[u8] {
         S::self_as_bytes(self.as_borrowed_type())
+    }
+}
+
+// *** StringLike ***
+
+impl<S: ?Sized + StringOps> StringLike<S> for InlineFlexStr<S> {
+    fn as_borrowed_type(&self) -> &S {
+        <Self>::as_borrowed_type(self)
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        <Self>::as_bytes(self)
     }
 }
 

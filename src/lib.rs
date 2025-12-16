@@ -44,8 +44,15 @@ pub use str::{InlineStr, LocalStr, SharedStr};
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
+#[cfg(feature = "cstr")]
+use core::ffi::CStr;
 use core::fmt;
 use core::ops::Deref;
+#[cfg(all(feature = "std", feature = "osstr"))]
+use std::ffi::OsStr;
+#[cfg(all(feature = "std", feature = "path"))]
+use std::path::Path;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -81,8 +88,74 @@ where
 {
 }
 
+// *** StringLike ***
+
+/// Trait for string types that provide various operations
+pub trait StringLike<S: ?Sized + StringOps> {
+    /// Borrow a string reference as `&S`
+    fn as_borrowed_type(&self) -> &S;
+
+    /// Borrow the string as bytes
+    fn as_bytes(&self) -> &[u8];
+
+    /// Returns true if this is an empty string
+    fn is_empty(&self) -> bool {
+        self.as_bytes().is_empty()
+    }
+
+    /// Returns the length of this string in bytes
+    fn len(&self) -> usize {
+        self.as_bytes().len()
+    }
+
+    /// Borrow the string as an `&str`
+    fn as_str<'s>(&'s self) -> &'s str
+    where
+        S: AsRef<str> + 's,
+    {
+        self.as_borrowed_type().as_ref()
+    }
+
+    #[cfg(all(feature = "std", feature = "osstr"))]
+    /// Borrow the string as an `&OsStr`
+    fn as_os_str<'s>(&'s self) -> &'s OsStr
+    where
+        S: AsRef<OsStr> + 's,
+    {
+        self.as_borrowed_type().as_ref()
+    }
+
+    #[cfg(all(feature = "std", feature = "path"))]
+    /// Borrow the string as a `&Path`
+    fn as_path<'s>(&'s self) -> &'s Path
+    where
+        S: AsRef<Path> + 's,
+    {
+        self.as_borrowed_type().as_ref()
+    }
+
+    #[cfg(feature = "cstr")]
+    /// Borrow the string as a `&CStr`
+    fn as_c_str<'s>(&'s self) -> &'s CStr
+    where
+        S: AsRef<CStr> + 's,
+    {
+        self.as_borrowed_type().as_ref()
+    }
+}
+
 // *** FlexStr ***
 
+#[doc(alias = "SharedStr")]
+#[doc(alias = "LocalStr")]
+#[doc(alias = "SharedOsStr")]
+#[doc(alias = "LocalOsStr")]
+#[doc(alias = "SharedPath")]
+#[doc(alias = "LocalPath")]
+#[doc(alias = "SharedCStr")]
+#[doc(alias = "LocalCStr")]
+#[doc(alias = "SharedBytes")]
+#[doc(alias = "LocalBytes")]
 /// Flexible string type that can store a borrowed string, an inline string, a reference counted string, or a boxed string
 #[derive(Debug)]
 pub enum FlexStr<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
@@ -163,16 +236,6 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     /// Returns true if this is a string that is off the heap
     pub fn is_off_heap(&self) -> bool {
         matches!(self, FlexStr::Borrowed(_) | FlexStr::Inlined(_))
-    }
-
-    /// Returns true if this is an empty string
-    pub fn is_empty(&self) -> bool {
-        self.as_bytes().is_empty()
-    }
-
-    /// Returns the length of this string in bytes
-    pub fn len(&self) -> usize {
-        self.as_bytes().len()
     }
 
     fn copy_into_owned(s: &S) -> FlexStr<'static, S, R> {
@@ -317,6 +380,18 @@ where
             FlexStr::RefCounted(s) => FlexStr::RefCounted(Arc::from(&s)),
             FlexStr::Boxed(s) => FlexStr::Boxed(s),
         }
+    }
+}
+
+// *** StringLike ***
+
+impl<S: ?Sized + StringOps, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
+    fn as_borrowed_type(&self) -> &S {
+        <Self>::as_borrowed_type(self)
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        <Self>::as_bytes(self)
     }
 }
 

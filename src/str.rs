@@ -4,6 +4,8 @@ use std::ffi::OsStr;
 #[cfg(all(feature = "std", feature = "path"))]
 use std::path::Path;
 
+#[cfg(all(feature = "std", feature = "osstr"))]
+use crate::StringLike as _;
 use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
 
 /// Local `str` type (NOTE: This can't be shared between threads)
@@ -23,47 +25,6 @@ const _: () = assert!(
     size_of::<Option<SharedStr>>() <= size_of::<String>(),
     "Option<SharedStr> must be less than or equal to the size of String"
 );
-
-impl<R: RefCounted<str>> FlexStr<'_, str, R> {
-    /// Borrow the str as an `&str`
-    pub fn as_str(&self) -> &str {
-        self.as_borrowed_type()
-    }
-
-    #[cfg(all(feature = "std", feature = "osstr"))]
-    /// Borrow the str as an `&OsStr`
-    pub fn as_os_str(&self) -> &OsStr {
-        self.as_str().as_ref()
-    }
-
-    #[cfg(all(feature = "std", feature = "path"))]
-    /// Borrow the str as a `&Path`
-    pub fn as_path(&self) -> &Path {
-        self.as_str().as_ref()
-    }
-}
-
-impl InlineStr {
-    /// Borrow the str as an `&str`
-    #[inline]
-    pub fn as_str(&self) -> &str {
-        self.as_borrowed_type()
-    }
-
-    /// Borrow the str as an `&OsStr`
-    #[cfg(all(feature = "std", feature = "osstr"))]
-    #[inline]
-    pub fn as_os_str(&self) -> &OsStr {
-        self.as_str().as_ref()
-    }
-
-    /// Borrow the str as a `&Path`
-    #[cfg(all(feature = "std", feature = "path"))]
-    #[inline]
-    pub fn as_path(&self) -> &Path {
-        self.as_str().as_ref()
-    }
-}
 
 impl StringOps for str {
     #[cfg(feature = "safe")]
