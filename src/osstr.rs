@@ -1,9 +1,7 @@
 use alloc::{rc::Rc, sync::Arc};
 use std::ffi::{OsStr, OsString};
-#[cfg(feature = "path")]
-use std::path::Path;
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, StringLike as _, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
@@ -72,39 +70,5 @@ impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
     #[inline]
     fn try_from(s: &'s OsStr) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
-    }
-}
-
-// *** AsRef<Path>, and AsRef<[u8]> ***
-
-// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl<R: RefCounted<OsStr>> AsRef<[u8]> for FlexStr<'_, OsStr, R> {
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
-    }
-}
-
-#[cfg(feature = "path")]
-impl<R: RefCounted<OsStr>> AsRef<Path> for FlexStr<'_, OsStr, R> {
-    fn as_ref(&self) -> &Path {
-        self.as_path()
-    }
-}
-
-// *** AsRef<OsStr>, AsRef<Path>, and AsRef<[u8]> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl AsRef<[u8]> for InlineFlexStr<OsStr> {
-    #[inline]
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
-    }
-}
-
-#[cfg(feature = "path")]
-impl AsRef<Path> for InlineFlexStr<OsStr> {
-    #[inline]
-    fn as_ref(&self) -> &Path {
-        self.as_path()
     }
 }

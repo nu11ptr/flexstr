@@ -56,35 +56,3 @@ impl<'s> TryFrom<&'s Path> for InlineFlexStr<Path> {
         InlineFlexStr::try_from_type(s)
     }
 }
-
-// *** AsRef<OsStr> and AsRef<[u8]> ***
-
-// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl<R: RefCounted<Path>> AsRef<[u8]> for FlexStr<'_, Path, R> {
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
-    }
-}
-
-impl<R: RefCounted<Path>> AsRef<OsStr> for FlexStr<'_, Path, R> {
-    fn as_ref(&self) -> &OsStr {
-        self.as_os_str()
-    }
-}
-
-// *** AsRef<OsStr> and AsRef<[u8]> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl AsRef<[u8]> for InlineFlexStr<Path> {
-    #[inline]
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
-    }
-}
-
-impl AsRef<OsStr> for InlineFlexStr<Path> {
-    #[inline]
-    fn as_ref(&self) -> &OsStr {
-        self.as_os_str()
-    }
-}

@@ -84,22 +84,3 @@ impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
         InlineFlexStr::try_from_type(s)
     }
 }
-
-// *** AsRef<[u8]> ***
-
-// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl<R: RefCounted<CStr>> AsRef<[u8]> for FlexStr<'_, CStr, R> {
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
-    }
-}
-
-// *** AsRef<[u8]> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because it conflicts with AsRef<S> for Bytes
-impl AsRef<[u8]> for InlineFlexStr<CStr> {
-    #[inline]
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
-    }
-}

@@ -4,6 +4,12 @@ use core::marker::PhantomData;
 use core::ops::Deref;
 
 use crate::{StringLike, StringOps};
+#[cfg(feature = "cstr")]
+use core::ffi::CStr;
+#[cfg(all(feature = "std", feature = "osstr"))]
+use std::ffi::OsStr;
+#[cfg(all(feature = "std", feature = "path"))]
+use std::path::Path;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -154,14 +160,56 @@ impl<S: ?Sized + StringOps> Clone for InlineFlexStr<S> {
     }
 }
 
-// *** AsRef<S> ***
+// *** AsRef ***
 
-impl<S: ?Sized + StringOps> AsRef<S> for InlineFlexStr<S> {
-    fn as_ref(&self) -> &S {
-        self.as_borrowed_type()
+impl<S: ?Sized + StringOps> AsRef<str> for InlineFlexStr<S>
+where
+    S: AsRef<str>,
+{
+    fn as_ref(&self) -> &str {
+        self.as_borrowed_type().as_ref()
     }
 }
 
+#[cfg(all(feature = "std", feature = "osstr"))]
+impl<S: ?Sized + StringOps> AsRef<OsStr> for InlineFlexStr<S>
+where
+    S: AsRef<OsStr>,
+{
+    fn as_ref(&self) -> &OsStr {
+        self.as_borrowed_type().as_ref()
+    }
+}
+
+#[cfg(all(feature = "std", feature = "path"))]
+impl<S: ?Sized + StringOps> AsRef<Path> for InlineFlexStr<S>
+where
+    S: AsRef<Path>,
+{
+    fn as_ref(&self) -> &Path {
+        self.as_borrowed_type().as_ref()
+    }
+}
+
+#[cfg(feature = "cstr")]
+impl<S: ?Sized + StringOps> AsRef<CStr> for InlineFlexStr<S>
+where
+    S: AsRef<CStr>,
+{
+    fn as_ref(&self) -> &CStr {
+        self.as_borrowed_type().as_ref()
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl<S: ?Sized + StringOps> AsRef<[u8]> for InlineFlexStr<S>
+where
+    S: AsRef<[u8]>,
+{
+    fn as_ref(&self) -> &[u8] {
+        self.as_borrowed_type().as_ref()
+    }
+}
 // *** Deref<Target = S> ***
 
 impl<S: ?Sized + StringOps> Deref for InlineFlexStr<S> {
