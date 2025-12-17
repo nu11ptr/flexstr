@@ -1,7 +1,7 @@
 use alloc::{ffi::CString, rc::Rc, sync::Arc};
 use core::ffi::CStr;
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
+use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
 pub type LocalCStr<'s> = FlexStr<'s, CStr, Rc<CStr>>;
@@ -38,6 +38,8 @@ impl InlineFlexStr<CStr> {
     }
 }
 
+// *** StringOps ***
+
 impl StringOps for CStr {
     #[cfg(feature = "safe")]
     #[inline]
@@ -64,6 +66,10 @@ impl StringOps for CStr {
     }
 }
 
+// *** ImmutableBytes ***
+
+impl ImmutableBytes for CStr {}
+
 // *** From<CString> ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
@@ -82,5 +88,35 @@ impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
     #[inline]
     fn try_from(s: &'s CStr) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
+    }
+}
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<CStr> for Arc<CStr> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut CStr {
+        Arc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut CStr {
+        // PANIC SAFETY: We only use this when we know the Arc is newly created
+        Arc::get_mut(self).expect("Arc is shared")
+    }
+}
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<CStr> for Rc<CStr> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut CStr {
+        Rc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut CStr {
+        // PANIC SAFETY: We only use this when we know the Rc is newly created
+        Rc::get_mut(self).expect("Rc is shared")
     }
 }

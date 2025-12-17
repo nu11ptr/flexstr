@@ -1,7 +1,7 @@
 use alloc::{rc::Rc, sync::Arc};
 use std::ffi::{OsStr, OsString};
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
+use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
@@ -20,6 +20,8 @@ const _: () = assert!(
     size_of::<Option<SharedOsStr>>() <= size_of::<OsString>(),
     "Option<SharedOsStr> must be less than or equal to the size of OsString"
 );
+
+// *** StringOps ***
 
 impl StringOps for OsStr {
     #[cfg(all(feature = "safe", target_family = "windows"))]
@@ -52,6 +54,10 @@ impl StringOps for OsStr {
     }
 }
 
+// *** ImmutableBytes ***
+
+impl ImmutableBytes for OsStr {}
+
 // *** From<OsString> ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
@@ -70,5 +76,35 @@ impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
     #[inline]
     fn try_from(s: &'s OsStr) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
+    }
+}
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<OsStr> for Arc<OsStr> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut OsStr {
+        Arc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut OsStr {
+        // PANIC SAFETY: We only use this when we know the Arc is newly created
+        Arc::get_mut(self).expect("Arc is shared")
+    }
+}
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<OsStr> for Rc<OsStr> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut OsStr {
+        Rc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut OsStr {
+        // PANIC SAFETY: We only use this when we know the Rc is newly created
+        Rc::get_mut(self).expect("Rc is shared")
     }
 }

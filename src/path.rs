@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
+use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
 
 /// Local `Path` type (NOTE: This can't be shared between threads)
 pub type LocalPath<'s> = FlexStr<'s, Path, Rc<Path>>;
@@ -24,6 +24,8 @@ const _: () = assert!(
     "Option<SharedPath> must be less than or equal to the size of PathBuf"
 );
 
+// *** StringOps ***
+
 impl StringOps for Path {
     #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
@@ -35,6 +37,10 @@ impl StringOps for Path {
         OsStr::self_as_bytes(self.as_os_str())
     }
 }
+
+// *** ImmutableBytes ***
+
+impl ImmutableBytes for Path {}
 
 // *** From<PathBuf> ***
 
@@ -54,5 +60,35 @@ impl<'s> TryFrom<&'s Path> for InlineFlexStr<Path> {
     #[inline]
     fn try_from(s: &'s Path) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
+    }
+}
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<Path> for Arc<Path> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut Path {
+        Arc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut Path {
+        // PANIC SAFETY: We only use this when we know the Arc is newly created
+        Arc::get_mut(self).expect("Arc is shared")
+    }
+}
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<Path> for Rc<Path> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut Path {
+        Rc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut Path {
+        // PANIC SAFETY: We only use this when we know the Rc is newly created
+        Rc::get_mut(self).expect("Rc is shared")
     }
 }

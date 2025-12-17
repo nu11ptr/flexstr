@@ -65,7 +65,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 // *** StringOps ***
 
 /// Trait for string types that can be converted to and from bytes
-pub trait StringOps: ToOwned {
+pub trait StringOps: ToOwned + 'static {
     /// Convert bytes to a string type
     fn bytes_as_self(bytes: &[u8]) -> &Self;
 
@@ -78,6 +78,9 @@ pub trait StringOps: ToOwned {
     /// Convert a string type to raw bytes (inludes nul for CStr)
     fn self_as_raw_bytes(&self) -> &[u8];
 }
+
+/// Marker trait for string types that don't provide conversion from bytes to mutable string reference
+pub trait ImmutableBytes: StringOps {}
 
 // *** RefCounted ***
 
@@ -94,10 +97,19 @@ where
 {
 }
 
+/// Trait for storage that can be reference counted and mutable
+pub trait RefCountedMut<S: ?Sized + StringOps>: RefCounted<S> {
+    /// Borrow the string as a mutable string reference, allocating and copying first, if needed.
+    fn to_mut(&mut self) -> &mut S;
+
+    /// Borrow the string as a mutable string reference. It will panic if the string is shared.
+    fn as_mut(&mut self) -> &mut S;
+}
+
 // *** StringLike ***
 
 /// Trait for string types that provide various operations
-pub trait StringLike<S: ?Sized + StringOps + 'static>
+pub trait StringLike<S: ?Sized + StringOps>
 where
     Self: Sized,
 {
@@ -285,7 +297,7 @@ where
     }
 }
 
-impl<'s, S: ?Sized + StringOps + 'static, R: RefCounted<S>> FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     fn copy(&self) -> FlexStr<'s, S, R> {
         match self {
             FlexStr::Borrowed(s) => FlexStr::Borrowed(s),
@@ -448,7 +460,48 @@ where
     }
 }
 
-impl<'s, S: ?Sized + StringOps + 'static> FlexStr<'s, S, Arc<S>>
+impl<'s, S: ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
+    /// Borrow the string as a mutable string reference, converting if needed. If the string is borrowed,
+    /// it is made into an owned string first. RefCounted variants will allocate + copy
+    /// if they are shared. In all other cases, the string is borrowed as a mutable reference
+    /// directly.
+    pub fn to_mut_type(&mut self) -> &mut S {
+        match self {
+            // Borrowed strings can't be made mutable - need to own it first
+            FlexStr::Borrowed(s) => {
+                *self = FlexStr::copy_into_owned(s);
+                // copy_into_owned will never return a borrowed variant
+                match self {
+                    // ImmutableBytes strings must be converted before being made mutable
+                    FlexStr::Inlined(s) => {
+                        *self = FlexStr::RefCounted((&**s).into());
+                        match self {
+                            FlexStr::RefCounted(s) => s.as_mut(),
+                            _ => unreachable!("Unexpected variant"),
+                        }
+                    }
+                    // This must be new - it is safe to share mutably immediately
+                    FlexStr::RefCounted(s) => s.as_mut(),
+                    FlexStr::Boxed(s) => s.as_mut(),
+                    FlexStr::Borrowed(_) => unreachable!("Unexpected borrowed variant"),
+                }
+            }
+            // ImmutableBytes strings must be converted before being made mutable
+            FlexStr::Inlined(s) => {
+                *self = FlexStr::RefCounted((&**s).into());
+                match self {
+                    FlexStr::RefCounted(s) => s.as_mut(),
+                    _ => unreachable!("Unexpected variant"),
+                }
+            }
+            // Since this might be shared, we need to check before just sharing as mutable
+            FlexStr::RefCounted(s) => s.to_mut(),
+            FlexStr::Boxed(s) => s.as_mut(),
+        }
+    }
+}
+
+impl<'s, S: ?Sized + StringOps> FlexStr<'s, S, Arc<S>>
 where
     Arc<S>: for<'a> From<&'a S>,
     Rc<S>: for<'a> From<&'a S>,
@@ -476,7 +529,7 @@ where
     }
 }
 
-impl<'s, S: ?Sized + StringOps + 'static> FlexStr<'s, S, Rc<S>>
+impl<'s, S: ?Sized + StringOps> FlexStr<'s, S, Rc<S>>
 where
     Rc<S>: for<'a> From<&'a S>,
     Arc<S>: for<'a> From<&'a S>,
@@ -506,7 +559,7 @@ where
 
 // *** StringLike ***
 
-impl<S: ?Sized + StringOps + 'static, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
+impl<S: ?Sized + StringOps, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
     fn as_ref_type(&self) -> &S {
         <Self>::as_ref_type(self)
     }
@@ -549,7 +602,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> From<&'s S> for FlexStr<'s, S,
 
 // *** Clone ***
 
-impl<'s, S: ?Sized + StringOps + 'static, R: RefCounted<S>> Clone for FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Clone for FlexStr<'s, S, R> {
     fn clone(&self) -> Self {
         self.copy()
     }

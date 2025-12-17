@@ -1,6 +1,6 @@
 use alloc::{rc::Rc, string::String, sync::Arc};
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
 
 /// Local `str` type (NOTE: This can't be shared between threads)
 pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
@@ -19,6 +19,32 @@ const _: () = assert!(
     size_of::<Option<SharedStr>>() <= size_of::<String>(),
     "Option<SharedStr> must be less than or equal to the size of String"
 );
+
+impl<'s, R: RefCountedMut<str>> FlexStr<'s, str, R> {
+    /// Borrow the string as a mutable string reference, converting if needed. If the string is borrowed,
+    /// it is made into an owned string first. RefCounted variants will allocate + copy
+    /// if they are shared. In all other cases, the string is borrowed as a mutable reference
+    /// directly.
+    pub fn to_mut_type(&mut self) -> &mut str {
+        match self {
+            FlexStr::Borrowed(s) => {
+                *self = FlexStr::copy_into_owned(s);
+                // copy_into_owned will never return a borrowed variant
+                match self {
+                    FlexStr::Inlined(s) => s.as_mut_type(),
+                    FlexStr::RefCounted(s) => s.as_mut(),
+                    FlexStr::Boxed(s) => s.as_mut(),
+                    FlexStr::Borrowed(_) => unreachable!("Unexpected borrowed variant"),
+                }
+            }
+            FlexStr::Inlined(s) => s.as_mut_type(),
+            FlexStr::RefCounted(s) => s.to_mut(),
+            FlexStr::Boxed(s) => s.as_mut(),
+        }
+    }
+}
+
+// *** StringOps ***
 
 impl StringOps for str {
     #[cfg(feature = "safe")]
@@ -59,5 +85,37 @@ impl<'s> TryFrom<&'s str> for InlineFlexStr<str> {
     #[inline]
     fn try_from(s: &'s str) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
+    }
+}
+
+// *** RefCountedMut ***
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<str> for Arc<str> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut str {
+        Arc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut str {
+        // PANIC SAFETY: We only use this when we know the Arc is newly created
+        Arc::get_mut(self).expect("Arc is shared")
+    }
+}
+
+// NOTE: Cannot be implemented generically because CloneToUninit is needed
+// as a bound to `S`, but is unstable.
+impl RefCountedMut<str> for Rc<str> {
+    #[inline]
+    fn to_mut(&mut self) -> &mut str {
+        Rc::make_mut(self)
+    }
+
+    #[inline]
+    fn as_mut(&mut self) -> &mut str {
+        // PANIC SAFETY: We only use this when we know the Rc is newly created
+        Rc::get_mut(self).expect("Rc is shared")
     }
 }
