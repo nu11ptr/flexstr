@@ -47,7 +47,7 @@ impl<'s, R: RefCounted<Path>> From<PathBuf> for FlexStr<'s, Path, R> {
 
 // *** TryFrom<&Path> for InlineFlexStr ***
 
-// NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
 impl<'s> TryFrom<&'s Path> for InlineFlexStr<Path> {
     type Error = &'s Path;
 

@@ -63,7 +63,7 @@ impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
 
 // *** TryFrom<&OsStr> for InlineFlexStr ***
 
-// NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
 impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
     type Error = &'s OsStr;
 

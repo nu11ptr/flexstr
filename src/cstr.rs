@@ -75,7 +75,7 @@ impl<'s, R: RefCounted<CStr>> From<CString> for FlexStr<'s, CStr, R> {
 
 // *** TryFrom<&CStr> for InlineFlexStr ***
 
-// NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
 impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
     type Error = &'s CStr;
 

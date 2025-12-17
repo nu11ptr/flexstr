@@ -45,7 +45,7 @@ impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
 
 // *** TryFrom<&[u8]> for InlineFlexStr ***
 
-// NOTE: Cannot be implemented generically because of impl<T> TryFrom<T> for T
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
 impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<[u8]> {
     type Error = &'s [u8];
 
