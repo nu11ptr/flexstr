@@ -461,13 +461,13 @@ where
 }
 
 impl<'s, S: ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
-    /// Borrow the string as a mutable string reference, converting if needed. If the string is borrowed,
-    /// it is made into an owned string first. RefCounted variants will allocate + copy
+    /// Borrow the string as a mutable string reference, converting if needed. If the string is Borrowed,
+    /// it is made into a reference counted string first. RefCounted variants will allocate + copy
     /// if they are shared. In all other cases, the string is borrowed as a mutable reference
     /// directly.
     pub fn to_mut_type(&mut self) -> &mut S {
         match self {
-            // Borrowed strings can't be made mutable - need to own it first
+            // Borrowed strings can't be made mutable - we need to own it first
             // ImmutableBytes strings can't mutate inlined strings, so ref count it
             FlexStr::Borrowed(s) => {
                 *self = FlexStr::RefCounted((&**s).into());
@@ -488,6 +488,7 @@ impl<'s, S: ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
             }
             // Since this might be shared, we need to check before just sharing as mutable
             FlexStr::RefCounted(s) => s.to_mut(),
+            // Boxed strings can be made mutable directly
             FlexStr::Boxed(s) => s.as_mut(),
         }
     }

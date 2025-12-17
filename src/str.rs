@@ -27,18 +27,23 @@ impl<'s, R: RefCountedMut<str>> FlexStr<'s, str, R> {
     /// directly.
     pub fn to_mut_type(&mut self) -> &mut str {
         match self {
+            // Borrowed strings can't be made mutable - we need to own it first
             FlexStr::Borrowed(s) => {
                 *self = FlexStr::copy_into_owned(s);
                 // copy_into_owned will never return a borrowed variant
                 match self {
                     FlexStr::Inlined(s) => s.as_mut_type(),
                     FlexStr::RefCounted(s) => s.as_mut(),
+                    // Currently, being boxed is impossible, but a future change could allow it
                     FlexStr::Boxed(s) => s.as_mut(),
                     FlexStr::Borrowed(_) => unreachable!("Unexpected borrowed variant"),
                 }
             }
+            // Inlined strings can be made mutable directly
             FlexStr::Inlined(s) => s.as_mut_type(),
+            // Since this might be shared, we need to check before just sharing as mutable
             FlexStr::RefCounted(s) => s.to_mut(),
+            // Boxed strings can be made mutable directly
             FlexStr::Boxed(s) => s.as_mut(),
         }
     }

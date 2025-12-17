@@ -24,22 +24,28 @@ const _: () = assert!(
 
 impl<'s, R: RefCountedMut<[u8]>> FlexStr<'s, [u8], R> {
     /// Borrow the bytes as a mutable bytes reference, converting if needed. If the bytes are borrowed,
-    /// it is made into an owned bytes first. RefCounted variants will allocate + copy
-    /// if they are shared. In all other cases, the bytes are borrowed as a mutable reference directly.
+    /// it is made into an owned string first. RefCounted variants will allocate + copy
+    /// if they are shared. In all other cases, the bytes are borrowed as a mutable reference
+    /// directly.
     pub fn to_mut_type(&mut self) -> &mut [u8] {
         match self {
+            // Borrowed bytes can't be made mutable - we need to own it first
             FlexStr::Borrowed(s) => {
                 *self = FlexStr::copy_into_owned(s);
                 // copy_into_owned will never return a borrowed variant
                 match self {
                     FlexStr::Inlined(s) => s.as_mut_type(),
                     FlexStr::RefCounted(s) => s.as_mut(),
+                    // Currently, being boxed is impossible, but a future change could allow it
                     FlexStr::Boxed(s) => s.as_mut(),
                     FlexStr::Borrowed(_) => unreachable!("Unexpected borrowed variant"),
                 }
             }
+            // Inlined bytes can be made mutable directly
             FlexStr::Inlined(s) => s.as_mut_type(),
+            // Since this might be shared, we need to check before just sharing as mutable
             FlexStr::RefCounted(s) => s.to_mut(),
+            // Boxed bytes can be made mutable directly
             FlexStr::Boxed(s) => s.as_mut(),
         }
     }
