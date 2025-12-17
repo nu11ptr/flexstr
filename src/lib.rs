@@ -381,6 +381,48 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
         }
     }
 
+    /// Optimize the string variant. This is a no-op for Inlined variants. Borrowed strings will
+    /// attempt to inline, but otherwise be left as borrowed. RefCounted strings will attempt to
+    /// inline, but otherwise be left as ref counted. Boxed strings will attempt to inline, but
+    /// otherwise be converted to a ref counted string.
+    pub fn optimize(self) -> FlexStr<'s, S, R> {
+        match self {
+            // Borrowed strings are probably better as inlined strings in case of mutation
+            // NOTE: This decision is probably debatable. Maybe we should just leave it as borrowed?
+            orig @ FlexStr::Borrowed(s) => {
+                let bytes = S::self_as_raw_bytes(s);
+
+                if bytes.len() <= INLINE_CAPACITY {
+                    FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
+                } else {
+                    orig
+                }
+            }
+            // Inlined strings are already optimized
+            orig @ FlexStr::Inlined(_) => orig,
+            // There is probably a reason this is ref counted, but we can try to inline it
+            FlexStr::RefCounted(s) => {
+                let bytes = S::self_as_raw_bytes(&s);
+
+                if bytes.len() <= INLINE_CAPACITY {
+                    FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
+                } else {
+                    FlexStr::RefCounted(s)
+                }
+            }
+            // This should be inlined or ref counted
+            FlexStr::Boxed(s) => {
+                let bytes = S::self_as_raw_bytes(&s);
+
+                if bytes.len() <= INLINE_CAPACITY {
+                    FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
+                } else {
+                    FlexStr::RefCounted((&*s).into())
+                }
+            }
+        }
+    }
+
     /// Convert a string reference to an owned string. Inlined/RefCounted variants are cloned,
     /// Borrowed/Boxed variants are copied into a new Inlined or RefCounted owned string.
     pub fn to_owned(&self) -> FlexStr<'static, S, R> {
@@ -460,7 +502,7 @@ where
     }
 }
 
-impl<'s, S: ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
     /// Borrow the string as a mutable string reference, converting if needed. If the string is Borrowed,
     /// it is made into a reference counted string first. RefCounted variants will allocate + copy
     /// if they are shared. In all other cases, the string is borrowed as a mutable reference
@@ -707,6 +749,8 @@ where
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         // TODO: See TODO in InlineFlexStr::deserialize for more details.
         // This one isn't as egregious since Boxed isn't inherently wrong here.
-        Box::deserialize(deserializer).map(FlexStr::Boxed)
+        Box::deserialize(deserializer)
+            .map(FlexStr::Boxed)
+            .map(FlexStr::optimize)
     }
 }
