@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 use alloc::{rc::Rc, sync::Arc};
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
 pub type LocalBytes<'s> = FlexStr<'s, [u8], Rc<[u8]>>;
@@ -45,9 +45,9 @@ impl<'s, R: RefCountedMut<[u8]>> FlexStr<'s, [u8], R> {
     }
 }
 
-// *** StringOps ***
+// *** StringToFromBytes ***
 
-impl StringOps for [u8] {
+impl StringToFromBytes for [u8] {
     #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         bytes

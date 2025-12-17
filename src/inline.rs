@@ -3,7 +3,7 @@ use alloc::{boxed::Box, string::String};
 use core::ops::{Deref, DerefMut};
 use core::{marker::PhantomData, str};
 
-use crate::{StringLike, StringOps};
+use crate::{StringLike, StringToFromBytes};
 #[cfg(feature = "cstr")]
 use core::ffi::CStr;
 #[cfg(all(feature = "std", feature = "osstr"))]
@@ -25,13 +25,13 @@ pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 #[doc(alias = "InlineBytes")]
 /// Inline bytes type - used to store small strings inline
 #[derive(Debug)]
-pub struct InlineFlexStr<S: ?Sized + StringOps> {
+pub struct InlineFlexStr<S: ?Sized + StringToFromBytes> {
     inline: [u8; INLINE_CAPACITY],
     len: u8,
     marker: PhantomData<S>,
 }
 
-impl<S: ?Sized + StringOps> InlineFlexStr<S> {
+impl<S: ?Sized + StringToFromBytes> InlineFlexStr<S> {
     /// Attempt to create an inlined string from a borrowed string. Returns `None` if the string is too long.
     pub fn try_from_type(s: &S) -> Result<Self, &S> {
         let bytes = S::self_as_raw_bytes(s);
@@ -165,7 +165,7 @@ impl InlineFlexStr<[u8]> {
 
 // *** StringLike ***
 
-impl<S: ?Sized + StringOps + 'static> StringLike<S> for InlineFlexStr<S> {
+impl<S: ?Sized + StringToFromBytes + 'static> StringLike<S> for InlineFlexStr<S> {
     fn as_ref_type(&self) -> &S {
         <Self>::as_ref_type(self)
     }
@@ -188,7 +188,7 @@ impl<S: ?Sized + StringOps + 'static> StringLike<S> for InlineFlexStr<S> {
 
 // *** Clone ***
 
-impl<S: ?Sized + StringOps> Clone for InlineFlexStr<S> {
+impl<S: ?Sized + StringToFromBytes> Clone for InlineFlexStr<S> {
     fn clone(&self) -> Self {
         Self {
             inline: self.inline,
@@ -200,7 +200,7 @@ impl<S: ?Sized + StringOps> Clone for InlineFlexStr<S> {
 
 // *** AsRef ***
 
-impl<S: ?Sized + StringOps> AsRef<str> for InlineFlexStr<S>
+impl<S: ?Sized + StringToFromBytes> AsRef<str> for InlineFlexStr<S>
 where
     S: AsRef<str>,
 {
@@ -210,7 +210,7 @@ where
 }
 
 #[cfg(all(feature = "std", feature = "osstr"))]
-impl<S: ?Sized + StringOps> AsRef<OsStr> for InlineFlexStr<S>
+impl<S: ?Sized + StringToFromBytes> AsRef<OsStr> for InlineFlexStr<S>
 where
     S: AsRef<OsStr>,
 {
@@ -220,7 +220,7 @@ where
 }
 
 #[cfg(all(feature = "std", feature = "path"))]
-impl<S: ?Sized + StringOps> AsRef<Path> for InlineFlexStr<S>
+impl<S: ?Sized + StringToFromBytes> AsRef<Path> for InlineFlexStr<S>
 where
     S: AsRef<Path>,
 {
@@ -230,7 +230,7 @@ where
 }
 
 #[cfg(feature = "cstr")]
-impl<S: ?Sized + StringOps> AsRef<CStr> for InlineFlexStr<S>
+impl<S: ?Sized + StringToFromBytes> AsRef<CStr> for InlineFlexStr<S>
 where
     S: AsRef<CStr>,
 {
@@ -240,7 +240,7 @@ where
 }
 
 #[cfg(feature = "bytes")]
-impl<S: ?Sized + StringOps> AsRef<[u8]> for InlineFlexStr<S>
+impl<S: ?Sized + StringToFromBytes> AsRef<[u8]> for InlineFlexStr<S>
 where
     S: AsRef<[u8]>,
 {
@@ -268,7 +268,7 @@ impl AsMut<[u8]> for InlineFlexStr<[u8]> {
 
 // *** Deref<Target = S> ***
 
-impl<S: ?Sized + StringOps> Deref for InlineFlexStr<S> {
+impl<S: ?Sized + StringToFromBytes> Deref for InlineFlexStr<S> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
@@ -293,7 +293,7 @@ impl DerefMut for InlineFlexStr<[u8]> {
 
 // *** PartialEq ***
 
-impl<S: ?Sized + StringOps> PartialEq for InlineFlexStr<S>
+impl<S: ?Sized + StringToFromBytes> PartialEq for InlineFlexStr<S>
 where
     S: PartialEq,
 {
@@ -305,7 +305,7 @@ where
 // *** Serialize ***
 
 #[cfg(feature = "serde")]
-impl<S: ?Sized + StringOps> Serialize for InlineFlexStr<S>
+impl<S: ?Sized + StringToFromBytes> Serialize for InlineFlexStr<S>
 where
     S: Serialize,
 {
@@ -317,7 +317,7 @@ where
 // *** Deserialize ***
 
 #[cfg(feature = "serde")]
-impl<'de, S: ?Sized + StringOps> Deserialize<'de> for InlineFlexStr<S>
+impl<'de, S: ?Sized + StringToFromBytes> Deserialize<'de> for InlineFlexStr<S>
 where
     Box<S>: Deserialize<'de>,
 {

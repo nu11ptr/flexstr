@@ -1,6 +1,6 @@
 use alloc::{rc::Rc, string::String, sync::Arc};
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
+use crate::{FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
 
 /// Local `str` type (NOTE: This can't be shared between threads)
 pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
@@ -44,9 +44,9 @@ impl<'s, R: RefCountedMut<str>> FlexStr<'s, str, R> {
     }
 }
 
-// *** StringOps ***
+// *** StringToFromBytes ***
 
-impl StringOps for str {
+impl StringToFromBytes for str {
     #[cfg(feature = "safe")]
     #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {

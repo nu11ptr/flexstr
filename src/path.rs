@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
+use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
 
 /// Local `Path` type (NOTE: This can't be shared between threads)
 pub type LocalPath<'s> = FlexStr<'s, Path, Rc<Path>>;
@@ -24,9 +24,9 @@ const _: () = assert!(
     "Option<SharedPath> must be less than or equal to the size of PathBuf"
 );
 
-// *** StringOps ***
+// *** StringToFromBytes ***
 
-impl StringOps for Path {
+impl StringToFromBytes for Path {
     #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
         Path::new(OsStr::bytes_as_self(bytes))

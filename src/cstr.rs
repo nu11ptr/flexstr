@@ -1,7 +1,7 @@
 use alloc::{ffi::CString, rc::Rc, sync::Arc};
 use core::ffi::CStr;
 
-use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
+use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
 pub type LocalCStr<'s> = FlexStr<'s, CStr, Rc<CStr>>;
@@ -38,9 +38,9 @@ impl InlineFlexStr<CStr> {
     }
 }
 
-// *** StringOps ***
+// *** StringToFromBytes ***
 
-impl StringOps for CStr {
+impl StringToFromBytes for CStr {
     #[cfg(feature = "safe")]
     #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {

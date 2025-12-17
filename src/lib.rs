@@ -62,10 +62,10 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-// *** StringOps ***
+// *** StringToFromBytes ***
 
 /// Trait for string types that can be converted to and from bytes
-pub trait StringOps: ToOwned + 'static {
+pub trait StringToFromBytes: ToOwned + 'static {
     /// Convert bytes to a string type
     fn bytes_as_self(bytes: &[u8]) -> &Self;
 
@@ -80,12 +80,12 @@ pub trait StringOps: ToOwned + 'static {
 }
 
 /// Marker trait for string types that don't provide conversion from bytes to mutable string reference
-pub trait ImmutableBytes: StringOps {}
+pub trait ImmutableBytes: StringToFromBytes {}
 
 // *** RefCounted ***
 
 /// Trait for storage that can be reference counted
-pub trait RefCounted<S: ?Sized + StringOps>:
+pub trait RefCounted<S: ?Sized + StringToFromBytes>:
     Deref<Target = S> + for<'a> From<&'a S> + Clone
 {
 }
@@ -93,12 +93,12 @@ pub trait RefCounted<S: ?Sized + StringOps>:
 impl<S, R> RefCounted<S> for R
 where
     R: Deref<Target = S> + for<'a> From<&'a S> + Clone,
-    S: ?Sized + StringOps,
+    S: ?Sized + StringToFromBytes,
 {
 }
 
 /// Trait for storage that can be reference counted and mutable
-pub trait RefCountedMut<S: ?Sized + StringOps>: RefCounted<S> {
+pub trait RefCountedMut<S: ?Sized + StringToFromBytes>: RefCounted<S> {
     /// Borrow the string as a mutable string reference, allocating and copying first, if needed.
     fn to_mut(&mut self) -> &mut S;
 
@@ -109,7 +109,7 @@ pub trait RefCountedMut<S: ?Sized + StringOps>: RefCounted<S> {
 // *** StringLike ***
 
 /// Trait for string types that provide various operations
-pub trait StringLike<S: ?Sized + StringOps>
+pub trait StringLike<S: ?Sized + StringToFromBytes>
 where
     Self: Sized,
 {
@@ -276,7 +276,7 @@ where
 #[doc(alias = "LocalBytes")]
 /// Flexible string type that can store a borrowed string, an inline string, a reference counted string, or a boxed string
 #[derive(Debug)]
-pub enum FlexStr<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
+pub enum FlexStr<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> {
     /// Borrowed string - borrowed strings are imported as `&S`
     Borrowed(&'s S),
     /// Inline string - owned strings that are small enough to be stored inline
@@ -287,7 +287,7 @@ pub enum FlexStr<'s, S: ?Sized + StringOps, R: RefCounted<S>> {
     Boxed(Box<S>),
 }
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R>
 where
     for<'a> &'a S: Default,
 {
@@ -297,7 +297,7 @@ where
     }
 }
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
     fn copy(&self) -> FlexStr<'s, S, R> {
         match self {
             FlexStr::Borrowed(s) => FlexStr::Borrowed(s),
@@ -308,7 +308,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     }
 }
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R>
 where
     Box<S>: From<S::Owned>,
 {
@@ -319,7 +319,7 @@ where
     }
 }
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
     /// Create a new string from a borrowed string. This is a const fn because it does not allocate
     /// and results in a Borrowed variant.
     pub const fn from_borrowed(s: &'s S) -> FlexStr<'s, S, R> {
@@ -444,7 +444,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R> {
     }
 }
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R>
 where
     S::Owned: From<Box<S>>,
 {
@@ -501,7 +501,7 @@ impl<'s, S: ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
     }
 }
 
-impl<'s, S: ?Sized + StringOps> FlexStr<'s, S, Arc<S>>
+impl<'s, S: ?Sized + StringToFromBytes> FlexStr<'s, S, Arc<S>>
 where
     Arc<S>: for<'a> From<&'a S>,
     Rc<S>: for<'a> From<&'a S>,
@@ -529,7 +529,7 @@ where
     }
 }
 
-impl<'s, S: ?Sized + StringOps> FlexStr<'s, S, Rc<S>>
+impl<'s, S: ?Sized + StringToFromBytes> FlexStr<'s, S, Rc<S>>
 where
     Rc<S>: for<'a> From<&'a S>,
     Arc<S>: for<'a> From<&'a S>,
@@ -559,7 +559,7 @@ where
 
 // *** StringLike ***
 
-impl<S: ?Sized + StringOps, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
+impl<S: ?Sized + StringToFromBytes, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R> {
     fn as_ref_type(&self) -> &S {
         <Self>::as_ref_type(self)
     }
@@ -582,7 +582,7 @@ impl<S: ?Sized + StringOps, R: RefCounted<S>> StringLike<S> for FlexStr<'_, S, R
 
 // *** Default ***
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Default for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Default for FlexStr<'s, S, R>
 where
     for<'a> &'a S: Default,
 {
@@ -594,7 +594,7 @@ where
 
 // *** From<&S> ***
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> From<&'s S> for FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> From<&'s S> for FlexStr<'s, S, R> {
     fn from(s: &'s S) -> Self {
         FlexStr::from_borrowed(s)
     }
@@ -602,7 +602,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> From<&'s S> for FlexStr<'s, S,
 
 // *** Clone ***
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Clone for FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Clone for FlexStr<'s, S, R> {
     fn clone(&self) -> Self {
         self.copy()
     }
@@ -610,7 +610,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Clone for FlexStr<'s, S, R> {
 
 // *** AsRef ***
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<str> for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<str> for FlexStr<'s, S, R>
 where
     S: AsRef<str>,
 {
@@ -620,7 +620,7 @@ where
 }
 
 #[cfg(all(feature = "std", feature = "osstr"))]
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<OsStr> for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<OsStr> for FlexStr<'s, S, R>
 where
     S: AsRef<OsStr>,
 {
@@ -630,7 +630,7 @@ where
 }
 
 #[cfg(all(feature = "std", feature = "path"))]
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<Path> for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<Path> for FlexStr<'s, S, R>
 where
     S: AsRef<Path>,
 {
@@ -640,7 +640,7 @@ where
 }
 
 #[cfg(feature = "cstr")]
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<CStr> for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<CStr> for FlexStr<'s, S, R>
 where
     S: AsRef<CStr>,
 {
@@ -650,7 +650,7 @@ where
 }
 
 #[cfg(feature = "bytes")]
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> AsRef<[u8]> for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<[u8]> for FlexStr<'s, S, R>
 where
     S: AsRef<[u8]>,
 {
@@ -661,7 +661,7 @@ where
 
 // *** Deref<Target = S> ***
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Deref for FlexStr<'s, S, R> {
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Deref for FlexStr<'s, S, R> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
@@ -671,7 +671,7 @@ impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Deref for FlexStr<'s, S, R> {
 
 // *** Display ***
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> fmt::Display for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> fmt::Display for FlexStr<'s, S, R>
 where
     S: fmt::Display,
 {
@@ -682,7 +682,7 @@ where
 
 // *** PartialEq ***
 
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> PartialEq for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> PartialEq for FlexStr<'s, S, R>
 where
     S: PartialEq,
 {
@@ -694,7 +694,7 @@ where
 // *** Serialize ***
 
 #[cfg(feature = "serde")]
-impl<'s, S: ?Sized + StringOps, R: RefCounted<S>> Serialize for FlexStr<'s, S, R>
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Serialize for FlexStr<'s, S, R>
 where
     S: Serialize,
 {
@@ -706,7 +706,8 @@ where
 // *** Deserialize ***
 
 #[cfg(feature = "serde")]
-impl<'de, S: ?Sized + StringOps, R: RefCounted<S>> Deserialize<'de> for FlexStr<'static, S, R>
+impl<'de, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Deserialize<'de>
+    for FlexStr<'static, S, R>
 where
     Box<S>: Deserialize<'de>,
 {

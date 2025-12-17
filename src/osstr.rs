@@ -1,7 +1,7 @@
 use alloc::{rc::Rc, sync::Arc};
 use std::ffi::{OsStr, OsString};
 
-use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringOps};
+use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
@@ -21,9 +21,9 @@ const _: () = assert!(
     "Option<SharedOsStr> must be less than or equal to the size of OsString"
 );
 
-// *** StringOps ***
+// *** StringToFromBytes ***
 
-impl StringOps for OsStr {
+impl StringToFromBytes for OsStr {
     #[cfg(all(feature = "safe", target_family = "windows"))]
     #[inline]
     fn bytes_as_self(bytes: &[u8]) -> &Self {
