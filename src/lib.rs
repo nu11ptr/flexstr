@@ -468,28 +468,20 @@ impl<'s, S: ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
     pub fn to_mut_type(&mut self) -> &mut S {
         match self {
             // Borrowed strings can't be made mutable - need to own it first
+            // ImmutableBytes strings can't mutate inlined strings, so ref count it
             FlexStr::Borrowed(s) => {
-                *self = FlexStr::copy_into_owned(s);
-                // copy_into_owned will never return a borrowed variant
+                *self = FlexStr::RefCounted((&**s).into());
                 match self {
-                    // ImmutableBytes strings must be converted before being made mutable
-                    FlexStr::Inlined(s) => {
-                        *self = FlexStr::RefCounted((&**s).into());
-                        match self {
-                            FlexStr::RefCounted(s) => s.as_mut(),
-                            _ => unreachable!("Unexpected variant"),
-                        }
-                    }
-                    // This must be new - it is safe to share mutably immediately
+                    // We know this is brand new, so it is safe to share mutably immediately
                     FlexStr::RefCounted(s) => s.as_mut(),
-                    FlexStr::Boxed(s) => s.as_mut(),
-                    FlexStr::Borrowed(_) => unreachable!("Unexpected borrowed variant"),
+                    _ => unreachable!("Unexpected variant"),
                 }
             }
             // ImmutableBytes strings must be converted before being made mutable
             FlexStr::Inlined(s) => {
                 *self = FlexStr::RefCounted((&**s).into());
                 match self {
+                    // We know this is brand new, so it is safe to share mutably immediately
                     FlexStr::RefCounted(s) => s.as_mut(),
                     _ => unreachable!("Unexpected variant"),
                 }
