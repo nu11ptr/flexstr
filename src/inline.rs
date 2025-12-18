@@ -186,15 +186,15 @@ impl<S: ?Sized + StringToFromBytes + 'static> StringLike<S> for InlineFlexStr<S>
     }
 }
 
-// *** Clone ***
+// *** Copy ***
+
+impl<S: ?Sized + StringToFromBytes> Copy for InlineFlexStr<S> {}
+
+// // *** Clone ***
 
 impl<S: ?Sized + StringToFromBytes> Clone for InlineFlexStr<S> {
     fn clone(&self) -> Self {
-        Self {
-            inline: self.inline,
-            len: self.len,
-            marker: PhantomData,
-        }
+        *self
     }
 }
 

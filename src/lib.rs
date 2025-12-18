@@ -301,7 +301,7 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
     fn copy(&self) -> FlexStr<'s, S, R> {
         match self {
             FlexStr::Borrowed(s) => FlexStr::Borrowed(s),
-            FlexStr::Inlined(s) => FlexStr::Inlined(s.clone()),
+            FlexStr::Inlined(s) => FlexStr::Inlined(*s),
             FlexStr::RefCounted(s) => FlexStr::RefCounted(s.clone()),
             FlexStr::Boxed(s) => FlexStr::copy_into_owned(s),
         }
@@ -428,7 +428,7 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
     pub fn to_owned(&self) -> FlexStr<'static, S, R> {
         match self {
             FlexStr::Borrowed(s) => FlexStr::copy_into_owned(s),
-            FlexStr::Inlined(s) => FlexStr::Inlined(s.clone()),
+            FlexStr::Inlined(s) => FlexStr::Inlined(*s),
             FlexStr::RefCounted(s) => FlexStr::RefCounted(s.clone()),
             FlexStr::Boxed(s) => FlexStr::copy_into_owned(s),
         }
@@ -546,7 +546,7 @@ where
     pub fn to_local(&self) -> FlexStr<'s, S, Rc<S>> {
         match self {
             FlexStr::Borrowed(s) => FlexStr::Borrowed(s),
-            FlexStr::Inlined(s) => FlexStr::Inlined(s.clone()),
+            FlexStr::Inlined(s) => FlexStr::Inlined(*s),
             FlexStr::RefCounted(s) => FlexStr::RefCounted(Rc::from(s)),
             FlexStr::Boxed(s) => FlexStr::copy_into_owned(s),
         }
@@ -574,7 +574,7 @@ where
     pub fn to_shared(&self) -> FlexStr<'s, S, Arc<S>> {
         match self {
             FlexStr::Borrowed(s) => FlexStr::Borrowed(s),
-            FlexStr::Inlined(s) => FlexStr::Inlined(s.clone()),
+            FlexStr::Inlined(s) => FlexStr::Inlined(*s),
             FlexStr::RefCounted(s) => FlexStr::RefCounted(Arc::from(s)),
             FlexStr::Boxed(s) => FlexStr::copy_into_owned(s),
         }
