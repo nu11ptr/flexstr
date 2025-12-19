@@ -4,7 +4,8 @@ use alloc::{boxed::Box, string::String};
 use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
-use core::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut, Index, IndexMut};
+use core::slice::SliceIndex;
 
 use crate::{StringFromBytesMut, StringLike, StringToFromBytes};
 
@@ -308,6 +309,28 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         S::eq(self.as_ref_type(), other.as_ref_type())
+    }
+}
+
+// *** Index / IndexMut ***
+
+impl<S: ?Sized + StringToFromBytes, I: SliceIndex<S>> Index<I> for InlineFlexStr<S>
+where
+    S: Index<I>,
+{
+    type Output = S::Output;
+
+    fn index(&self, index: I) -> &Self::Output {
+        S::index(self.as_ref_type(), index)
+    }
+}
+
+impl<S: ?Sized + StringFromBytesMut, I: SliceIndex<S>> IndexMut<I> for InlineFlexStr<S>
+where
+    S: IndexMut<I>,
+{
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        S::index_mut(self.as_mut_type(), index)
     }
 }
 

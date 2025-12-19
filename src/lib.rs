@@ -55,7 +55,8 @@ use alloc::{rc::Rc, sync::Arc};
 use core::ffi::CStr;
 use core::fmt;
 use core::hash::{Hash, Hasher};
-use core::ops::Deref;
+use core::ops::{Deref, Index};
+use core::slice::SliceIndex;
 #[cfg(all(feature = "std", feature = "osstr"))]
 use std::ffi::{OsStr, OsString};
 #[cfg(all(feature = "std", feature = "path"))]
@@ -830,6 +831,20 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         S::eq(self.as_ref_type(), other.as_ref_type())
+    }
+}
+
+// *** Index ***
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>, I: SliceIndex<S>> Index<I>
+    for FlexStr<'s, S, R>
+where
+    S: Index<I>,
+{
+    type Output = S::Output;
+
+    fn index(&self, index: I) -> &Self::Output {
+        S::index(self.as_ref_type(), index)
     }
 }
 
