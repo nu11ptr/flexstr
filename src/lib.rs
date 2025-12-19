@@ -62,6 +62,8 @@ use core::slice::SliceIndex;
 use std::ffi::{OsStr, OsString};
 #[cfg(all(feature = "std", feature = "path"))]
 use std::path::{Path, PathBuf};
+#[cfg(feature = "std")]
+use std::{io, net::ToSocketAddrs};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -868,6 +870,20 @@ where
 
     fn index(&self, index: I) -> &Self::Output {
         S::index(self.as_ref_type(), index)
+    }
+}
+
+// *** ToSocketAddrs ***
+
+#[cfg(feature = "std")]
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> ToSocketAddrs for FlexStr<'s, S, R>
+where
+    S: ToSocketAddrs,
+{
+    type Iter = <S as ToSocketAddrs>::Iter;
+
+    fn to_socket_addrs(&self) -> io::Result<<S as ToSocketAddrs>::Iter> {
+        self.as_ref_type().to_socket_addrs()
     }
 }
 

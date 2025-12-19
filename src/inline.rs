@@ -7,6 +7,8 @@ use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut, Index, IndexMut};
 use core::slice::SliceIndex;
+#[cfg(feature = "std")]
+use std::{io, net::ToSocketAddrs};
 
 use crate::{StringFromBytesMut, StringLike, StringToFromBytes};
 
@@ -360,6 +362,20 @@ where
 {
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
         S::index_mut(self.as_mut_type(), index)
+    }
+}
+
+// *** ToSocketAddrs ***
+
+#[cfg(feature = "std")]
+impl<S: ?Sized + StringToFromBytes> ToSocketAddrs for InlineFlexStr<S>
+where
+    S: ToSocketAddrs,
+{
+    type Iter = <S as ToSocketAddrs>::Iter;
+
+    fn to_socket_addrs(&self) -> io::Result<<S as ToSocketAddrs>::Iter> {
+        self.as_ref_type().to_socket_addrs()
     }
 }
 
