@@ -68,6 +68,8 @@ impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<[u8]> {
     }
 }
 
+// *** RefCountedMut ***
+
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
 // as a bound to `S`, but is unstable.
 impl RefCountedMut<[u8]> for Arc<[u8]> {

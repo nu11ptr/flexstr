@@ -79,6 +79,8 @@ impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
     }
 }
 
+// *** RefCountedMut ***
+
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
 // as a bound to `S`, but is unstable.
 impl RefCountedMut<OsStr> for Arc<OsStr> {

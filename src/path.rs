@@ -63,6 +63,8 @@ impl<'s> TryFrom<&'s Path> for InlineFlexStr<Path> {
     }
 }
 
+// *** RefCountedMut ***
+
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
 // as a bound to `S`, but is unstable.
 impl RefCountedMut<Path> for Arc<Path> {

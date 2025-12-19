@@ -91,6 +91,8 @@ impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
     }
 }
 
+// *** RefCountedMut ***
+
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
 // as a bound to `S`, but is unstable.
 impl RefCountedMut<CStr> for Arc<CStr> {
