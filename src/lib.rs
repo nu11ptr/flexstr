@@ -63,6 +63,32 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+macro_rules! partial_eq_impl {
+    ($type:ty, $str_type:ty) => {
+        impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> PartialEq<$type>
+            for FlexStr<'s, S, R>
+        where
+            S: PartialEq<$str_type>,
+        {
+            fn eq(&self, other: &$type) -> bool {
+                S::eq(self, other)
+            }
+        }
+
+        impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> PartialEq<FlexStr<'s, S, R>>
+            for $type
+        where
+            S: PartialEq<$str_type>,
+        {
+            fn eq(&self, other: &FlexStr<'s, S, R>) -> bool {
+                S::eq(other, self)
+            }
+        }
+    };
+}
+
+pub(crate) use partial_eq_impl;
+
 // *** StringToFromBytes ***
 
 /// Trait for string types that can be converted to and from bytes

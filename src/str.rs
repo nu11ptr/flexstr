@@ -1,7 +1,8 @@
-use alloc::{rc::Rc, string::String, sync::Arc};
+use alloc::{borrow::Cow, rc::Rc, string::String, sync::Arc};
 
 use crate::{
     FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringFromBytesMut, StringToFromBytes,
+    inline::inline_partial_eq_impl, partial_eq_impl,
 };
 
 /// Local `str` type (NOTE: This can't be shared between threads)
@@ -63,27 +64,6 @@ impl StringFromBytesMut for str {
     }
 }
 
-// *** From<String> ***
-
-// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<str>> From<String> for FlexStr<'s, str, R> {
-    fn from(s: String) -> Self {
-        FlexStr::from_owned(s)
-    }
-}
-
-// *** TryFrom<&str> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
-impl<'s> TryFrom<&'s str> for InlineFlexStr<str> {
-    type Error = &'s str;
-
-    #[inline]
-    fn try_from(s: &'s str) -> Result<Self, Self::Error> {
-        InlineFlexStr::try_from_type(s)
-    }
-}
-
 // *** RefCountedMut ***
 
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
@@ -115,3 +95,36 @@ impl RefCountedMut<str> for Rc<str> {
         Rc::get_mut(self).expect("Rc is shared")
     }
 }
+
+// *** From<String> ***
+
+// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
+impl<'s, R: RefCounted<str>> From<String> for FlexStr<'s, str, R> {
+    fn from(s: String) -> Self {
+        FlexStr::from_owned(s)
+    }
+}
+
+// *** TryFrom<&str> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
+impl<'s> TryFrom<&'s str> for InlineFlexStr<str> {
+    type Error = &'s str;
+
+    #[inline]
+    fn try_from(s: &'s str) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(s)
+    }
+}
+
+// *** PartialEq ***
+
+partial_eq_impl!(str, str);
+partial_eq_impl!(&str, str);
+partial_eq_impl!(String, str);
+partial_eq_impl!(Cow<'s, str>, str);
+
+inline_partial_eq_impl!(str, str);
+inline_partial_eq_impl!(&str, str);
+inline_partial_eq_impl!(String, str);
+inline_partial_eq_impl!(Cow<'_, str>, str);

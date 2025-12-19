@@ -1,10 +1,13 @@
-use alloc::{rc::Rc, sync::Arc};
+use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
 };
 
-use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
+use crate::{
+    FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes,
+    inline::inline_partial_eq_impl, partial_eq_impl,
+};
 
 /// Local `Path` type (NOTE: This can't be shared between threads)
 pub type LocalPath<'s> = FlexStr<'s, Path, Rc<Path>>;
@@ -42,27 +45,6 @@ impl StringToFromBytes for Path {
 
 impl ImmutableBytes for Path {}
 
-// *** From<PathBuf> ***
-
-// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<Path>> From<PathBuf> for FlexStr<'s, Path, R> {
-    fn from(p: PathBuf) -> Self {
-        FlexStr::from_owned(p)
-    }
-}
-
-// *** TryFrom<&Path> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
-impl<'s> TryFrom<&'s Path> for InlineFlexStr<Path> {
-    type Error = &'s Path;
-
-    #[inline]
-    fn try_from(s: &'s Path) -> Result<Self, Self::Error> {
-        InlineFlexStr::try_from_type(s)
-    }
-}
-
 // *** RefCountedMut ***
 
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
@@ -94,3 +76,36 @@ impl RefCountedMut<Path> for Rc<Path> {
         Rc::get_mut(self).expect("Rc is shared")
     }
 }
+
+// *** From<PathBuf> ***
+
+// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
+impl<'s, R: RefCounted<Path>> From<PathBuf> for FlexStr<'s, Path, R> {
+    fn from(p: PathBuf) -> Self {
+        FlexStr::from_owned(p)
+    }
+}
+
+// *** TryFrom<&Path> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
+impl<'s> TryFrom<&'s Path> for InlineFlexStr<Path> {
+    type Error = &'s Path;
+
+    #[inline]
+    fn try_from(s: &'s Path) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(s)
+    }
+}
+
+// *** PartialEq ***
+
+partial_eq_impl!(Path, Path);
+partial_eq_impl!(&Path, Path);
+partial_eq_impl!(PathBuf, Path);
+partial_eq_impl!(Cow<'s, Path>, Path);
+
+inline_partial_eq_impl!(Path, Path);
+inline_partial_eq_impl!(&Path, Path);
+inline_partial_eq_impl!(PathBuf, Path);
+inline_partial_eq_impl!(Cow<'_, Path>, Path);

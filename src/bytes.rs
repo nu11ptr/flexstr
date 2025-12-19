@@ -1,9 +1,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use alloc::{rc::Rc, sync::Arc};
+use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 
 use crate::{
     FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringFromBytesMut, StringToFromBytes,
+    inline::inline_partial_eq_impl, partial_eq_impl,
 };
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
@@ -47,27 +48,6 @@ impl StringFromBytesMut for [u8] {
     }
 }
 
-// *** From<Vec<u8>> ***
-
-// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
-    fn from(v: Vec<u8>) -> Self {
-        FlexStr::from_owned(v)
-    }
-}
-
-// *** TryFrom<&[u8]> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
-impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<[u8]> {
-    type Error = &'s [u8];
-
-    #[inline]
-    fn try_from(s: &'s [u8]) -> Result<Self, Self::Error> {
-        InlineFlexStr::try_from_type(s)
-    }
-}
-
 // *** RefCountedMut ***
 
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
@@ -99,3 +79,36 @@ impl RefCountedMut<[u8]> for Rc<[u8]> {
         Rc::get_mut(self).expect("Rc is shared")
     }
 }
+
+// *** From<Vec<u8>> ***
+
+// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
+impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
+    fn from(v: Vec<u8>) -> Self {
+        FlexStr::from_owned(v)
+    }
+}
+
+// *** TryFrom<&[u8]> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
+impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<[u8]> {
+    type Error = &'s [u8];
+
+    #[inline]
+    fn try_from(s: &'s [u8]) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(s)
+    }
+}
+
+// *** PartialEq ***
+
+partial_eq_impl!([u8], [u8]);
+partial_eq_impl!(&[u8], [u8]);
+partial_eq_impl!(Vec<u8>, [u8]);
+partial_eq_impl!(Cow<'s, [u8]>, [u8]);
+
+inline_partial_eq_impl!([u8], [u8]);
+inline_partial_eq_impl!(&[u8], [u8]);
+inline_partial_eq_impl!(Vec<u8>, [u8]);
+inline_partial_eq_impl!(Cow<'_, [u8]>, [u8]);

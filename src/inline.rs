@@ -14,6 +14,30 @@ use std::path::Path;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+macro_rules! inline_partial_eq_impl {
+    ($type:ty, $str_type:ty) => {
+        impl<S: ?Sized + StringToFromBytes> PartialEq<$type> for InlineFlexStr<S>
+        where
+            S: PartialEq<$str_type>,
+        {
+            fn eq(&self, other: &$type) -> bool {
+                S::eq(self, other)
+            }
+        }
+
+        impl<S: ?Sized + StringToFromBytes> PartialEq<InlineFlexStr<S>> for $type
+        where
+            S: PartialEq<$str_type>,
+        {
+            fn eq(&self, other: &InlineFlexStr<S>) -> bool {
+                S::eq(other, self)
+            }
+        }
+    };
+}
+
+pub(crate) use inline_partial_eq_impl;
+
 // This must be the size of the String type minus 2 bytes for the length and discriminator
 /// The capacity of the [InlineFlexStr] type in bytes
 pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;

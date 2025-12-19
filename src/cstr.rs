@@ -1,7 +1,10 @@
-use alloc::{ffi::CString, rc::Rc, sync::Arc};
+use alloc::{borrow::Cow, ffi::CString, rc::Rc, sync::Arc};
 use core::ffi::CStr;
 
-use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
+use crate::{
+    FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes,
+    inline::inline_partial_eq_impl, partial_eq_impl,
+};
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
 pub type LocalCStr<'s> = FlexStr<'s, CStr, Rc<CStr>>;
@@ -70,27 +73,6 @@ impl StringToFromBytes for CStr {
 
 impl ImmutableBytes for CStr {}
 
-// *** From<CString> ***
-
-// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<CStr>> From<CString> for FlexStr<'s, CStr, R> {
-    fn from(s: CString) -> Self {
-        FlexStr::from_owned(s)
-    }
-}
-
-// *** TryFrom<&CStr> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
-impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
-    type Error = &'s CStr;
-
-    #[inline]
-    fn try_from(s: &'s CStr) -> Result<Self, Self::Error> {
-        InlineFlexStr::try_from_type(s)
-    }
-}
-
 // *** RefCountedMut ***
 
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
@@ -122,3 +104,36 @@ impl RefCountedMut<CStr> for Rc<CStr> {
         Rc::get_mut(self).expect("Rc is shared")
     }
 }
+
+// *** From<CString> ***
+
+// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
+impl<'s, R: RefCounted<CStr>> From<CString> for FlexStr<'s, CStr, R> {
+    fn from(s: CString) -> Self {
+        FlexStr::from_owned(s)
+    }
+}
+
+// *** TryFrom<&CStr> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
+impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
+    type Error = &'s CStr;
+
+    #[inline]
+    fn try_from(s: &'s CStr) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(s)
+    }
+}
+
+// *** PartialEq ***
+
+partial_eq_impl!(CStr, CStr);
+partial_eq_impl!(&CStr, CStr);
+partial_eq_impl!(CString, CStr);
+partial_eq_impl!(Cow<'s, CStr>, CStr);
+
+inline_partial_eq_impl!(CStr, CStr);
+inline_partial_eq_impl!(&CStr, CStr);
+inline_partial_eq_impl!(CString, CStr);
+inline_partial_eq_impl!(Cow<'_, CStr>, CStr);

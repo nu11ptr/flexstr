@@ -1,7 +1,10 @@
-use alloc::{rc::Rc, sync::Arc};
+use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 use std::ffi::{OsStr, OsString};
 
-use crate::{FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
+use crate::{
+    FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes,
+    inline::inline_partial_eq_impl, partial_eq_impl,
+};
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
 pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
@@ -58,27 +61,6 @@ impl StringToFromBytes for OsStr {
 
 impl ImmutableBytes for OsStr {}
 
-// *** From<OsString> ***
-
-// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
-impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
-    fn from(s: OsString) -> Self {
-        FlexStr::from_owned(s)
-    }
-}
-
-// *** TryFrom<&OsStr> for InlineFlexStr ***
-
-// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
-impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
-    type Error = &'s OsStr;
-
-    #[inline]
-    fn try_from(s: &'s OsStr) -> Result<Self, Self::Error> {
-        InlineFlexStr::try_from_type(s)
-    }
-}
-
 // *** RefCountedMut ***
 
 // NOTE: Cannot be implemented generically because CloneToUninit is needed
@@ -110,3 +92,36 @@ impl RefCountedMut<OsStr> for Rc<OsStr> {
         Rc::get_mut(self).expect("Rc is shared")
     }
 }
+
+// *** From<OsString> ***
+
+// NOTE: Cannot be implemented generically because of impl<T> From<T> for T
+impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
+    fn from(s: OsString) -> Self {
+        FlexStr::from_owned(s)
+    }
+}
+
+// *** TryFrom<&OsStr> for InlineFlexStr ***
+
+// NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
+impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
+    type Error = &'s OsStr;
+
+    #[inline]
+    fn try_from(s: &'s OsStr) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(s)
+    }
+}
+
+// *** PartialEq ***
+
+partial_eq_impl!(OsStr, OsStr);
+partial_eq_impl!(&OsStr, OsStr);
+partial_eq_impl!(OsString, OsStr);
+partial_eq_impl!(Cow<'s, OsStr>, OsStr);
+
+inline_partial_eq_impl!(OsStr, OsStr);
+inline_partial_eq_impl!(&OsStr, OsStr);
+inline_partial_eq_impl!(OsString, OsStr);
+inline_partial_eq_impl!(Cow<'_, OsStr>, OsStr);
