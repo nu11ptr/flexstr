@@ -44,7 +44,7 @@ pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 #[doc(alias = "InlineCStr")]
 #[doc(alias = "InlineBytes")]
 /// Inline bytes type - used to store small strings inline
-#[derive(Debug)]
+#[derive(Debug, Eq)]
 pub struct InlineFlexStr<S: ?Sized + StringToFromBytes> {
     inline: [u8; INLINE_CAPACITY],
     len: u8,

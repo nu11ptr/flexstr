@@ -346,7 +346,7 @@ where
 #[doc(alias = "SharedBytes")]
 #[doc(alias = "LocalBytes")]
 /// Flexible string type that can store a borrowed string, an inline string, a reference counted string, or a boxed string
-#[derive(Debug)]
+#[derive(Debug, Eq)]
 pub enum FlexStr<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> {
     /// Borrowed string - borrowed strings are imported as `&S`
     Borrowed(&'s S),
