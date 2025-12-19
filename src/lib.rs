@@ -41,7 +41,7 @@ pub use path::{InlinePath, LocalPath, SharedPath};
 #[cfg(feature = "str")]
 pub use str::{InlineStr, LocalStr, SharedStr};
 
-use alloc::borrow::Cow;
+use alloc::borrow::{Borrow, Cow};
 #[cfg(feature = "cstr")]
 use alloc::ffi::CString;
 #[cfg(not(feature = "std"))]
@@ -799,6 +799,14 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         S::fmt(self.as_ref_type(), f)
+    }
+}
+
+// *** Borrow ***
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Borrow<S> for FlexStr<'s, S, R> {
+    fn borrow(&self) -> &S {
+        self.as_ref_type()
     }
 }
 

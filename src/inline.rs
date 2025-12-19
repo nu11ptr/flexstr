@@ -1,3 +1,4 @@
+use alloc::borrow::Borrow;
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String};
 use core::marker::PhantomData;
@@ -220,6 +221,14 @@ impl<S: ?Sized + StringToFromBytes> Deref for InlineFlexStr<S> {
 impl<S: ?Sized + StringFromBytesMut> DerefMut for InlineFlexStr<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_type()
+    }
+}
+
+// *** Borrow ***
+
+impl<S: ?Sized + StringToFromBytes> Borrow<S> for InlineFlexStr<S> {
+    fn borrow(&self) -> &S {
+        self.as_ref_type()
     }
 }
 
