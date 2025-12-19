@@ -41,6 +41,7 @@ pub use path::{InlinePath, LocalPath, SharedPath};
 #[cfg(feature = "str")]
 pub use str::{InlineStr, LocalStr, SharedStr};
 
+use alloc::borrow::Cow;
 #[cfg(feature = "cstr")]
 use alloc::ffi::CString;
 #[cfg(not(feature = "std"))]
@@ -627,11 +628,57 @@ where
     }
 }
 
-// *** From<&S> ***
+// *** From ***
 
 impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> From<&'s S> for FlexStr<'s, S, R> {
     fn from(s: &'s S) -> Self {
         FlexStr::from_borrowed(s)
+    }
+}
+
+// NOTE: Could not be implemented more generically because of From<S::Owned>
+impl<'s, S: ?Sized + StringToFromBytes> From<Rc<S>> for FlexStr<'s, S, Rc<S>>
+where
+    Rc<S>: for<'a> From<&'a S>,
+{
+    fn from(s: Rc<S>) -> Self {
+        FlexStr::from_ref_counted(s)
+    }
+}
+
+// NOTE: Could not be implemented more generically because of From<S::Owned>
+impl<'s, S: ?Sized + StringToFromBytes> From<Arc<S>> for FlexStr<'s, S, Arc<S>>
+where
+    Arc<S>: for<'a> From<&'a S>,
+{
+    fn from(s: Arc<S>) -> Self {
+        FlexStr::from_ref_counted(s)
+    }
+}
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> From<Box<S>> for FlexStr<'s, S, R> {
+    fn from(s: Box<S>) -> Self {
+        FlexStr::from_boxed(s)
+    }
+}
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> From<InlineFlexStr<S>>
+    for FlexStr<'s, S, R>
+{
+    fn from(s: InlineFlexStr<S>) -> Self {
+        FlexStr::from_inline(s)
+    }
+}
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> From<Cow<'s, S>> for FlexStr<'s, S, R>
+where
+    Box<S>: From<S::Owned>,
+{
+    fn from(s: Cow<'s, S>) -> Self {
+        match s {
+            Cow::Borrowed(s) => FlexStr::from_borrowed(s),
+            Cow::Owned(s) => FlexStr::from_owned(s),
+        }
     }
 }
 
