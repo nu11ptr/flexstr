@@ -1,6 +1,8 @@
 use alloc::{rc::Rc, string::String, sync::Arc};
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
+use crate::{
+    FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringFromBytesMut, StringToFromBytes,
+};
 
 /// Local `str` type (NOTE: This can't be shared between threads)
 pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
@@ -19,35 +21,6 @@ const _: () = assert!(
     size_of::<Option<SharedStr>>() <= size_of::<String>(),
     "Option<SharedStr> must be less than or equal to the size of String"
 );
-
-impl<'s, R: RefCountedMut<str>> FlexStr<'s, str, R> {
-    /// Borrow the string as a mutable string reference, converting if needed. If the string is borrowed,
-    /// it is made into an owned string first. RefCounted variants will allocate + copy
-    /// if they are shared. In all other cases, the string is borrowed as a mutable reference
-    /// directly.
-    pub fn to_mut_type(&mut self) -> &mut str {
-        match self {
-            // Borrowed strings can't be made mutable - we need to own it first
-            FlexStr::Borrowed(s) => {
-                *self = FlexStr::copy_into_owned(s);
-                // copy_into_owned will never return a borrowed variant
-                match self {
-                    FlexStr::Inlined(s) => s.as_mut_type(),
-                    FlexStr::RefCounted(s) => s.as_mut(),
-                    // Currently, being boxed is impossible, but a future change could allow it
-                    FlexStr::Boxed(s) => s.as_mut(),
-                    FlexStr::Borrowed(_) => unreachable!("Unexpected borrowed variant"),
-                }
-            }
-            // Inlined strings can be made mutable directly
-            FlexStr::Inlined(s) => s.as_mut_type(),
-            // Since this might be shared, we need to check before just sharing as mutable
-            FlexStr::RefCounted(s) => s.to_mut(),
-            // Boxed strings can be made mutable directly
-            FlexStr::Boxed(s) => s.as_mut(),
-        }
-    }
-}
 
 // *** StringToFromBytes ***
 
@@ -69,6 +42,24 @@ impl StringToFromBytes for str {
     #[inline]
     fn self_as_raw_bytes(&self) -> &[u8] {
         self.as_bytes()
+    }
+}
+
+// *** StringFromBytesMut ***
+
+impl StringFromBytesMut for str {
+    #[cfg(feature = "safe")]
+    #[inline]
+    fn bytes_as_self_mut(bytes: &mut [u8]) -> &mut Self {
+        // PANIC SAFETY: We know the bytes are valid UTF-8
+        str::from_utf8_mut(bytes).expect("Invalid UTF-8")
+    }
+
+    #[cfg(not(feature = "safe"))]
+    #[inline]
+    fn bytes_as_self_mut(bytes: &mut [u8]) -> &mut Self {
+        // SAFETY: We know the bytes are valid UTF-8
+        unsafe { str::from_utf8_unchecked_mut(bytes) }
     }
 }
 

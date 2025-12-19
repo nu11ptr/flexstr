@@ -3,7 +3,7 @@ use alloc::{boxed::Box, string::String};
 use core::ops::{Deref, DerefMut};
 use core::{marker::PhantomData, str};
 
-use crate::{StringLike, StringToFromBytes};
+use crate::{StringFromBytesMut, StringLike, StringToFromBytes};
 #[cfg(feature = "cstr")]
 use core::ffi::CStr;
 #[cfg(all(feature = "std", feature = "osstr"))]
@@ -136,30 +136,10 @@ impl<S: ?Sized + StringToFromBytes> InlineFlexStr<S> {
     }
 }
 
-impl InlineFlexStr<str> {
-    #[cfg(feature = "safe")]
+impl<S: ?Sized + StringFromBytesMut> InlineFlexStr<S> {
     /// Borrow the inline string as a mutable string reference
-    #[inline]
-    pub fn as_mut_type(&mut self) -> &mut str {
-        // PANIC SAFETY: We know the bytes are valid UTF-8
-        str::from_utf8_mut(self.as_raw_bytes_mut()).expect("Invalid UTF-8")
-    }
-
-    #[cfg(not(feature = "safe"))]
-    /// Borrow the inline string as a mutable string reference
-    #[inline]
-    pub fn as_mut_type(&mut self) -> &mut str {
-        // SAFETY: We know the bytes are valid UTF-8
-        unsafe { str::from_utf8_unchecked_mut(self.as_raw_bytes_mut()) }
-    }
-}
-
-#[cfg(feature = "bytes")]
-impl InlineFlexStr<[u8]> {
-    /// Borrow the inline bytes as a mutable bytes reference
-    #[inline]
-    pub fn as_mut_type(&mut self) -> &mut [u8] {
-        self.as_raw_bytes_mut()
+    pub fn as_mut_type(&mut self) -> &mut S {
+        S::bytes_as_self_mut(self.as_raw_bytes_mut())
     }
 }
 
@@ -251,17 +231,9 @@ where
 
 // *** AsMut ***
 
-impl AsMut<str> for InlineFlexStr<str> {
+impl<S: ?Sized + StringFromBytesMut> AsMut<S> for InlineFlexStr<S> {
     #[inline]
-    fn as_mut(&mut self) -> &mut str {
-        self.as_mut_type()
-    }
-}
-
-#[cfg(feature = "bytes")]
-impl AsMut<[u8]> for InlineFlexStr<[u8]> {
-    #[inline]
-    fn as_mut(&mut self) -> &mut [u8] {
+    fn as_mut(&mut self) -> &mut S {
         self.as_mut_type()
     }
 }
@@ -278,14 +250,7 @@ impl<S: ?Sized + StringToFromBytes> Deref for InlineFlexStr<S> {
 
 // *** DerefMut ***
 
-impl DerefMut for InlineFlexStr<str> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.as_mut_type()
-    }
-}
-
-#[cfg(feature = "bytes")]
-impl DerefMut for InlineFlexStr<[u8]> {
+impl<S: ?Sized + StringFromBytesMut> DerefMut for InlineFlexStr<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_type()
     }

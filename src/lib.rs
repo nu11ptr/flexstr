@@ -83,6 +83,12 @@ pub trait StringToFromBytes: ToOwned + 'static {
 /// Marker trait for string types that don't provide conversion from bytes to mutable string reference
 pub trait ImmutableBytes: StringToFromBytes {}
 
+/// Trait for string types that can be converted from bytes to mutable string reference
+pub trait StringFromBytesMut: StringToFromBytes {
+    /// Convert bytes to a mutable string reference
+    fn bytes_as_self_mut(bytes: &mut [u8]) -> &mut Self;
+}
+
 // *** RefCounted ***
 
 /// Trait for storage that can be reference counted
@@ -503,12 +509,13 @@ where
     }
 }
 
+// NOTE: This implementation is the "slow path" for types that are ImmutableBytes (iow, cannot mutate their raw bytes)
 impl<'s, S: ?Sized + ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
     /// Borrow the string as a mutable string reference, converting if needed. If the string is Borrowed,
     /// it is made into a reference counted string first. RefCounted variants will allocate + copy
     /// if they are shared. In all other cases, the string is borrowed as a mutable reference
     /// directly.
-    pub fn to_mut_type(&mut self) -> &mut S {
+    pub fn to_mut_type_fallback(&mut self) -> &mut S {
         match self {
             // Borrowed strings can't be made mutable - we need to own it first
             // ImmutableBytes strings can't mutate inlined strings, so ref count it
@@ -529,6 +536,37 @@ impl<'s, S: ?Sized + ImmutableBytes, R: RefCountedMut<S>> FlexStr<'s, S, R> {
                     _ => unreachable!("Unexpected variant"),
                 }
             }
+            // Since this might be shared, we need to check before just sharing as mutable
+            FlexStr::RefCounted(s) => s.to_mut(),
+            // Boxed strings can be made mutable directly
+            FlexStr::Boxed(s) => s.as_mut(),
+        }
+    }
+}
+
+// NOTE: This implementation is the "fast path" for types that provide direct mutable access to their bytes
+impl<'s, S: ?Sized + StringFromBytesMut, R: RefCountedMut<S>> FlexStr<'s, S, R> {
+    /// Borrow the string as a mutable string reference, converting if needed. If the string is borrowed,
+    /// it is made into an owned string first. RefCounted variants will allocate + copy
+    /// if they are shared. In all other cases, the string is borrowed as a mutable reference
+    /// directly.
+    pub fn to_mut_type(&mut self) -> &mut S {
+        match self {
+            // Borrowed strings can't be made mutable - we need to own it first
+            FlexStr::Borrowed(s) => {
+                *self = FlexStr::copy_into_owned(s);
+                // copy_into_owned will never return a borrowed variant
+                match self {
+                    FlexStr::Inlined(s) => s.as_mut_type(),
+                    FlexStr::RefCounted(s) => s.as_mut(),
+                    _ => {
+                        // PANIC SAFETY: copy_into_owned will never return a borrowed/boxed variant
+                        unreachable!("Unexpected borrowed/boxed variant");
+                    }
+                }
+            }
+            // Inlined strings can be made mutable directly
+            FlexStr::Inlined(s) => s.as_mut_type(),
             // Since this might be shared, we need to check before just sharing as mutable
             FlexStr::RefCounted(s) => s.to_mut(),
             // Boxed strings can be made mutable directly

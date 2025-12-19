@@ -2,7 +2,9 @@
 use alloc::vec::Vec;
 use alloc::{rc::Rc, sync::Arc};
 
-use crate::{FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes};
+use crate::{
+    FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringFromBytesMut, StringToFromBytes,
+};
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
 pub type LocalBytes<'s> = FlexStr<'s, [u8], Rc<[u8]>>;
@@ -22,35 +24,6 @@ const _: () = assert!(
     "Option<SharedBytes> must be less than or equal to the size of Vec<u8>"
 );
 
-impl<'s, R: RefCountedMut<[u8]>> FlexStr<'s, [u8], R> {
-    /// Borrow the bytes as a mutable bytes reference, converting if needed. If the bytes are borrowed,
-    /// it is made into an owned string first. RefCounted variants will allocate + copy
-    /// if they are shared. In all other cases, the bytes are borrowed as a mutable reference
-    /// directly.
-    pub fn to_mut_type(&mut self) -> &mut [u8] {
-        match self {
-            // Borrowed bytes can't be made mutable - we need to own it first
-            FlexStr::Borrowed(s) => {
-                *self = FlexStr::copy_into_owned(s);
-                // copy_into_owned will never return a borrowed variant
-                match self {
-                    FlexStr::Inlined(s) => s.as_mut_type(),
-                    FlexStr::RefCounted(s) => s.as_mut(),
-                    // Currently, being boxed is impossible, but a future change could allow it
-                    FlexStr::Boxed(s) => s.as_mut(),
-                    FlexStr::Borrowed(_) => unreachable!("Unexpected borrowed variant"),
-                }
-            }
-            // Inlined bytes can be made mutable directly
-            FlexStr::Inlined(s) => s.as_mut_type(),
-            // Since this might be shared, we need to check before just sharing as mutable
-            FlexStr::RefCounted(s) => s.to_mut(),
-            // Boxed bytes can be made mutable directly
-            FlexStr::Boxed(s) => s.as_mut(),
-        }
-    }
-}
-
 // *** StringToFromBytes ***
 
 impl StringToFromBytes for [u8] {
@@ -62,6 +35,15 @@ impl StringToFromBytes for [u8] {
     #[inline]
     fn self_as_raw_bytes(&self) -> &[u8] {
         self
+    }
+}
+
+// *** StringFromBytesMut ***
+
+impl StringFromBytesMut for [u8] {
+    #[inline]
+    fn bytes_as_self_mut(bytes: &mut [u8]) -> &mut Self {
+        bytes
     }
 }
 
