@@ -4,7 +4,7 @@ use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 
 use crate::{
     FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringFromBytesMut, StringToFromBytes,
-    inline::inline_partial_eq_impl, partial_eq_impl,
+    inline::inline_partial_eq_impl, partial_eq_impl, ref_counted_mut_impl,
 };
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
@@ -50,35 +50,7 @@ impl StringFromBytesMut for [u8] {
 
 // *** RefCountedMut ***
 
-// NOTE: Cannot be implemented generically because CloneToUninit is needed
-// as a bound to `S`, but is unstable.
-impl RefCountedMut<[u8]> for Arc<[u8]> {
-    #[inline]
-    fn to_mut(&mut self) -> &mut [u8] {
-        Arc::make_mut(self)
-    }
-
-    #[inline]
-    fn as_mut(&mut self) -> &mut [u8] {
-        // PANIC SAFETY: We only use this when we know the Arc is newly created
-        Arc::get_mut(self).expect("Arc is shared")
-    }
-}
-
-// NOTE: Cannot be implemented generically because CloneToUninit is needed
-// as a bound to `S`, but is unstable.
-impl RefCountedMut<[u8]> for Rc<[u8]> {
-    #[inline]
-    fn to_mut(&mut self) -> &mut [u8] {
-        Rc::make_mut(self)
-    }
-
-    #[inline]
-    fn as_mut(&mut self) -> &mut [u8] {
-        // PANIC SAFETY: We only use this when we know the Rc is newly created
-        Rc::get_mut(self).expect("Rc is shared")
-    }
-}
+ref_counted_mut_impl!([u8]);
 
 // *** From<Vec<u8>> ***
 

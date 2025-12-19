@@ -3,7 +3,7 @@ use core::ffi::CStr;
 
 use crate::{
     FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes,
-    inline::inline_partial_eq_impl, partial_eq_impl,
+    inline::inline_partial_eq_impl, partial_eq_impl, ref_counted_mut_impl,
 };
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
@@ -75,35 +75,7 @@ impl ImmutableBytes for CStr {}
 
 // *** RefCountedMut ***
 
-// NOTE: Cannot be implemented generically because CloneToUninit is needed
-// as a bound to `S`, but is unstable.
-impl RefCountedMut<CStr> for Arc<CStr> {
-    #[inline]
-    fn to_mut(&mut self) -> &mut CStr {
-        Arc::make_mut(self)
-    }
-
-    #[inline]
-    fn as_mut(&mut self) -> &mut CStr {
-        // PANIC SAFETY: We only use this when we know the Arc is newly created
-        Arc::get_mut(self).expect("Arc is shared")
-    }
-}
-
-// NOTE: Cannot be implemented generically because CloneToUninit is needed
-// as a bound to `S`, but is unstable.
-impl RefCountedMut<CStr> for Rc<CStr> {
-    #[inline]
-    fn to_mut(&mut self) -> &mut CStr {
-        Rc::make_mut(self)
-    }
-
-    #[inline]
-    fn as_mut(&mut self) -> &mut CStr {
-        // PANIC SAFETY: We only use this when we know the Rc is newly created
-        Rc::get_mut(self).expect("Rc is shared")
-    }
-}
+ref_counted_mut_impl!(CStr);
 
 // *** From<CString> ***
 

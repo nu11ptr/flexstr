@@ -63,6 +63,8 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+// *** Macros ***
+
 macro_rules! partial_eq_impl {
     ($type:ty, $str_type:ty) => {
         impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> PartialEq<$type>
@@ -88,6 +90,42 @@ macro_rules! partial_eq_impl {
 }
 
 pub(crate) use partial_eq_impl;
+
+macro_rules! ref_counted_mut_impl {
+    ($str_type:ty) => {
+        // NOTE: Cannot be implemented generically because CloneToUninit is needed
+        // as a bound to `S`, but is unstable.
+        impl RefCountedMut<$str_type> for Arc<$str_type> {
+            #[inline]
+            fn to_mut(&mut self) -> &mut $str_type {
+                Arc::make_mut(self)
+            }
+
+            #[inline]
+            fn as_mut(&mut self) -> &mut $str_type {
+                // PANIC SAFETY: We only use this when we know the Arc is newly created
+                Arc::get_mut(self).expect("Arc is shared")
+            }
+        }
+
+        // NOTE: Cannot be implemented generically because CloneToUninit is needed
+        // as a bound to `S`, but is unstable.
+        impl RefCountedMut<$str_type> for Rc<$str_type> {
+            #[inline]
+            fn to_mut(&mut self) -> &mut $str_type {
+                Rc::make_mut(self)
+            }
+
+            #[inline]
+            fn as_mut(&mut self) -> &mut $str_type {
+                // PANIC SAFETY: We only use this when we know the Rc is newly created
+                Rc::get_mut(self).expect("Rc is shared")
+            }
+        }
+    };
+}
+
+pub(crate) use ref_counted_mut_impl;
 
 // *** StringToFromBytes ***
 
