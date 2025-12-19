@@ -394,19 +394,8 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
     /// otherwise be converted to a ref counted string.
     pub fn optimize(self) -> FlexStr<'s, S, R> {
         match self {
-            // Borrowed strings are probably better as inlined strings in case of mutation
-            // NOTE: This decision is probably debatable. Maybe we should just leave it as borrowed?
-            orig @ FlexStr::Borrowed(s) => {
-                let bytes = S::self_as_raw_bytes(s);
-
-                if bytes.len() <= INLINE_CAPACITY {
-                    FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
-                } else {
-                    orig
-                }
-            }
-            // Inlined strings are already optimized
-            orig @ FlexStr::Inlined(_) => orig,
+            // Borrowed and inlined strings are already optimized
+            orig @ FlexStr::Borrowed(_) | orig @ FlexStr::Inlined(_) => orig,
             // There is probably a reason this is ref counted, but we can try to inline it
             FlexStr::RefCounted(s) => {
                 let bytes = S::self_as_raw_bytes(&s);
