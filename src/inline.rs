@@ -1,4 +1,4 @@
-use alloc::borrow::Borrow;
+use alloc::borrow::{Borrow, BorrowMut};
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String};
 use core::fmt;
@@ -293,11 +293,17 @@ where
     }
 }
 
-// *** Borrow ***
+// *** Borrow / BorrowMut ***
 
 impl<S: ?Sized + StringToFromBytes> Borrow<S> for InlineFlexStr<S> {
     fn borrow(&self) -> &S {
         self.as_ref_type()
+    }
+}
+
+impl<S: ?Sized + StringFromBytesMut> BorrowMut<S> for InlineFlexStr<S> {
+    fn borrow_mut(&mut self) -> &mut S {
+        self.as_mut_type()
     }
 }
 
