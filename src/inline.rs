@@ -186,6 +186,17 @@ impl<S: ?Sized + StringToFromBytes + 'static> StringLike<S> for InlineFlexStr<S>
     }
 }
 
+// *** Default ***
+
+impl<S: ?Sized + StringToFromBytes> Default for InlineFlexStr<S>
+where
+    for<'a> &'a S: Default,
+{
+    fn default() -> Self {
+        Self::from_bytes(S::self_as_raw_bytes(Default::default()))
+    }
+}
+
 // *** Copy ***
 
 impl<S: ?Sized + StringToFromBytes> Copy for InlineFlexStr<S> {}
