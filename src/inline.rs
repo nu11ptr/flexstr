@@ -38,6 +38,22 @@ pub(crate) use inline_partial_eq_impl;
 /// The capacity of the [InlineFlexStr] type in bytes
 pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 
+// *** StringTooLongForInlining ***
+
+/// Error type returned when the string is too long for inline storage.
+#[derive(Debug)]
+pub struct StringTooLongForInlining;
+
+impl fmt::Display for StringTooLongForInlining {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("string too long for inline storage")
+    }
+}
+
+impl core::error::Error for StringTooLongForInlining {}
+
+// *** InlineFlexStr ***
+
 #[doc(alias = "InlineStr")]
 #[doc(alias = "InlineOsStr")]
 #[doc(alias = "InlinePath")]
@@ -106,6 +122,23 @@ impl<S: ?Sized + StringToFromBytes> InlineFlexStr<S> {
             len: len as u8,
             marker: PhantomData,
         }
+    }
+
+    #[cfg(feature = "safe")]
+    #[inline(always)]
+    pub(crate) fn append_nul_zero(&mut self) {
+        // PANIC SAFETY: We know the length is valid and at least one byte shorter than the capacity
+        self.inline[self.len as usize] = 0;
+        self.len += 1;
+    }
+    #[cfg(not(feature = "safe"))]
+    #[inline(always)]
+    pub(crate) fn append_nul_zero(&mut self) {
+        // SAFETY: We know the length is valid and at least one byte shorter than the capacity
+        unsafe {
+            *self.inline.get_unchecked_mut(self.len as usize) = 0;
+        }
+        self.len += 1;
     }
 
     #[cfg(feature = "safe")]

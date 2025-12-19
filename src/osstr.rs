@@ -1,9 +1,11 @@
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
+use core::{convert::Infallible, str::FromStr};
 use std::ffi::{OsStr, OsString};
 
 use crate::{
     FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes,
-    inline::inline_partial_eq_impl, partial_eq_impl, ref_counted_mut_impl,
+    inline::{StringTooLongForInlining, inline_partial_eq_impl},
+    partial_eq_impl, ref_counted_mut_impl,
 };
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
@@ -115,5 +117,23 @@ where
 {
     fn as_ref(&self) -> &OsStr {
         self.as_ref_type().as_ref()
+    }
+}
+
+// *** FromStr ***
+
+impl<R: RefCounted<OsStr>> FromStr for FlexStr<'static, OsStr, R> {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(FlexStr::from_borrowed(OsStr::new(s)).into_owned())
+    }
+}
+
+impl FromStr for InlineFlexStr<OsStr> {
+    type Err = StringTooLongForInlining;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        InlineFlexStr::try_from_type(OsStr::new(s)).map_err(|_| StringTooLongForInlining)
     }
 }

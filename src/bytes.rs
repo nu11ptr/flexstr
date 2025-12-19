@@ -1,10 +1,12 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
+use core::{convert::Infallible, str::FromStr};
 
 use crate::{
     FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringFromBytesMut, StringToFromBytes,
-    inline::inline_partial_eq_impl, partial_eq_impl, ref_counted_mut_impl,
+    inline::{StringTooLongForInlining, inline_partial_eq_impl},
+    partial_eq_impl, ref_counted_mut_impl,
 };
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
@@ -102,5 +104,23 @@ where
 {
     fn as_ref(&self) -> &[u8] {
         self.as_ref_type().as_ref()
+    }
+}
+
+// *** FromStr ***
+
+impl<R: RefCounted<[u8]>> FromStr for FlexStr<'static, [u8], R> {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(FlexStr::from_borrowed(s.as_bytes()).into_owned())
+    }
+}
+
+impl FromStr for InlineFlexStr<[u8]> {
+    type Err = StringTooLongForInlining;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        InlineFlexStr::try_from_type(s.as_bytes()).map_err(|_| StringTooLongForInlining)
     }
 }
