@@ -1,15 +1,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String};
+use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
-use core::{marker::PhantomData, str};
 
 use crate::{StringFromBytesMut, StringLike, StringToFromBytes};
-#[cfg(feature = "cstr")]
-use core::ffi::CStr;
-#[cfg(all(feature = "std", feature = "osstr"))]
-use std::ffi::OsStr;
-#[cfg(all(feature = "std", feature = "path"))]
-use std::path::Path;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -199,57 +193,6 @@ impl<S: ?Sized + StringToFromBytes> Copy for InlineFlexStr<S> {}
 impl<S: ?Sized + StringToFromBytes> Clone for InlineFlexStr<S> {
     fn clone(&self) -> Self {
         *self
-    }
-}
-
-// *** AsRef ***
-
-impl<S: ?Sized + StringToFromBytes> AsRef<str> for InlineFlexStr<S>
-where
-    S: AsRef<str>,
-{
-    fn as_ref(&self) -> &str {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(all(feature = "std", feature = "osstr"))]
-impl<S: ?Sized + StringToFromBytes> AsRef<OsStr> for InlineFlexStr<S>
-where
-    S: AsRef<OsStr>,
-{
-    fn as_ref(&self) -> &OsStr {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(all(feature = "std", feature = "path"))]
-impl<S: ?Sized + StringToFromBytes> AsRef<Path> for InlineFlexStr<S>
-where
-    S: AsRef<Path>,
-{
-    fn as_ref(&self) -> &Path {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(feature = "cstr")]
-impl<S: ?Sized + StringToFromBytes> AsRef<CStr> for InlineFlexStr<S>
-where
-    S: AsRef<CStr>,
-{
-    fn as_ref(&self) -> &CStr {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(feature = "bytes")]
-impl<S: ?Sized + StringToFromBytes> AsRef<[u8]> for InlineFlexStr<S>
-where
-    S: AsRef<[u8]>,
-{
-    fn as_ref(&self) -> &[u8] {
-        self.as_ref_type().as_ref()
     }
 }
 

@@ -100,3 +100,23 @@ inline_partial_eq_impl!(str, str);
 inline_partial_eq_impl!(&str, str);
 inline_partial_eq_impl!(String, str);
 inline_partial_eq_impl!(Cow<'_, str>, str);
+
+// *** AsRef ***
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<str> for FlexStr<'s, S, R>
+where
+    S: AsRef<str>,
+{
+    fn as_ref(&self) -> &str {
+        self.as_ref_type().as_ref()
+    }
+}
+
+impl<S: ?Sized + StringToFromBytes> AsRef<str> for InlineFlexStr<S>
+where
+    S: AsRef<str>,
+{
+    fn as_ref(&self) -> &str {
+        self.as_ref_type().as_ref()
+    }
+}

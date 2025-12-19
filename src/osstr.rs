@@ -97,3 +97,23 @@ inline_partial_eq_impl!(OsStr, OsStr);
 inline_partial_eq_impl!(&OsStr, OsStr);
 inline_partial_eq_impl!(OsString, OsStr);
 inline_partial_eq_impl!(Cow<'_, OsStr>, OsStr);
+
+// *** AsRef ***
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<OsStr> for FlexStr<'s, S, R>
+where
+    S: AsRef<OsStr>,
+{
+    fn as_ref(&self) -> &OsStr {
+        self.as_ref_type().as_ref()
+    }
+}
+
+impl<S: ?Sized + StringToFromBytes> AsRef<OsStr> for InlineFlexStr<S>
+where
+    S: AsRef<OsStr>,
+{
+    fn as_ref(&self) -> &OsStr {
+        self.as_ref_type().as_ref()
+    }
+}

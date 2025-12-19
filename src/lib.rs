@@ -781,57 +781,6 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Clone for FlexStr<'s, 
     }
 }
 
-// *** AsRef ***
-
-impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<str> for FlexStr<'s, S, R>
-where
-    S: AsRef<str>,
-{
-    fn as_ref(&self) -> &str {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(all(feature = "std", feature = "osstr"))]
-impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<OsStr> for FlexStr<'s, S, R>
-where
-    S: AsRef<OsStr>,
-{
-    fn as_ref(&self) -> &OsStr {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(all(feature = "std", feature = "path"))]
-impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<Path> for FlexStr<'s, S, R>
-where
-    S: AsRef<Path>,
-{
-    fn as_ref(&self) -> &Path {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(feature = "cstr")]
-impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<CStr> for FlexStr<'s, S, R>
-where
-    S: AsRef<CStr>,
-{
-    fn as_ref(&self) -> &CStr {
-        self.as_ref_type().as_ref()
-    }
-}
-
-#[cfg(feature = "bytes")]
-impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<[u8]> for FlexStr<'s, S, R>
-where
-    S: AsRef<[u8]>,
-{
-    fn as_ref(&self) -> &[u8] {
-        self.as_ref_type().as_ref()
-    }
-}
-
 // *** Deref<Target = S> ***
 
 impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Deref for FlexStr<'s, S, R> {

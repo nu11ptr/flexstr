@@ -84,3 +84,23 @@ inline_partial_eq_impl!([u8], [u8]);
 inline_partial_eq_impl!(&[u8], [u8]);
 inline_partial_eq_impl!(Vec<u8>, [u8]);
 inline_partial_eq_impl!(Cow<'_, [u8]>, [u8]);
+
+// *** AsRef ***
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> AsRef<[u8]> for FlexStr<'s, S, R>
+where
+    S: AsRef<[u8]>,
+{
+    fn as_ref(&self) -> &[u8] {
+        self.as_ref_type().as_ref()
+    }
+}
+
+impl<S: ?Sized + StringToFromBytes> AsRef<[u8]> for InlineFlexStr<S>
+where
+    S: AsRef<[u8]>,
+{
+    fn as_ref(&self) -> &[u8] {
+        self.as_ref_type().as_ref()
+    }
+}
