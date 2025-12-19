@@ -54,6 +54,7 @@ use alloc::{rc::Rc, sync::Arc};
 #[cfg(feature = "cstr")]
 use core::ffi::CStr;
 use core::fmt;
+use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 #[cfg(all(feature = "std", feature = "osstr"))]
 use std::ffi::{OsStr, OsString};
@@ -778,6 +779,17 @@ where
 impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Clone for FlexStr<'s, S, R> {
     fn clone(&self) -> Self {
         self.copy()
+    }
+}
+
+// *** Hash ***
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Hash for FlexStr<'s, S, R>
+where
+    S: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref_type().hash(state);
     }
 }
 

@@ -2,6 +2,7 @@ use alloc::borrow::Borrow;
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String};
 use core::fmt;
+use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 
@@ -234,11 +235,22 @@ where
 
 impl<S: ?Sized + StringToFromBytes> Copy for InlineFlexStr<S> {}
 
-// // *** Clone ***
+// *** Clone ***
 
 impl<S: ?Sized + StringToFromBytes> Clone for InlineFlexStr<S> {
     fn clone(&self) -> Self {
         *self
+    }
+}
+
+// *** Hash ***
+
+impl<S: ?Sized + StringToFromBytes> Hash for InlineFlexStr<S>
+where
+    S: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref_type().hash(state);
     }
 }
 
