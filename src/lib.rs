@@ -51,6 +51,7 @@ use alloc::vec::Vec;
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
+use core::cmp::Ordering;
 #[cfg(feature = "cstr")]
 use core::ffi::CStr;
 use core::fmt;
@@ -348,7 +349,7 @@ where
 #[doc(alias = "SharedBytes")]
 #[doc(alias = "LocalBytes")]
 /// Flexible string type that can store a borrowed string, an inline string, a reference counted string, or a boxed string
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub enum FlexStr<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> {
     /// Borrowed string - borrowed strings are imported as `&S`
     Borrowed(&'s S),
@@ -823,7 +824,7 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Borrow<S> for FlexStr<
     }
 }
 
-// *** PartialEq ***
+// *** PartialEq / Eq ***
 
 impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> PartialEq for FlexStr<'s, S, R>
 where
@@ -831,6 +832,28 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         S::eq(self.as_ref_type(), other.as_ref_type())
+    }
+}
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Eq for FlexStr<'s, S, R> where S: Eq {}
+
+// *** PartialOrd / Ord ***
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> PartialOrd for FlexStr<'s, S, R>
+where
+    S: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        S::partial_cmp(self.as_ref_type(), other.as_ref_type())
+    }
+}
+
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Ord for FlexStr<'s, S, R>
+where
+    S: Ord,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        S::cmp(self.as_ref_type(), other.as_ref_type())
     }
 }
 

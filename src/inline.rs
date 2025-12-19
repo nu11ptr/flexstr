@@ -1,6 +1,7 @@
 use alloc::borrow::{Borrow, BorrowMut};
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String};
+use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
@@ -62,7 +63,7 @@ impl core::error::Error for StringTooLongForInlining {}
 #[doc(alias = "InlineCStr")]
 #[doc(alias = "InlineBytes")]
 /// Inline bytes type - used to store small strings inline
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct InlineFlexStr<S: ?Sized + StringToFromBytes> {
     inline: [u8; INLINE_CAPACITY],
     len: u8,
@@ -307,7 +308,7 @@ impl<S: ?Sized + StringFromBytesMut> BorrowMut<S> for InlineFlexStr<S> {
     }
 }
 
-// *** PartialEq ***
+// *** PartialEq / Eq ***
 
 impl<S: ?Sized + StringToFromBytes> PartialEq for InlineFlexStr<S>
 where
@@ -315,6 +316,28 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         S::eq(self.as_ref_type(), other.as_ref_type())
+    }
+}
+
+impl<S: ?Sized + StringToFromBytes> Eq for InlineFlexStr<S> where S: Eq {}
+
+// *** PartialOrd / Ord ***
+
+impl<S: ?Sized + StringToFromBytes> PartialOrd for InlineFlexStr<S>
+where
+    S: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        S::partial_cmp(self.as_ref_type(), other.as_ref_type())
+    }
+}
+
+impl<S: ?Sized + StringToFromBytes> Ord for InlineFlexStr<S>
+where
+    S: Ord,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        S::cmp(self.as_ref_type(), other.as_ref_type())
     }
 }
 
