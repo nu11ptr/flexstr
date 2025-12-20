@@ -465,26 +465,19 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
         match self {
             // Borrowed and inlined strings are already optimized
             orig @ FlexStr::Borrowed(_) | orig @ FlexStr::Inlined(_) => orig,
-            // There is probably a reason this is ref counted, but we can try to inline it
+            // There is probably a reason this is ref counted, but we can try to inline it first
             FlexStr::RefCounted(s) => {
                 let bytes = S::self_as_raw_bytes(&s);
 
                 if bytes.len() <= INLINE_CAPACITY {
                     FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
                 } else {
+                    // Too big, just keep it as it is
                     FlexStr::RefCounted(s)
                 }
             }
             // This should be inlined or ref counted
-            FlexStr::Boxed(s) => {
-                let bytes = S::self_as_raw_bytes(&s);
-
-                if bytes.len() <= INLINE_CAPACITY {
-                    FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
-                } else {
-                    FlexStr::RefCounted((&*s).into())
-                }
-            }
+            FlexStr::Boxed(s) => Self::copy_into_owned(&s),
         }
     }
 
