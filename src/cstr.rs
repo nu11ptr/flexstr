@@ -235,7 +235,7 @@ impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<CStr> {
 
     #[inline]
     fn try_from(bytes: &'s [u8]) -> Result<Self, Self::Error> {
-        InlineFlexStr::try_from_bytes_without_nul(bytes)
+        InlineFlexStr::try_from_bytes_with_or_without_nul(bytes)
     }
 }
 

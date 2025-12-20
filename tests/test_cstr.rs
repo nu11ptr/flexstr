@@ -296,3 +296,71 @@ fn test_mutation_local_ref_counted_cstr() {
 fn test_mutation_boxed_cstr() {
     common::mutate_fallback::test_mutation_immutable_bytes_boxed::<CStr, Arc<CStr>>(c"test".into());
 }
+
+// *** PartialEq with Owned Types Tests ***
+
+#[test]
+fn test_partial_eq_with_owned_types_cstr() {
+    common::comparison::test_partial_eq_with_owned_types::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_inline_partial_eq_with_owned_types_cstr() {
+    common::comparison::test_inline_partial_eq_with_owned_types::<CStr>(c"test");
+}
+
+// *** TryFrom Tests ***
+
+#[test]
+fn test_try_from_str_cstr() {
+    common::try_from::test_try_from_str_cstr::<Arc<CStr>>();
+}
+
+#[test]
+fn test_try_from_bytes_cstr() {
+    common::try_from::test_try_from_bytes_cstr::<Arc<CStr>>();
+}
+
+#[test]
+fn test_try_from_str_inline_cstr() {
+    common::try_from::test_try_from_str_inline_cstr();
+}
+
+#[test]
+fn test_try_from_bytes_inline_cstr() {
+    common::try_from::test_try_from_bytes_inline_cstr();
+}
+
+// *** FromStr Tests ***
+
+#[test]
+fn test_from_str_cstr_success() {
+    common::from_str::test_from_str_cstr_success::<Arc<CStr>>();
+}
+
+#[test]
+fn test_from_str_cstr_error() {
+    common::from_str::test_from_str_cstr_error::<Arc<CStr>>();
+}
+
+#[test]
+fn test_from_str_inline_cstr_success() {
+    common::from_str::test_from_str_inline_cstr_success();
+}
+
+#[test]
+fn test_from_str_inline_cstr_error() {
+    common::from_str::test_from_str_inline_cstr_error();
+}
+
+// *** AsRef Tests ***
+
+#[test]
+fn test_as_ref_cstr_flex_str() {
+    common::as_ref::test_as_ref_cstr_flex_str::<Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_as_ref_cstr_inline() {
+    common::as_ref::test_as_ref_cstr_inline(c"test");
+}

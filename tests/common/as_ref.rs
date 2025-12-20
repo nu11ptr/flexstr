@@ -69,3 +69,45 @@ pub fn test_as_ref_path_inline(s: &'static std::path::Path) {
     let path_ref: &std::path::Path = inline_str.as_ref();
     assert_eq!(path_ref, s);
 }
+
+/// Test AsRef<CStr> for FlexStr<CStr, R>
+#[cfg(feature = "cstr")]
+pub fn test_as_ref_cstr_flex_str<R>(s: &'static core::ffi::CStr)
+where
+    R: RefCounted<core::ffi::CStr>,
+{
+    let flex_str: FlexStr<'_, core::ffi::CStr, R> = FlexStr::from_borrowed(s);
+    let cstr_ref: &core::ffi::CStr = flex_str.as_ref();
+    assert_eq!(cstr_ref.to_bytes(), s.to_bytes());
+}
+
+/// Test AsRef<CStr> for InlineFlexStr<CStr>
+/// Input should be small enough to inline
+#[cfg(feature = "cstr")]
+pub fn test_as_ref_cstr_inline(s: &'static core::ffi::CStr) {
+    let inline_str = InlineFlexStr::<core::ffi::CStr>::try_from_type(s)
+        .expect("test input should be small enough to inline");
+    let cstr_ref: &core::ffi::CStr = inline_str.as_ref();
+    assert_eq!(cstr_ref.to_bytes(), s.to_bytes());
+}
+
+/// Test AsRef<str> for FlexStr<str, R>
+#[cfg(feature = "str")]
+pub fn test_as_ref_str_flex_str<R>(s: &'static str)
+where
+    R: RefCounted<str>,
+{
+    let flex_str: FlexStr<'_, str, R> = FlexStr::from_borrowed(s);
+    let str_ref: &str = flex_str.as_ref();
+    assert_eq!(str_ref, s);
+}
+
+/// Test AsRef<str> for InlineFlexStr<str>
+/// Input should be small enough to inline
+#[cfg(feature = "str")]
+pub fn test_as_ref_str_inline(s: &'static str) {
+    let inline_str = InlineFlexStr::<str>::try_from_type(s)
+        .expect("test input should be small enough to inline");
+    let str_ref: &str = inline_str.as_ref();
+    assert_eq!(str_ref, s);
+}

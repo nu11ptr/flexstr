@@ -1,5 +1,8 @@
+#![allow(dead_code)]
+#![cfg(feature = "serde")]
+
 use core::fmt;
-use flexstry::StringToFromBytes;
+use flexstry::{InlineFlexStr, StringToFromBytes};
 use serde::{Deserialize, Serialize};
 
 pub fn serialize_deserialize_test<'s, F, S>(s: &'static S)
@@ -16,4 +19,19 @@ where
 
     let deserialized: F = serde_json::from_value(serialized).unwrap();
     assert_eq!(expected_str, deserialized);
+}
+
+/// Test deserialization error path when string is too long for inline storage
+#[cfg(feature = "str")]
+pub fn test_inline_deserialize_error_str() {
+    // Create a string that's definitely too long
+    let long_string = "x".repeat(flexstry::INLINE_CAPACITY + 1);
+    let boxed: Box<str> = long_string.into_boxed_str();
+
+    // Serialize it
+    let serialized = serde_json::to_string(&boxed).unwrap();
+
+    // Try to deserialize into InlineFlexStr - should fail
+    let result: Result<InlineFlexStr<str>, _> = serde_json::from_str(&serialized);
+    result.unwrap_err();
 }

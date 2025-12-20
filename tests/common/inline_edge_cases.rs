@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, InlineFlexStr, RefCounted, StringToFromBytes};
+use flexstry::{FlexStr, InlineFlexStr, RefCounted, StringFromBytesMut, StringToFromBytes};
 
 /// Test Default implementation for InlineFlexStr
 pub fn test_inline_default<S>()
@@ -100,4 +100,20 @@ where
     // Should stay as ref_counted
     assert!(optimized.is_ref_counted());
     assert_eq!(optimized.as_ref_type(), s);
+}
+
+/// Test BorrowMut implementation for InlineFlexStr
+pub fn test_inline_borrow_mut<S>(s: &'static S)
+where
+    S: ?Sized + StringFromBytesMut,
+{
+    use core::borrow::BorrowMut;
+
+    // Input should be small enough to inline
+    let mut inline_str =
+        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
+
+    // Test BorrowMut::borrow_mut() returns &mut S
+    let borrowed_mut: &mut S = inline_str.borrow_mut();
+    assert_eq!(borrowed_mut as *const S, s as *const S);
 }

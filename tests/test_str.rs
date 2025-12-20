@@ -186,6 +186,26 @@ fn test_comparison_with_inline_str() {
     common::comparison::test_comparison_with_inline::<str, Arc<str>>("test");
 }
 
+#[test]
+fn test_partial_eq_with_owned_types_str() {
+    common::comparison::test_partial_eq_with_owned_types::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_inline_partial_eq_with_owned_types_str() {
+    common::comparison::test_inline_partial_eq_with_owned_types::<str>("test");
+}
+
+#[test]
+fn test_inline_partial_ord_str() {
+    common::comparison::test_inline_partial_ord::<str>("a", "b");
+}
+
+#[test]
+fn test_inline_ord_str() {
+    common::comparison::test_inline_ord::<str>("a", "b");
+}
+
 // *** Storage Tests ***
 
 #[test]
@@ -387,4 +407,149 @@ fn test_mutation_ref_counted_str() {
 #[test]
 fn test_mutation_boxed_str() {
     common::mutate::test_mutation_boxed::<str, Arc<str>>("test".into());
+}
+
+// *** Display Tests ***
+
+#[test]
+fn test_display_str() {
+    common::display::test_display::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_inline_display_str() {
+    common::display::test_inline_display::<str>("test");
+}
+
+// *** Borrow Tests ***
+
+#[test]
+fn test_borrow_str() {
+    common::borrow::test_borrow::<str, Arc<str>>("test");
+}
+
+// *** Index Tests ***
+
+#[test]
+fn test_index_str() {
+    common::index::test_index::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_inline_index_str() {
+    common::index::test_inline_index::<str>("test");
+}
+
+#[test]
+fn test_inline_index_mut_str() {
+    common::index::test_inline_index_mut::<str>("test");
+}
+
+// *** ToSocketAddrs Tests ***
+
+#[cfg(feature = "std")]
+#[test]
+fn test_to_socket_addrs_str() {
+    common::socket::test_to_socket_addrs::<str, Arc<str>>("127.0.0.1:8080");
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn test_inline_to_socket_addrs_str() {
+    common::socket::test_inline_to_socket_addrs::<str>("127.0.0.1:8080");
+}
+
+// *** Conversion Tests ***
+
+#[test]
+fn test_inline_into_owned_type_str() {
+    common::conversion::test_inline_into_owned_type::<str>("test");
+}
+
+// *** TryFrom Tests ***
+
+#[cfg(feature = "std")]
+#[test]
+fn test_try_from_osstr_str() {
+    common::try_from::test_try_from_osstr_str::<Arc<str>>();
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn test_try_from_path_str() {
+    common::try_from::test_try_from_path_str::<Arc<str>>();
+}
+
+#[test]
+fn test_try_from_vec_u8_str() {
+    common::try_from::test_try_from_vec_u8_str::<Arc<str>>();
+}
+
+#[cfg(feature = "cstr")]
+#[test]
+fn test_try_from_cstring_str() {
+    common::try_from::test_try_from_cstring_str::<Arc<str>>();
+}
+
+#[test]
+fn test_try_from_bytes_inline_str() {
+    common::try_from::test_try_from_bytes_inline_str();
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn test_try_from_osstr_inline_str() {
+    common::try_from::test_try_from_osstr_inline_str();
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn test_try_from_path_inline_str() {
+    common::try_from::test_try_from_path_inline_str();
+}
+
+// *** FromStr Tests ***
+
+#[cfg(feature = "cstr")]
+#[test]
+fn test_from_str_cstr_success() {
+    common::from_str::test_from_str_cstr_success::<Arc<core::ffi::CStr>>();
+}
+
+#[cfg(feature = "cstr")]
+#[test]
+fn test_from_str_cstr_error() {
+    common::from_str::test_from_str_cstr_error::<Arc<core::ffi::CStr>>();
+}
+
+#[cfg(feature = "cstr")]
+#[test]
+fn test_from_str_inline_cstr_success() {
+    common::from_str::test_from_str_inline_cstr_success();
+}
+
+#[cfg(feature = "cstr")]
+#[test]
+fn test_from_str_inline_cstr_error() {
+    common::from_str::test_from_str_inline_cstr_error();
+}
+
+// *** AsRef Tests ***
+
+#[test]
+fn test_as_ref_str_flex_str() {
+    common::as_ref::test_as_ref_str_flex_str::<Arc<str>>("test");
+}
+
+#[test]
+fn test_as_ref_str_inline() {
+    common::as_ref::test_as_ref_str_inline("test");
+}
+
+// *** Serialize Tests ***
+
+#[cfg(feature = "serde")]
+#[test]
+fn test_inline_deserialize_error_str() {
+    common::serialize::test_inline_deserialize_error_str();
 }

@@ -204,3 +204,18 @@ where
     assert!(flex_str.is_boxed());
     assert_eq!(flex_str.as_ref_type(), s);
 }
+
+/// Test into_owned_type for InlineFlexStr
+pub fn test_inline_into_owned_type<S>(s: &'static S)
+where
+    S: ?Sized + StringToFromBytes + fmt::Debug + PartialEq,
+    S::Owned: PartialEq + AsRef<S> + From<Box<S>>,
+    InlineFlexStr<S>: StringLike<S>,
+{
+    // Input should be small enough to inline
+    let inline_str =
+        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
+
+    let owned = StringLike::into_owned_type(inline_str);
+    assert_eq!(owned.as_ref(), s);
+}

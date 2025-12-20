@@ -126,3 +126,52 @@ pub fn test_from_str_inline_path_error() {
     assert_eq!(err.inline_capacity, flexstry::INLINE_CAPACITY);
 }
 
+/// Test FromStr for FlexStr<CStr, R> success
+#[cfg(feature = "cstr")]
+pub fn test_from_str_cstr_success<R>()
+where
+    R: RefCounted<core::ffi::CStr> + fmt::Debug,
+{
+    use flexstry::FlexStr;
+    
+    let flex_str = FlexStr::<'static, core::ffi::CStr, R>::from_str("test").unwrap();
+    assert_eq!(flex_str.as_ref_type().to_bytes(), b"test");
+}
+
+/// Test FromStr for FlexStr<CStr, R> error (interior NUL)
+#[cfg(feature = "cstr")]
+pub fn test_from_str_cstr_error<R>()
+where
+    R: RefCounted<core::ffi::CStr> + fmt::Debug,
+{
+    use flexstry::{FlexStr, InteriorNulError};
+    
+    // String with interior NUL should fail
+    let result: Result<FlexStr<'static, core::ffi::CStr, R>, InteriorNulError> = FlexStr::from_str("test\0middle");
+    result.unwrap_err();
+}
+
+/// Test FromStr for InlineFlexStr<CStr> success
+#[cfg(feature = "cstr")]
+pub fn test_from_str_inline_cstr_success() {
+    use flexstry::InlineFlexStr;
+    
+    let inline_str = InlineFlexStr::<core::ffi::CStr>::from_str("test").unwrap();
+    assert_eq!(inline_str.as_ref_type().to_bytes(), b"test");
+}
+
+/// Test FromStr for InlineFlexStr<CStr> error (interior NUL or too long)
+#[cfg(feature = "cstr")]
+pub fn test_from_str_inline_cstr_error() {
+    use flexstry::{InlineFlexStr, TooLongOrNulError};
+    
+    // String with interior NUL should fail
+    let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> = InlineFlexStr::from_str("test\0middle");
+    result.unwrap_err();
+    
+    // String too long should fail
+    let long_str = "x".repeat(flexstry::INLINE_CAPACITY + 1);
+    let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> = InlineFlexStr::from_str(&long_str);
+    result.unwrap_err();
+}
+
