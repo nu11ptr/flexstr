@@ -29,6 +29,241 @@ fn serialize_deserialize_test_inline_str() {
     common::serialize::serialize_deserialize_test::<InlineStr, str>("test");
 }
 
+// *** Basic Tests ***
+
+#[test]
+fn test_creation_from_borrowed_str() {
+    common::basic::test_creation_from_borrowed::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_creation_from_owned_str() {
+    common::basic::test_creation_from_owned::<str, Arc<str>>("test".to_string());
+}
+
+#[test]
+fn test_creation_from_inline_str() {
+    common::basic::test_creation_from_inline::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_creation_from_ref_counted_str() {
+    common::basic::test_creation_from_ref_counted::<str, Arc<str>>("test".into());
+}
+
+#[test]
+fn test_creation_from_boxed_str() {
+    common::basic::test_creation_from_boxed::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_empty_str() {
+    common::basic::test_empty::<str, Arc<str>>("");
+}
+
+#[test]
+fn test_accessors_str() {
+    common::basic::test_accessors::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_clone_all_variants_str() {
+    common::basic::test_clone_all_variants::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_default_str() {
+    common::basic::test_default::<str, Arc<str>>();
+}
+
+// *** Conversion Tests ***
+
+#[test]
+fn test_to_owned_str() {
+    common::conversion::test_to_owned::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_into_owned_str() {
+    common::conversion::test_into_owned::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_to_owned_type_str() {
+    common::conversion::test_to_owned_type::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_into_owned_type_str() {
+    common::conversion::test_into_owned_type::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_to_local_str() {
+    common::conversion::test_to_local::<str>("test");
+}
+
+#[test]
+fn test_into_local_str() {
+    common::conversion::test_into_local::<str>("test");
+}
+
+#[test]
+fn test_to_shared_str() {
+    common::conversion::test_to_shared::<str>("test");
+}
+
+#[test]
+fn test_into_shared_str() {
+    common::conversion::test_into_shared::<str>("test");
+}
+
+#[test]
+fn test_optimize_str() {
+    common::conversion::test_optimize::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_from_borrowed_ref_str() {
+    common::conversion::test_from_borrowed_ref::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_from_box_str() {
+    common::conversion::test_from_box::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_from_inline_flex_str_str() {
+    common::conversion::test_from_inline_flex_str::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_from_cow_str() {
+    common::conversion::test_from_cow::<str, Arc<str>>("test");
+}
+
+// *** Comparison Tests ***
+
+#[test]
+fn test_partial_eq_str() {
+    common::comparison::test_partial_eq::<str, Arc<str>>("test", "test");
+    common::comparison::test_partial_eq::<str, Arc<str>>("test", "other");
+}
+
+#[test]
+fn test_eq_str() {
+    common::comparison::test_eq::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_partial_ord_str() {
+    common::comparison::test_partial_ord::<str, Arc<str>>("a", "b");
+}
+
+#[test]
+fn test_ord_str() {
+    common::comparison::test_ord::<str, Arc<str>>("a", "b");
+}
+
+#[test]
+fn test_hash_str() {
+    common::comparison::test_hash::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_comparison_with_ref_str() {
+    common::comparison::test_comparison_with_ref::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_comparison_with_owned_str() {
+    common::comparison::test_comparison_with_owned::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_comparison_with_inline_str() {
+    common::comparison::test_comparison_with_inline::<str, Arc<str>>("test");
+}
+
+// *** Storage Tests ***
+
+#[test]
+fn test_variant_queries_str() {
+    common::storage::test_variant_queries::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_transition_borrowed_to_inlined_str() {
+    common::storage::test_transition_borrowed_to_inlined::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_transition_borrowed_to_ref_counted_str() {
+    common::storage::test_transition_borrowed_to_ref_counted::<str, Arc<str>>(
+        "this is a very long string that definitely won't fit inline",
+    );
+}
+
+#[test]
+fn test_transition_inlined_to_ref_counted_str() {
+    common::storage::test_transition_inlined_to_ref_counted::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_transition_boxed_to_optimized_str() {
+    common::storage::test_transition_boxed_to_optimized::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_storage_optimization_str() {
+    common::storage::test_storage_optimization::<str, Arc<str>>("test");
+}
+
+// *** Edge Case Tests ***
+
+#[test]
+fn test_empty_string_str() {
+    common::edge_cases::test_empty_string::<str, Arc<str>>("");
+}
+
+#[test]
+fn test_capacity_boundary_exact_str() {
+    // Create a string exactly at capacity
+    let s = "a".repeat(flexstry::INLINE_CAPACITY);
+    let s_static: &'static str = Box::leak(s.into_boxed_str());
+    common::edge_cases::test_capacity_boundary_exact::<str, Arc<str>>(s_static);
+}
+
+#[test]
+fn test_capacity_boundary_overflow_str() {
+    common::edge_cases::test_capacity_boundary_overflow::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_try_from_too_long_str() {
+    common::edge_cases::test_try_from_too_long::<str, Arc<str>>();
+}
+
+#[test]
+fn test_various_lengths_str() {
+    common::edge_cases::test_various_lengths::<str, Arc<str>>("test");
+    common::edge_cases::test_various_lengths::<str, Arc<str>>("");
+    common::edge_cases::test_various_lengths::<str, Arc<str>>("a");
+}
+
+#[test]
+fn test_special_content_str() {
+    common::edge_cases::test_special_content::<str, Arc<str>>("test");
+    common::edge_cases::test_special_content::<str, Arc<str>>("hello\nworld");
+    common::edge_cases::test_special_content::<str, Arc<str>>("🚀");
+}
+
+#[test]
+fn test_clone_variants_str() {
+    common::edge_cases::test_clone_variants::<str, Arc<str>>("test");
+}
+
 // *** Mutation Tests ***
 
 #[test]

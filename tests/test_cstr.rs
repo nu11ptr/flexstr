@@ -31,6 +31,138 @@ fn serialize_deserialize_test_inline_cstr() {
     common::serialize::serialize_deserialize_test::<InlineCStr, CStr>(c"test");
 }
 
+// *** Basic Tests ***
+
+#[test]
+fn test_creation_from_borrowed_cstr() {
+    common::basic::test_creation_from_borrowed::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_creation_from_inline_cstr() {
+    common::basic::test_creation_from_inline::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_creation_from_ref_counted_cstr() {
+    common::basic::test_creation_from_ref_counted::<CStr, Arc<CStr>>(c"test".into());
+}
+
+#[test]
+fn test_empty_cstr() {
+    common::basic::test_empty::<CStr, Arc<CStr>>(c"");
+}
+
+#[test]
+fn test_accessors_cstr() {
+    common::basic::test_accessors::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_clone_all_variants_cstr() {
+    common::basic::test_clone_all_variants::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_default_cstr() {
+    common::basic::test_default::<CStr, Arc<CStr>>();
+}
+
+// *** Conversion Tests ***
+
+#[test]
+fn test_to_owned_cstr() {
+    common::conversion::test_to_owned::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_into_owned_cstr() {
+    common::conversion::test_into_owned::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_to_owned_type_cstr() {
+    common::conversion::test_to_owned_type::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_optimize_cstr() {
+    common::conversion::test_optimize::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_from_borrowed_ref_cstr() {
+    common::conversion::test_from_borrowed_ref::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_from_inline_flex_str_cstr() {
+    common::conversion::test_from_inline_flex_str::<CStr, Arc<CStr>>(c"test");
+}
+
+// *** Comparison Tests ***
+
+#[test]
+fn test_partial_eq_cstr() {
+    common::comparison::test_partial_eq::<CStr, Arc<CStr>>(c"test", c"test");
+    common::comparison::test_partial_eq::<CStr, Arc<CStr>>(c"test", c"other");
+}
+
+#[test]
+fn test_eq_cstr() {
+    common::comparison::test_eq::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_hash_cstr() {
+    common::comparison::test_hash::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_comparison_with_ref_cstr() {
+    common::comparison::test_comparison_with_ref::<CStr, Arc<CStr>>(c"test");
+}
+
+// *** Storage Tests ***
+
+#[test]
+fn test_variant_queries_cstr() {
+    common::storage::test_variant_queries::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_transition_borrowed_to_inlined_cstr() {
+    common::storage::test_transition_borrowed_to_inlined::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_storage_optimization_cstr() {
+    common::storage::test_storage_optimization::<CStr, Arc<CStr>>(c"test");
+}
+
+// *** Edge Case Tests ***
+
+#[test]
+fn test_empty_string_cstr() {
+    common::edge_cases::test_empty_string::<CStr, Arc<CStr>>(c"");
+}
+
+#[test]
+fn test_various_lengths_cstr() {
+    common::edge_cases::test_various_lengths::<CStr, Arc<CStr>>(c"test");
+    common::edge_cases::test_various_lengths::<CStr, Arc<CStr>>(c"");
+}
+
+#[test]
+fn test_special_content_cstr() {
+    common::edge_cases::test_special_content::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_clone_variants_cstr() {
+    common::edge_cases::test_clone_variants::<CStr, Arc<CStr>>(c"test");
+}
+
 // *** Mutation Tests ***
 
 #[test]
