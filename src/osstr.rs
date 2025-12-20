@@ -1,10 +1,11 @@
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 use core::{convert::Infallible, str::FromStr};
 use std::ffi::{OsStr, OsString};
+use std::path::{Path, PathBuf};
 
 use crate::{
     FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes,
-    inline::{StringTooLongForInlining, inline_partial_eq_impl},
+    inline::{TooLongForInlining, inline_partial_eq_impl},
     partial_eq_impl, ref_counted_mut_impl,
 };
 
@@ -67,7 +68,7 @@ impl ImmutableBytes for OsStr {}
 
 ref_counted_mut_impl!(OsStr);
 
-// *** From<OsString> ***
+// *** From for FlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
 impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
@@ -76,15 +77,58 @@ impl<'s, R: RefCounted<OsStr>> From<OsString> for FlexStr<'s, OsStr, R> {
     }
 }
 
-// *** TryFrom<&OsStr> for InlineFlexStr ***
+impl<'s, R: RefCounted<OsStr>> From<String> for FlexStr<'s, OsStr, R> {
+    fn from(s: String) -> Self {
+        FlexStr::from_owned(s.into())
+    }
+}
+
+#[cfg(feature = "path")]
+impl<'s, R: RefCounted<OsStr>> From<PathBuf> for FlexStr<'s, OsStr, R> {
+    fn from(p: PathBuf) -> Self {
+        FlexStr::from_owned(p.into())
+    }
+}
+
+impl<'s, R: RefCounted<OsStr>> From<&'s str> for FlexStr<'s, OsStr, R> {
+    fn from(s: &'s str) -> Self {
+        FlexStr::from_borrowed(OsStr::new(s))
+    }
+}
+
+impl<'s, R: RefCounted<OsStr>> From<&'s Path> for FlexStr<'s, OsStr, R> {
+    fn from(p: &'s Path) -> Self {
+        FlexStr::from_borrowed(p.as_os_str())
+    }
+}
+
+// *** TryFrom for InlineFlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
 impl<'s> TryFrom<&'s OsStr> for InlineFlexStr<OsStr> {
-    type Error = &'s OsStr;
+    type Error = TooLongForInlining;
 
     #[inline]
     fn try_from(s: &'s OsStr) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
+    }
+}
+
+impl<'s> TryFrom<&'s str> for InlineFlexStr<OsStr> {
+    type Error = TooLongForInlining;
+
+    #[inline]
+    fn try_from(s: &'s str) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(OsStr::new(s))
+    }
+}
+
+impl<'s> TryFrom<&'s Path> for InlineFlexStr<OsStr> {
+    type Error = TooLongForInlining;
+
+    #[inline]
+    fn try_from(p: &'s Path) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(p.as_os_str())
     }
 }
 
@@ -131,9 +175,9 @@ impl<R: RefCounted<OsStr>> FromStr for FlexStr<'static, OsStr, R> {
 }
 
 impl FromStr for InlineFlexStr<OsStr> {
-    type Err = StringTooLongForInlining;
+    type Err = TooLongForInlining;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        InlineFlexStr::try_from_type(OsStr::new(s)).map_err(|_| StringTooLongForInlining)
+        InlineFlexStr::try_from_type(OsStr::new(s))
     }
 }

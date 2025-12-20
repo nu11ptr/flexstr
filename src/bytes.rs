@@ -5,7 +5,7 @@ use core::{convert::Infallible, str::FromStr};
 
 use crate::{
     FlexStr, InlineFlexStr, RefCounted, RefCountedMut, StringFromBytesMut, StringToFromBytes,
-    inline::{StringTooLongForInlining, inline_partial_eq_impl},
+    inline::{TooLongForInlining, inline_partial_eq_impl},
     partial_eq_impl, ref_counted_mut_impl,
 };
 
@@ -54,7 +54,7 @@ impl StringFromBytesMut for [u8] {
 
 ref_counted_mut_impl!([u8]);
 
-// *** From<Vec<u8>> ***
+// *** From for FlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T> From<T> for T
 impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
@@ -63,15 +63,30 @@ impl<'s, R: RefCounted<[u8]>> From<Vec<u8>> for FlexStr<'s, [u8], R> {
     }
 }
 
-// *** TryFrom<&[u8]> for InlineFlexStr ***
+impl<'s, R: RefCounted<[u8]>> From<&'s str> for FlexStr<'s, [u8], R> {
+    fn from(s: &'s str) -> Self {
+        FlexStr::from_borrowed(s.as_bytes())
+    }
+}
+
+// *** TryFrom for InlineFlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
 impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<[u8]> {
-    type Error = &'s [u8];
+    type Error = TooLongForInlining;
 
     #[inline]
     fn try_from(s: &'s [u8]) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
+    }
+}
+
+impl<'s> TryFrom<&'s str> for InlineFlexStr<[u8]> {
+    type Error = TooLongForInlining;
+
+    #[inline]
+    fn try_from(s: &'s str) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_type(s.as_bytes())
     }
 }
 
@@ -118,9 +133,9 @@ impl<R: RefCounted<[u8]>> FromStr for FlexStr<'static, [u8], R> {
 }
 
 impl FromStr for InlineFlexStr<[u8]> {
-    type Err = StringTooLongForInlining;
+    type Err = TooLongForInlining;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        InlineFlexStr::try_from_type(s.as_bytes()).map_err(|_| StringTooLongForInlining)
+        InlineFlexStr::try_from_type(s.as_bytes())
     }
 }

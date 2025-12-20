@@ -28,18 +28,18 @@ mod path;
 /// Module for `str`-based strings
 mod str;
 
-pub use inline::{INLINE_CAPACITY, InlineFlexStr};
+pub use inline::{INLINE_CAPACITY, InlineFlexStr, TooLongForInlining};
 
 #[cfg(feature = "bytes")]
 pub use bytes::{InlineBytes, LocalBytes, SharedBytes};
 #[cfg(feature = "cstr")]
-pub use cstr::{InlineCStr, LocalCStr, SharedCStr};
+pub use cstr::{InlineCStr, InteriorNulError, LocalCStr, SharedCStr, TooLongOrNulError};
 #[cfg(all(feature = "std", feature = "osstr"))]
 pub use osstr::{InlineOsStr, LocalOsStr, SharedOsStr};
 #[cfg(all(feature = "std", feature = "path"))]
 pub use path::{InlinePath, LocalPath, SharedPath};
 #[cfg(feature = "str")]
-pub use str::{InlineStr, LocalStr, SharedStr};
+pub use str::{InlineStr, LocalStr, SharedStr, TooLongOrUtf8Error};
 
 use alloc::borrow::{Borrow, Cow};
 #[cfg(feature = "cstr")]

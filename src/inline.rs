@@ -47,15 +47,24 @@ pub const INLINE_CAPACITY: usize = size_of::<String>() - 2;
 
 /// Error type returned when the string is too long for inline storage.
 #[derive(Debug)]
-pub struct StringTooLongForInlining;
+pub struct TooLongForInlining {
+    /// The length of the string
+    pub length: usize,
+    /// The capacity of the inline storage
+    pub inline_capacity: usize,
+}
 
-impl fmt::Display for StringTooLongForInlining {
+impl fmt::Display for TooLongForInlining {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("string too long for inline storage")
+        write!(
+            f,
+            "string too long for inline storage: length={} inline_capacity={}",
+            self.length, self.inline_capacity
+        )
     }
 }
 
-impl core::error::Error for StringTooLongForInlining {}
+impl core::error::Error for TooLongForInlining {}
 
 // *** InlineFlexStr ***
 
@@ -74,13 +83,16 @@ pub struct InlineFlexStr<S: ?Sized + StringToFromBytes> {
 
 impl<S: ?Sized + StringToFromBytes> InlineFlexStr<S> {
     /// Attempt to create an inlined string from a borrowed string. Returns `None` if the string is too long.
-    pub fn try_from_type(s: &S) -> Result<Self, &S> {
+    pub fn try_from_type(s: &S) -> Result<Self, TooLongForInlining> {
         let bytes = S::self_as_raw_bytes(s);
 
         if bytes.len() <= INLINE_CAPACITY {
             Ok(Self::from_bytes(bytes))
         } else {
-            Err(s)
+            Err(TooLongForInlining {
+                length: bytes.len(),
+                inline_capacity: INLINE_CAPACITY,
+            })
         }
     }
 
@@ -129,14 +141,15 @@ impl<S: ?Sized + StringToFromBytes> InlineFlexStr<S> {
         }
     }
 
-    #[cfg(feature = "safe")]
+    #[cfg(all(feature = "safe", feature = "cstr"))]
     #[inline(always)]
     pub(crate) fn append_nul_zero(&mut self) {
         // PANIC SAFETY: We know the length is valid and at least one byte shorter than the capacity
         self.inline[self.len as usize] = 0;
         self.len += 1;
     }
-    #[cfg(not(feature = "safe"))]
+
+    #[cfg(all(not(feature = "safe"), feature = "cstr"))]
     #[inline(always)]
     pub(crate) fn append_nul_zero(&mut self) {
         // SAFETY: We know the length is valid and at least one byte shorter than the capacity

@@ -7,7 +7,7 @@ use core::{
 
 use crate::{
     FlexStr, ImmutableBytes, InlineFlexStr, RefCounted, RefCountedMut, StringToFromBytes,
-    inline::{INLINE_CAPACITY, StringTooLongForInlining, inline_partial_eq_impl},
+    inline::{INLINE_CAPACITY, TooLongForInlining, inline_partial_eq_impl},
     partial_eq_impl, ref_counted_mut_impl,
 };
 
@@ -31,22 +31,18 @@ const _: () = assert!(
     "Option<SharedCStr> must be less than or equal to the size of CString plus one machine word"
 );
 
-impl<R: RefCounted<CStr>> FlexStr<'_, CStr, R> {
-    /// Borrow the CStr as bytes with a trailing NUL byte
-    pub fn as_bytes_with_nul(&self) -> &[u8] {
-        self.as_raw_bytes()
-    }
-}
-
 // *** InteriorNulError ***
 
 /// Error type returned when a C String has an interior NUL byte.
 #[derive(Debug)]
-pub struct InteriorNulError(pub usize);
+pub struct InteriorNulError {
+    /// The position of the interior NUL byte
+    pub position: usize,
+}
 
 impl fmt::Display for InteriorNulError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Interior NUL byte found at position {}", self.0)
+        write!(f, "Interior NUL byte found at position {}", self.position)
     }
 }
 
@@ -57,7 +53,9 @@ impl core::error::Error for InteriorNulError {}
 /// Error type returned when a C String is too long for inline storage or has an interior NUL byte.
 #[derive(Debug)]
 pub enum TooLongOrNulError {
-    TooLong(StringTooLongForInlining),
+    /// The C String is too long for inline storage
+    TooLong(TooLongForInlining),
+    /// The C String has an interior NUL byte
     NulError(InteriorNulError),
 }
 
@@ -72,6 +70,48 @@ impl fmt::Display for TooLongOrNulError {
 
 impl core::error::Error for TooLongOrNulError {}
 
+// *** FlexStr ***
+
+impl<'s, R: RefCounted<CStr>> FlexStr<'s, CStr, R> {
+    fn from_bytes_without_nul(bytes: &'s [u8]) -> Self {
+        match InlineFlexStr::try_from_bytes_without_nul(bytes) {
+            Ok(inline) => FlexStr::from_inline(inline),
+            // Finally, fallback to creating a new CString so nul zero is appended
+            Err(_) => FlexStr::from_owned(
+                #[cfg(feature = "safe")]
+                // PANIC SAFETY: We already tested for interior NUL bytes
+                CString::new(bytes).expect("Unexpected interior NUL byte"),
+                #[cfg(not(feature = "safe"))]
+                // SAFETY: We already tested for interior NUL bytes
+                unsafe {
+                    CString::from_vec_unchecked(bytes.into())
+                },
+            ),
+        }
+    }
+
+    /// Attempt to create a CStr from borrowed bytes with or without a trailing NUL byte.
+    pub fn try_from_bytes_with_or_without_nul(bytes: &'s [u8]) -> Result<Self, InteriorNulError> {
+        match CStr::from_bytes_with_nul(bytes) {
+            // If it is already a valid CStr, then just borrow it
+            Ok(cstr) => Ok(FlexStr::from_borrowed(cstr)),
+            // Otherwise try and inline it, adding a nul zero
+            Err(FromBytesWithNulError::NotNulTerminated) => Ok(Self::from_bytes_without_nul(bytes)),
+            Err(FromBytesWithNulError::InteriorNul { position }) => {
+                Err(InteriorNulError { position })
+            }
+        }
+    }
+
+    /// Borrow the CStr as bytes with a trailing NUL byte
+    #[inline]
+    pub fn as_bytes_with_nul(&self) -> &[u8] {
+        self.as_raw_bytes()
+    }
+}
+
+// *** InlineFlexStr ***
+
 impl InlineFlexStr<CStr> {
     fn try_from_bytes_without_nul(bytes: &[u8]) -> Result<Self, TooLongOrNulError> {
         if bytes.len() < INLINE_CAPACITY {
@@ -79,18 +119,20 @@ impl InlineFlexStr<CStr> {
             inline.append_nul_zero();
             Ok(inline)
         } else {
-            Err(TooLongOrNulError::TooLong(StringTooLongForInlining))
+            Err(TooLongOrNulError::TooLong(TooLongForInlining {
+                length: bytes.len(),
+                inline_capacity: INLINE_CAPACITY,
+            }))
         }
     }
 
     /// Attempt to create an inlined string from borrowed bytes with or without a trailing NUL byte.
     pub fn try_from_bytes_with_or_without_nul(bytes: &[u8]) -> Result<Self, TooLongOrNulError> {
         match CStr::from_bytes_with_nul(bytes) {
-            Ok(cstr) => Self::try_from_type(cstr)
-                .map_err(|_| TooLongOrNulError::TooLong(StringTooLongForInlining)),
+            Ok(cstr) => Self::try_from_type(cstr).map_err(TooLongOrNulError::TooLong),
             Err(FromBytesWithNulError::NotNulTerminated) => Self::try_from_bytes_without_nul(bytes),
             Err(FromBytesWithNulError::InteriorNul { position }) => {
-                Err(TooLongOrNulError::NulError(InteriorNulError(position)))
+                Err(TooLongOrNulError::NulError(InteriorNulError { position }))
             }
         }
     }
@@ -147,15 +189,53 @@ impl<'s, R: RefCounted<CStr>> From<CString> for FlexStr<'s, CStr, R> {
     }
 }
 
-// *** TryFrom<&CStr> for InlineFlexStr ***
+// *** TryFrom for FlexStr ***
+
+impl<'s, R: RefCounted<CStr>> TryFrom<&'s str> for FlexStr<'s, CStr, R> {
+    type Error = InteriorNulError;
+
+    #[inline]
+    fn try_from(s: &'s str) -> Result<Self, Self::Error> {
+        FlexStr::try_from_bytes_with_or_without_nul(s.as_bytes())
+    }
+}
+
+impl<'s, R: RefCounted<CStr>> TryFrom<&'s [u8]> for FlexStr<'s, CStr, R> {
+    type Error = InteriorNulError;
+
+    #[inline]
+    fn try_from(bytes: &'s [u8]) -> Result<Self, Self::Error> {
+        FlexStr::try_from_bytes_with_or_without_nul(bytes)
+    }
+}
+
+// *** TryFrom for InlineFlexStr ***
 
 // NOTE: Cannot be implemented generically because of impl<T, U> TryFrom<U> for T where U: Into<T>
 impl<'s> TryFrom<&'s CStr> for InlineFlexStr<CStr> {
-    type Error = &'s CStr;
+    type Error = TooLongForInlining;
 
     #[inline]
     fn try_from(s: &'s CStr) -> Result<Self, Self::Error> {
         InlineFlexStr::try_from_type(s)
+    }
+}
+
+impl<'s> TryFrom<&'s str> for InlineFlexStr<CStr> {
+    type Error = TooLongOrNulError;
+
+    #[inline]
+    fn try_from(s: &'s str) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_bytes_with_or_without_nul(s.as_bytes())
+    }
+}
+
+impl<'s> TryFrom<&'s [u8]> for InlineFlexStr<CStr> {
+    type Error = TooLongOrNulError;
+
+    #[inline]
+    fn try_from(bytes: &'s [u8]) -> Result<Self, Self::Error> {
+        InlineFlexStr::try_from_bytes_without_nul(bytes)
     }
 }
 
@@ -197,30 +277,7 @@ impl<R: RefCounted<CStr>> FromStr for FlexStr<'static, CStr, R> {
     type Err = InteriorNulError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let bytes = s.as_bytes();
-
-        match CStr::from_bytes_with_nul(bytes) {
-            // If it is already a valid CStr, then just borrow it
-            Ok(cstr) => Ok(FlexStr::from_borrowed(cstr).into_owned()),
-            Err(FromBytesWithNulError::NotNulTerminated) => {
-                // Otherwise try and inline it, adding a nul zero
-                match InlineFlexStr::try_from_bytes_without_nul(bytes) {
-                    Ok(inline) => Ok(FlexStr::from_inline(inline)),
-                    // Finally, fallback to creating a new CString so nul zero is appended
-                    Err(_) => Ok(FlexStr::from_owned(
-                        #[cfg(feature = "safe")]
-                        // PANIC SAFETY: We already tested for interior NUL bytes
-                        CString::new(bytes).expect("Unexpected interior NUL byte"),
-                        #[cfg(not(feature = "safe"))]
-                        // SAFETY: We already tested for interior NUL bytes
-                        unsafe {
-                            CString::from_vec_unchecked(bytes.into())
-                        },
-                    )),
-                }
-            }
-            Err(FromBytesWithNulError::InteriorNul { position }) => Err(InteriorNulError(position)),
-        }
+        FlexStr::try_from_bytes_with_or_without_nul(s.as_bytes()).map(FlexStr::into_owned)
     }
 }
 
