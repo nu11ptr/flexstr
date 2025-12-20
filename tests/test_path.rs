@@ -164,6 +164,125 @@ fn test_clone_variants_path() {
     common::edge_cases::test_clone_variants::<Path, Arc<Path>>(Path::new("test"));
 }
 
+// *** StringLike Tests ***
+
+#[test]
+fn test_as_path() {
+    common::stringlike::test_as_path::<Path, Arc<Path>>(Path::new("test"));
+}
+
+#[test]
+fn test_into_path_buf() {
+    common::stringlike::test_into_path_buf::<Path, Arc<Path>>(Path::new("test"));
+}
+
+#[test]
+fn test_to_path_buf() {
+    common::stringlike::test_to_path_buf::<Path, Arc<Path>>(Path::new("test"));
+}
+
+// *** TryFrom Tests ***
+
+#[test]
+fn test_try_from_path_too_long() {
+    common::try_from::test_try_from_path_too_long();
+}
+
+#[test]
+fn test_try_from_str_path_too_long() {
+    common::try_from::test_try_from_str_path_too_long();
+}
+
+#[test]
+fn test_try_from_osstr_path_too_long() {
+    common::try_from::test_try_from_osstr_path_too_long();
+}
+
+// *** From Tests ***
+
+#[test]
+fn test_from_path_buf() {
+    common::from::test_from_path_buf::<Arc<Path>>();
+}
+
+#[test]
+fn test_from_string_path() {
+    common::from::test_from_string_path::<Arc<Path>>();
+}
+
+#[test]
+fn test_from_os_string_path() {
+    common::from::test_from_os_string_path::<Arc<Path>>();
+}
+
+#[test]
+fn test_from_str_ref_path() {
+    common::from::test_from_str_ref_path::<Arc<Path>>();
+}
+
+#[test]
+fn test_from_osstr_ref_path() {
+    common::from::test_from_osstr_ref_path::<Arc<Path>>();
+}
+
+// *** FromStr Tests ***
+
+#[test]
+fn test_from_str_path_success() {
+    common::from_str::test_from_str_path_success::<Arc<Path>>();
+}
+
+#[test]
+fn test_from_str_inline_path_success() {
+    common::from_str::test_from_str_inline_path_success();
+}
+
+#[test]
+fn test_from_str_inline_path_error() {
+    common::from_str::test_from_str_inline_path_error();
+}
+
+// *** AsRef Tests ***
+
+#[test]
+fn test_as_ref_path_flex_str() {
+    common::as_ref::test_as_ref_path_flex_str::<Arc<Path>>(Path::new("test"));
+}
+
+#[test]
+fn test_as_ref_path_inline() {
+    common::as_ref::test_as_ref_path_inline(Path::new("test"));
+}
+
+// *** InlineFlexStr Edge Cases ***
+
+// Path doesn't implement Default, so skip this test
+// #[test]
+// fn test_inline_default_path() {
+//     common::inline_edge_cases::test_inline_default::<Path>();
+// }
+
+#[test]
+fn test_try_from_type_too_long_path() {
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    common::inline_edge_cases::test_try_from_type_too_long::<Path>(Path::new(long_str));
+}
+
+#[test]
+fn test_optimize_ref_counted_to_inlined_path() {
+    common::inline_edge_cases::test_optimize_ref_counted_to_inlined::<Path, Arc<Path>>(Path::new(
+        "test",
+    ));
+}
+
+#[test]
+fn test_optimize_ref_counted_stays_ref_counted_path() {
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    common::inline_edge_cases::test_optimize_ref_counted_stays_ref_counted::<Path, Arc<Path>>(
+        Path::new(long_str),
+    );
+}
+
 // *** Mutation Tests ***
 
 #[test]

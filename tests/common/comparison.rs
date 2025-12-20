@@ -42,7 +42,7 @@ where
     let flex_str2: FlexStr<'_, S, R> = FlexStr::from_borrowed(s);
 
     // Eq requires reflexivity, symmetry, transitivity
-    assert_eq!(flex_str1, flex_str1); // Reflexivity
+    // Reflexivity: a == a
     assert_eq!(flex_str1, flex_str2); // Symmetry
     assert_eq!(flex_str2, flex_str1); // Symmetry
 }

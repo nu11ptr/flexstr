@@ -168,6 +168,124 @@ fn test_clone_variants_osstr() {
     common::edge_cases::test_clone_variants::<OsStr, Arc<OsStr>>(OsStr::new("test"));
 }
 
+// *** StringLike Tests ***
+
+#[test]
+fn test_as_os_str() {
+    common::stringlike::test_as_os_str::<OsStr, Arc<OsStr>>(OsStr::new("test"));
+}
+
+#[test]
+fn test_into_os_string() {
+    common::stringlike::test_into_os_string::<OsStr, Arc<OsStr>>(OsStr::new("test"));
+}
+
+#[test]
+fn test_to_os_string() {
+    common::stringlike::test_to_os_string::<OsStr, Arc<OsStr>>(OsStr::new("test"));
+}
+
+// *** TryFrom Tests ***
+
+#[test]
+fn test_try_from_osstr_too_long() {
+    common::try_from::test_try_from_osstr_too_long();
+}
+
+#[test]
+fn test_try_from_str_osstr_too_long() {
+    common::try_from::test_try_from_str_osstr_too_long();
+}
+
+#[test]
+fn test_try_from_path_osstr_too_long() {
+    common::try_from::test_try_from_path_osstr_too_long();
+}
+
+// *** From Tests ***
+
+#[test]
+fn test_from_os_string() {
+    common::from::test_from_os_string::<Arc<OsStr>>();
+}
+
+#[test]
+fn test_from_string_osstr() {
+    common::from::test_from_string_osstr::<Arc<OsStr>>();
+}
+
+#[test]
+fn test_from_path_buf_osstr() {
+    common::from::test_from_path_buf_osstr::<Arc<OsStr>>();
+}
+
+#[test]
+fn test_from_str_ref_osstr() {
+    common::from::test_from_str_ref_osstr::<Arc<OsStr>>();
+}
+
+#[test]
+fn test_from_path_ref_osstr() {
+    common::from::test_from_path_ref_osstr::<Arc<OsStr>>();
+}
+
+// *** FromStr Tests ***
+
+#[test]
+fn test_from_str_osstr_success() {
+    common::from_str::test_from_str_osstr_success::<Arc<OsStr>>();
+}
+
+#[test]
+fn test_from_str_inline_osstr_success() {
+    common::from_str::test_from_str_inline_osstr_success();
+}
+
+#[test]
+fn test_from_str_inline_osstr_error() {
+    common::from_str::test_from_str_inline_osstr_error();
+}
+
+// *** AsRef Tests ***
+
+#[test]
+fn test_as_ref_osstr_flex_str() {
+    common::as_ref::test_as_ref_osstr_flex_str::<Arc<OsStr>>(OsStr::new("test"));
+}
+
+#[test]
+fn test_as_ref_osstr_inline() {
+    common::as_ref::test_as_ref_osstr_inline(OsStr::new("test"));
+}
+
+// *** InlineFlexStr Edge Cases ***
+
+#[test]
+fn test_inline_default_osstr() {
+    common::inline_edge_cases::test_inline_default::<OsStr>();
+}
+
+#[test]
+fn test_try_from_type_too_long_osstr() {
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    common::inline_edge_cases::test_try_from_type_too_long::<OsStr>(OsStr::new(long_str));
+}
+
+#[test]
+fn test_optimize_ref_counted_to_inlined_osstr() {
+    common::inline_edge_cases::test_optimize_ref_counted_to_inlined::<OsStr, Arc<OsStr>>(
+        OsStr::new("test"),
+    );
+}
+
+#[test]
+fn test_optimize_ref_counted_stays_ref_counted_osstr() {
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    common::inline_edge_cases::test_optimize_ref_counted_stays_ref_counted::<OsStr, Arc<OsStr>>(
+        OsStr::new(long_str),
+    );
+}
+
 // *** Mutation Tests ***
 
 #[test]

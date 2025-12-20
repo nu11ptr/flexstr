@@ -237,12 +237,12 @@ fn test_capacity_boundary_exact_str() {
 
 #[test]
 fn test_capacity_boundary_overflow_str() {
-    common::edge_cases::test_capacity_boundary_overflow::<str, Arc<str>>("test");
+    common::edge_cases::test_capacity_boundary_overflow::<str>("test");
 }
 
 #[test]
 fn test_try_from_too_long_str() {
-    common::edge_cases::test_try_from_too_long::<str, Arc<str>>();
+    common::edge_cases::test_try_from_too_long();
 }
 
 #[test]
@@ -262,6 +262,109 @@ fn test_special_content_str() {
 #[test]
 fn test_clone_variants_str() {
     common::edge_cases::test_clone_variants::<str, Arc<str>>("test");
+}
+
+// *** Error Tests ***
+
+#[test]
+fn test_too_long_for_inlining() {
+    common::errors::test_too_long_for_inlining();
+}
+
+#[test]
+fn test_too_long_or_utf8_error_too_long() {
+    common::errors::test_too_long_or_utf8_error_too_long();
+}
+
+#[test]
+fn test_too_long_or_utf8_error_utf8() {
+    common::errors::test_too_long_or_utf8_error_utf8();
+}
+
+// *** StringLike Tests ***
+
+#[test]
+fn test_as_str() {
+    common::stringlike::test_as_str::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_into_string() {
+    common::stringlike::test_into_string::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_to_string() {
+    common::stringlike::test_to_string::<str, Arc<str>>("test");
+}
+
+// *** TryFrom Tests ***
+
+#[test]
+fn test_try_from_bytes_invalid_utf8() {
+    common::try_from::test_try_from_bytes_invalid_utf8::<Arc<str>>();
+}
+
+#[test]
+fn test_try_from_vec_bytes_invalid_utf8() {
+    common::try_from::test_try_from_vec_bytes_invalid_utf8::<Arc<str>>();
+}
+
+#[cfg(feature = "bytes")]
+#[test]
+fn test_try_from_bytes_too_long() {
+    common::try_from::test_try_from_bytes_too_long();
+}
+
+#[cfg(feature = "bytes")]
+#[test]
+fn test_try_from_str_too_long() {
+    common::try_from::test_try_from_str_too_long();
+}
+
+// *** From Tests ***
+
+#[test]
+fn test_from_string() {
+    common::from::test_from_string_str::<Arc<str>>();
+}
+
+// *** FromStr Tests ***
+
+#[test]
+fn test_from_str_flex_str_success() {
+    common::from_str::test_from_str_flex_str_success::<str, Arc<str>>("test");
+}
+
+// *** InlineFlexStr Edge Cases ***
+
+#[test]
+fn test_inline_default() {
+    common::inline_edge_cases::test_inline_default::<str>();
+}
+
+#[test]
+fn test_try_from_type_too_long() {
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    common::inline_edge_cases::test_try_from_type_too_long::<str>(long_str);
+}
+
+#[test]
+fn test_as_mut_type_str() {
+    common::inline_edge_cases::test_as_mut_type_str();
+}
+
+#[test]
+fn test_optimize_ref_counted_to_inlined() {
+    common::inline_edge_cases::test_optimize_ref_counted_to_inlined::<str, Arc<str>>("test");
+}
+
+#[test]
+fn test_optimize_ref_counted_stays_ref_counted() {
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    common::inline_edge_cases::test_optimize_ref_counted_stays_ref_counted::<str, Arc<str>>(
+        long_str,
+    );
 }
 
 // *** Mutation Tests ***

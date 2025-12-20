@@ -163,6 +163,98 @@ fn test_clone_variants_cstr() {
     common::edge_cases::test_clone_variants::<CStr, Arc<CStr>>(c"test");
 }
 
+// *** Error Tests ***
+
+#[test]
+fn test_interior_nul_error() {
+    common::errors::test_interior_nul_error();
+}
+
+#[test]
+fn test_too_long_or_nul_error_too_long() {
+    common::errors::test_too_long_or_nul_error_too_long();
+}
+
+#[test]
+fn test_too_long_or_nul_error_nul() {
+    common::errors::test_too_long_or_nul_error_nul();
+}
+
+// *** StringLike Tests ***
+
+#[test]
+fn test_as_c_str() {
+    common::stringlike::test_as_c_str::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_into_c_string() {
+    common::stringlike::test_into_c_string::<CStr, Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_to_c_string() {
+    common::stringlike::test_to_c_string::<CStr, Arc<CStr>>(c"test");
+}
+
+// *** CStr-Specific Tests ***
+
+#[test]
+fn test_try_from_bytes_with_nul() {
+    common::cstr_specific::test_try_from_bytes_with_nul::<Arc<CStr>>();
+}
+
+#[test]
+fn test_try_from_bytes_without_nul() {
+    common::cstr_specific::test_try_from_bytes_without_nul::<Arc<CStr>>();
+}
+
+#[test]
+fn test_try_from_bytes_interior_nul() {
+    common::cstr_specific::test_try_from_bytes_interior_nul::<Arc<CStr>>();
+}
+
+#[test]
+fn test_as_bytes_with_nul() {
+    common::cstr_specific::test_as_bytes_with_nul::<Arc<CStr>>(c"test");
+}
+
+#[test]
+fn test_inline_try_from_bytes_with_nul() {
+    common::cstr_specific::test_inline_try_from_bytes_with_nul();
+}
+
+#[test]
+fn test_inline_try_from_bytes_without_nul() {
+    common::cstr_specific::test_inline_try_from_bytes_without_nul();
+}
+
+#[test]
+fn test_inline_try_from_bytes_interior_nul() {
+    common::cstr_specific::test_inline_try_from_bytes_interior_nul();
+}
+
+#[test]
+fn test_inline_try_from_bytes_too_long() {
+    common::cstr_specific::test_inline_try_from_bytes_too_long();
+}
+
+// *** InlineFlexStr Edge Cases ***
+
+#[test]
+fn test_inline_default_cstr() {
+    common::inline_edge_cases::test_inline_default::<CStr>();
+}
+
+#[test]
+fn test_try_from_type_too_long_cstr() {
+    let mut long_bytes = vec![b'x'; flexstry::INLINE_CAPACITY];
+    long_bytes.push(0);
+    let long_bytes_static: &'static [u8] = Box::leak(long_bytes.into_boxed_slice());
+    let long_cstr = CStr::from_bytes_with_nul(long_bytes_static).unwrap();
+    common::inline_edge_cases::test_try_from_type_too_long::<CStr>(long_cstr);
+}
+
 // *** Mutation Tests ***
 
 #[test]
