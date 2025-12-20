@@ -46,7 +46,7 @@ use alloc::borrow::{Borrow, Cow};
 use alloc::ffi::CString;
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), feature = "bytes"))]
 use alloc::vec::Vec;
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
