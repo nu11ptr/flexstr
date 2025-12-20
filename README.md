@@ -6,34 +6,35 @@
 [![codecov](https://codecov.io/gh/nu11ptr/flexstr/branch/master/graph/badge.svg?token=yUZ8v2tKPd)](https://codecov.io/gh/nu11ptr/flexstr)
 [![MSRV](https://img.shields.io/badge/msrv-1.59-blue.svg)](https://crates.io/crates/flexstr)
 
-
-A flexible, simple to use, immutable, clone-efficient `String` replacement for 
-Rust. It unifies borrowed, inlined, and heap allocated strings into a single 
-type.
+A flexible, simple to use, clone-efficient `String` replacement for Rust. It unifies borrowed, inlined, and heap allocated strings into a single type.
 
 ## Overview
 
-TL;DR - If you've used `Cow`, but you wish cloning owned strings was more performant and memory efficient, this crate might be for you. Our operations are "lazy" (just like `Cow`). We try not to do work the user is not expecting.
+TL;DR - If you've used `Cow`, but you wish cloning owned strings was more performant and that owned didn't always imply heap allocation, this crate might be what you are looking for. The operations are "lazy" (like `Cow`), and it tries not to do work the user is not expecting.
 
-There are now many clone efficient, inlined string crates available, but this crate is a bit different. First, it is very simple: it is just an enum. I modeled its semantics after the basic `Cow` in the stdlib. `Cow` is pretty handy, but borrowed/owned isn't enough for what I needed. I wanted clones to not allocate new space, ideally ever. Also, I thought it would be nice if short strings didn't allocate at all, since I find short strings very prevalent. The goal was really a unified string type that can handle just about any situation (other than a mutable string buffer).
+Longer:
 
-My previous attempts at writing this crate succombed a bit to much to "wouldn't it be cool", which is why this crate is a ground up rewrite, much simpler, and very pragmatic to typical string use cases.
+There are now many clone efficient, inlined string crates available at this point, but this crate is a bit different. First, it is simple: it is just an enum, so you are always in control of what type of string it contains. Its basic semantics are modeled after the basic `Cow` in the stdlib. `Cow` is pretty handy, but borrowed/owned alone isn't always sufficient (this crate adds ref counted and inlined strings). Clones should ideally not allocate new space. Also, it would be nice if short strings didn't allocate at all, since short strings are often prevalent. The goal was really a unified string type that can handle just about any situation, and bring all those use cases together in a single type.
 
-Lastly, I think this might be the only inline/clone efficient string crate I'm aware of that is generic over all the Rust string types (`str`, `CStr`, `OsStr`, `Path`, `[u8]`).
+If you have used previous versions of this crate, you should be aware this new version is a ground up rewrite with a solidly different thought process, API and design. Even if the previous versions didn't match your needs, this one might.
+
+Lastly, this might be the only inline/clone efficient string crate that is generic over all the Rust string types (`str`, `CStr`, `OsStr`, `Path`, `[u8]`).
 
 ## Features
 
-* Simple: just an enum
-* Borrowed, inlined, reference counted, and boxed strings in a singe type
+* Simple: just an enum. You mostly already know how to use it.
+* Borrowed, inlined, reference counted, and boxed strings in a single type
+* When using boxed variant, moving to/from `String` is very efficient.
+* Inlined string type can be used on its own
 * O(1) clone
     * NOTE: first `clone` when variant is `Boxed` is O(n)
 * Same size a a `String` (3 words wide, even inside an `Option`)
-* Lazy on import (no unexpected allocations)
+* Lazy on create (no unexpected allocations)
 * No dependencies
     * NOTE: `serde` optional for serialization/deserialization
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
-    * NOTE: This does induce a performance penalty
+    * NOTE: This does induce a performance penalty, as would be expected
 * Handles all Rust string types (`str`, `CStr`, `OsStr`, `Path`, `[u8]`)
 
 ## Cargo Features
@@ -55,8 +56,8 @@ It is just an enum that looks like this - you can probably guess much of how it 
 
 ```rust,ignore
 
-// `S` is just the string type (typically `str`)
-// `R` is just an `Arc<str>` or `Rc<str>`.
+// `S` is just the raw string type (typically `str`)
+// `R` is just an `Arc` or a `Rc`.
 pub enum FlexStr<'s, S, R> {
     Borrowed(&'s S),
     Inlined(InlineFlexStr<S>),
@@ -64,7 +65,7 @@ pub enum FlexStr<'s, S, R> {
     Boxed(Box<S>),
 }
 
-// Now we can declare some friendly types we can actually use
+// You would typically use it via one of the type aliases, for example:
 pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
 pub type SharedStr<'s> = FlexStr<'s, str, Arc<str>>;
 ```
@@ -75,11 +76,11 @@ Even that you don't really need to concern yourself with. You can just use it ho
 use flexstry::*;
 
 // This will be a "Borrowed" variant
-let hello: SharedStr<'_> = "hello".into();
+let hello: SharedStr = "hello".into();
 assert!(hello.is_borrowed());
 
 // This will be a "Boxed" variant
-let world: SharedStr<'_> = "world".to_string().into();
+let world: SharedStr = "world".to_string().into();
 assert!(world.is_boxed());
 
 // This is now "Inlined" (since it is short)
@@ -92,7 +93,6 @@ assert!(world.is_inlined());
 
 println!("{hello} {world}");
 ```
-
 
 ## Status
 
