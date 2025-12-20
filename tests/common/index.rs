@@ -15,7 +15,7 @@ where
     // Test that we can deref to get &S (required for Index trait)
     // The dereferenced values should be equal, not necessarily the same pointer
     let original_ref: &S = s;
-    let flex_ref: &S = &*flex_str;
+    let flex_ref: &S = &flex_str;
 
     // Verify the references are equal via PartialEq (not pointer equality)
     assert_eq!(original_ref, flex_ref);
@@ -34,7 +34,7 @@ where
     // Test that we can deref to get &S (required for Index trait)
     // For inlined strings, the pointer will be different (data is copied), but values should be equal
     let original_ref: &S = s;
-    let inline_ref: &S = &*inline_str;
+    let inline_ref: &S = &inline_str;
 
     // Verify the references are equal via PartialEq (not pointer equality)
     assert_eq!(original_ref, inline_ref);
@@ -53,7 +53,7 @@ where
     // Test that we can deref mutably to get &mut S (required for IndexMut trait)
     // The mutable reference should initially equal the original
     let original_ref: &S = s;
-    let inline_ref: &mut S = &mut *inline_str;
+    let inline_ref: &mut S = &mut inline_str;
 
     // Verify the mutable reference equals the original via PartialEq
     assert_eq!(original_ref, inline_ref);

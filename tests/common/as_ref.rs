@@ -1,10 +1,5 @@
 #![allow(dead_code)]
 
-#[cfg(any(
-    feature = "bytes",
-    all(feature = "std", feature = "osstr"),
-    all(feature = "std", feature = "path")
-))]
 use flexstry::{FlexStr, InlineFlexStr, RefCounted};
 
 /// Test AsRef<[u8]> for FlexStr<[u8], R>

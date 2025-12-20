@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![cfg(feature = "std")]
 
 use flexstry::{FlexStr, InlineFlexStr, RefCounted, StringToFromBytes};
 use std::net::ToSocketAddrs;
