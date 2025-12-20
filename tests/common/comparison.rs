@@ -23,11 +23,11 @@ where
         assert!(flex_str1 != flex_str2);
     }
 
-    // Test equality across variants
-    if let Ok(inline_str) = InlineFlexStr::try_from_type(s1) {
-        let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
-        assert_eq!(flex_str1, inlined);
-    }
+    // Test equality across variants (input should be small enough to inline)
+    let inline_str =
+        InlineFlexStr::try_from_type(s1).expect("test input should be small enough to inline");
+    let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
+    assert_eq!(flex_str1, inlined);
 }
 
 /// Test Eq implementation
@@ -56,9 +56,11 @@ where
     let flex_str1: FlexStr<'_, S, R> = FlexStr::from_borrowed(s1);
     let flex_str2: FlexStr<'_, S, R> = FlexStr::from_borrowed(s2);
 
-    if let Some(ord) = s1.partial_cmp(s2) {
-        assert_eq!(flex_str1.partial_cmp(&flex_str2), Some(ord));
-    }
+    // Test inputs should be comparable (partial_cmp should return Some)
+    let ord = s1
+        .partial_cmp(s2)
+        .expect("test inputs should be comparable");
+    assert_eq!(flex_str1.partial_cmp(&flex_str2), Some(ord));
 }
 
 /// Test Ord implementation
@@ -90,23 +92,27 @@ where
     borrowed.hash(&mut hasher1);
     let hash1 = hasher1.finish();
 
-    if let Ok(inline_str) = InlineFlexStr::try_from_type(s) {
-        let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
-        let mut hasher2 = DefaultHasher::new();
-        inlined.hash(&mut hasher2);
-        let hash2 = hasher2.finish();
-        assert_eq!(hash1, hash2);
-    }
+    // Input should be small enough to inline
+    let inline_str =
+        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
+    let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
+    let mut hasher2 = DefaultHasher::new();
+    inlined.hash(&mut hasher2);
+    let hash2 = hasher2.finish();
+    assert_eq!(hash1, hash2);
 
     // Test that ref_counted variant hashes the same
-    if !s.self_as_bytes().is_empty() {
-        let rc: R = s.into();
-        let ref_counted: FlexStr<'_, S, R> = FlexStr::from_ref_counted(rc);
-        let mut hasher3 = DefaultHasher::new();
-        ref_counted.hash(&mut hasher3);
-        let hash3 = hasher3.finish();
-        assert_eq!(hash1, hash3);
-    }
+    // Test input should be non-empty
+    assert!(
+        !s.self_as_bytes().is_empty(),
+        "test input should be non-empty"
+    );
+    let rc: R = s.into();
+    let ref_counted: FlexStr<'_, S, R> = FlexStr::from_ref_counted(rc);
+    let mut hasher3 = DefaultHasher::new();
+    ref_counted.hash(&mut hasher3);
+    let hash3 = hasher3.finish();
+    assert_eq!(hash1, hash3);
 }
 
 /// Test comparison with &S
@@ -140,9 +146,10 @@ where
     S: ?Sized + StringToFromBytes + fmt::Debug + PartialEq,
     R: RefCounted<S>,
 {
-    if let Ok(inline_str) = InlineFlexStr::try_from_type(s) {
-        let flex_str: FlexStr<'_, S, R> = FlexStr::from_borrowed(s);
+    // Input should be small enough to inline
+    let inline_str =
+        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
+    let flex_str: FlexStr<'_, S, R> = FlexStr::from_borrowed(s);
 
-        assert_eq!(flex_str.as_ref_type(), inline_str.as_ref_type());
-    }
+    assert_eq!(flex_str.as_ref_type(), inline_str.as_ref_type());
 }

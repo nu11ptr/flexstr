@@ -120,12 +120,12 @@ where
     let cloned = borrowed.clone();
     assert_eq!(borrowed, cloned);
 
-    // Test clone for inlined
-    if let Ok(inline_str) = InlineFlexStr::try_from_type(s) {
-        let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
-        let cloned = inlined.clone();
-        assert_eq!(inlined, cloned);
-    }
+    // Test clone for inlined (input should be small enough to inline)
+    let inline_str =
+        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
+    let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
+    let cloned = inlined.clone();
+    assert_eq!(inlined, cloned);
 
     // Test clone for ref counted
     let rc: R = s.into();

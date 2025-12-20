@@ -174,11 +174,12 @@ where
     S: ?Sized + StringToFromBytes + fmt::Debug + PartialEq,
     R: RefCounted<S>,
 {
-    if let Ok(inline_str) = InlineFlexStr::try_from_type(s) {
-        let flex_str: FlexStr<'_, S, R> = inline_str.into();
-        assert!(flex_str.is_inlined());
-        assert_eq!(flex_str.as_ref_type(), s);
-    }
+    // Input should be small enough to inline
+    let inline_str =
+        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
+    let flex_str: FlexStr<'_, S, R> = inline_str.into();
+    assert!(flex_str.is_inlined());
+    assert_eq!(flex_str.as_ref_type(), s);
 }
 
 /// Test From<Cow> implementation

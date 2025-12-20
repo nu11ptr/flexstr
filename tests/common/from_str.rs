@@ -28,16 +28,16 @@ where
 }
 
 /// Test FromStr error for InlineFlexStr (too long)
+/// Input should be too long to inline, causing an error
 pub fn test_from_str_inline_error_too_long<S>(s: &str)
 where
     InlineFlexStr<S>: FromStr,
     S: ?Sized + StringToFromBytes + fmt::Debug,
     <InlineFlexStr<S> as FromStr>::Err: fmt::Debug + fmt::Display,
 {
-    if let Err(err) = InlineFlexStr::from_str(s) {
-        // Test that error can be displayed
-        let _ = format!("{}", err);
-    }
+    let err = InlineFlexStr::from_str(s).expect_err("test input should be too long to inline");
+    // Test that error can be displayed
+    let _ = format!("{}", err);
 }
 
 /// Test FromStr for FlexStr<[u8], R>

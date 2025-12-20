@@ -31,44 +31,42 @@ where
 }
 
 /// Test capacity boundary - string at exact capacity
+/// Input must be exactly at INLINE_CAPACITY
 pub fn test_capacity_boundary_exact<S, R>(s: &'static S)
 where
     S: ?Sized + StringToFromBytes + fmt::Debug + PartialEq,
     R: RefCounted<S>,
 {
     let bytes = s.self_as_raw_bytes();
+    assert_eq!(
+        bytes.len(),
+        flexstry::INLINE_CAPACITY,
+        "test input must be exactly at capacity"
+    );
 
-    // If the string is exactly at capacity, it should inline
-    #[allow(clippy::collapsible_if)]
-    if bytes.len() == flexstry::INLINE_CAPACITY {
-        if let Ok(inline_str) = InlineFlexStr::try_from_type(s) {
-            let flex_str: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
-            assert!(flex_str.is_inlined());
-            assert_eq!(flex_str.as_ref_type(), s);
-        }
-    }
+    let inline_str =
+        InlineFlexStr::try_from_type(s).expect("string at exact capacity should inline");
+    let flex_str: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
+    assert!(flex_str.is_inlined());
+    assert_eq!(flex_str.as_ref_type(), s);
 }
 
 /// Test capacity boundary - string one byte over capacity
+/// Input must be smaller than INLINE_CAPACITY
 pub fn test_capacity_boundary_overflow<S>(s: &'static S)
 where
     S: ?Sized + StringToFromBytes + fmt::Debug + PartialEq,
 {
     let bytes = s.self_as_raw_bytes();
+    assert!(
+        bytes.len() < flexstry::INLINE_CAPACITY,
+        "test input must be smaller than capacity"
+    );
 
-    // If we can create a string one byte longer, test it
-    if bytes.len() < flexstry::INLINE_CAPACITY {
-        // Try to create a string that's one byte over capacity
-        // This is type-specific, so we'll just test that try_from_type handles it correctly
-        let result = InlineFlexStr::try_from_type(s);
-
-        if bytes.len() <= flexstry::INLINE_CAPACITY {
-            let _inline_str = result.unwrap();
-        } else if let Err(err) = result {
-            assert_eq!(err.length, bytes.len());
-            assert_eq!(err.inline_capacity, flexstry::INLINE_CAPACITY);
-        }
-    }
+    // Since bytes.len() < INLINE_CAPACITY, bytes.len() <= INLINE_CAPACITY is always true
+    // So try_from_type should always succeed
+    let _inline_str =
+        InlineFlexStr::try_from_type(s).expect("string smaller than capacity should succeed");
 }
 
 /// Test TryFrom error cases - too long
@@ -153,12 +151,12 @@ where
     let cloned = borrowed.clone();
     assert_eq!(borrowed, cloned);
 
-    // Test clone of inlined
-    if let Ok(inline_str) = InlineFlexStr::try_from_type(s) {
-        let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
-        let cloned = inlined.clone();
-        assert_eq!(inlined, cloned);
-    }
+    // Test clone of inlined (input should be small enough to inline)
+    let inline_str =
+        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
+    let inlined: FlexStr<'_, S, R> = FlexStr::from_inline(inline_str);
+    let cloned = inlined.clone();
+    assert_eq!(inlined, cloned);
 
     // Test clone of ref_counted
     let rc: R = s.into();

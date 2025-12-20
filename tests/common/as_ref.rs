@@ -19,12 +19,13 @@ where
 }
 
 /// Test AsRef<[u8]> for InlineFlexStr<[u8]>
+/// Input should be small enough to inline
 #[cfg(feature = "bytes")]
 pub fn test_as_ref_bytes_inline(s: &'static [u8]) {
-    if let Ok(inline_str) = InlineFlexStr::<[u8]>::try_from_type(s) {
-        let bytes_ref: &[u8] = inline_str.as_ref();
-        assert_eq!(bytes_ref, s);
-    }
+    let inline_str = InlineFlexStr::<[u8]>::try_from_type(s)
+        .expect("test input should be small enough to inline");
+    let bytes_ref: &[u8] = inline_str.as_ref();
+    assert_eq!(bytes_ref, s);
 }
 
 /// Test AsRef<OsStr> for FlexStr<OsStr, R>
@@ -39,12 +40,13 @@ where
 }
 
 /// Test AsRef<OsStr> for InlineFlexStr<OsStr>
+/// Input should be small enough to inline
 #[cfg(all(feature = "std", feature = "osstr"))]
 pub fn test_as_ref_osstr_inline(s: &'static std::ffi::OsStr) {
-    if let Ok(inline_str) = InlineFlexStr::<std::ffi::OsStr>::try_from_type(s) {
-        let os_str_ref: &std::ffi::OsStr = inline_str.as_ref();
-        assert_eq!(os_str_ref, s);
-    }
+    let inline_str = InlineFlexStr::<std::ffi::OsStr>::try_from_type(s)
+        .expect("test input should be small enough to inline");
+    let os_str_ref: &std::ffi::OsStr = inline_str.as_ref();
+    assert_eq!(os_str_ref, s);
 }
 
 /// Test AsRef<Path> for FlexStr<Path, R>
@@ -59,10 +61,11 @@ where
 }
 
 /// Test AsRef<Path> for InlineFlexStr<Path>
+/// Input should be small enough to inline
 #[cfg(all(feature = "std", feature = "path"))]
 pub fn test_as_ref_path_inline(s: &'static std::path::Path) {
-    if let Ok(inline_str) = InlineFlexStr::<std::path::Path>::try_from_type(s) {
-        let path_ref: &std::path::Path = inline_str.as_ref();
-        assert_eq!(path_ref, s);
-    }
+    let inline_str = InlineFlexStr::<std::path::Path>::try_from_type(s)
+        .expect("test input should be small enough to inline");
+    let path_ref: &std::path::Path = inline_str.as_ref();
+    assert_eq!(path_ref, s);
 }
