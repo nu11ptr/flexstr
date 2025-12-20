@@ -6,15 +6,22 @@
 [![codecov](https://codecov.io/gh/nu11ptr/flexstr/branch/master/graph/badge.svg?token=yUZ8v2tKPd)](https://codecov.io/gh/nu11ptr/flexstr)
 [![MSRV](https://img.shields.io/badge/msrv-1.59-blue.svg)](https://crates.io/crates/flexstr)
 
-A flexible, simple to use, clone-efficient `String` replacement for Rust. It unifies borrowed, inlined, and heap allocated strings into a single type.
+A flexible, simple to use, clone-efficient `String` replacement for Rust. It unifies borrowed, inlined, referenced counted and boxed strings into a single type.
 
 ## Overview
 
-TL;DR - If you've used `Cow`, but you wish cloning owned strings was more performant and that owned didn't always imply heap allocation, this crate might be what you are looking for. The operations are "lazy" (like `Cow`), and it tries not to do work the user is not expecting.
+TL;DR - If you've used `Cow`, but you wish cloning owned strings was more performant and that being owned didn't always imply heap allocation, this crate might be what you are looking for. The operations are "lazy" (like `Cow`), and it tries not to do work the user is not expecting.
 
 Longer:
 
-There are now many clone efficient, inlined string crates available at this point, but this crate is a bit different. First, it is simple: it is just an enum, so you are always in control of what type of string it contains. Its basic semantics are modeled after the basic `Cow` in the stdlib. `Cow` is pretty handy, but borrowed/owned alone isn't always sufficient (this crate adds ref counted and inlined strings). Clones should ideally not allocate new space. Also, it would be nice if short strings didn't allocate at all, since short strings are often prevalent. The goal was really a unified string type that can handle just about any situation, and bring all those use cases together in a single type.
+There are now many clone efficient, inlined string crates available at this point, but this crate is a bit different. First, it is simple: it is just an enum, so you are always in control of what type of string it contains. Its basic semantics are modeled after the basic `Cow` in the stdlib. `Cow` is pretty handy, but borrowed/owned alone isn't always sufficient (this crate adds ref counted and inlined strings). Clones should ideally not allocate new space (until mutation is required). Also, it would be nice if short strings didn't allocate at all, since short strings are often prevalent. The goal was a unified string type that can handle just about any situation, and bring all those use cases together in a single type.
+
+Each one of the enum variants excels at different use cases, but is brought together in a single type for maximum flexibility:
+
+  - **Borrowed** - Clone/copy performance, memory efficiency and optimal `&str` interop
+  - **Inlined** - Clone/copy performance for short strings, memory efficiency and mutability
+  - **RefCounted** - Clone performance for long strings, memory efficiency and optimal `Arc<str>`/`Rc<str>` interop
+  - **Boxed** - Mutability and optimal `String`/`Box<str>` interop
 
 If you have used previous versions of this crate, you should be aware this new version is a ground up rewrite with a solidly different thought process, API and design. Even if the previous versions didn't match your needs, this one might.
 
@@ -24,12 +31,12 @@ Lastly, this might be the only inline/clone efficient string crate that is gener
 
 * Simple: just an enum. You mostly already know how to use it.
 * Borrowed, inlined, reference counted, and boxed strings in a single type
-* When using boxed variant, moving to/from `String` is very efficient.
-* Inlined string type can be used on its own
 * O(1) clone
     * NOTE: first `clone` when variant is `Boxed` is O(n)
+* Copy-on-write mutability (if necessary)
+* Inlined string type can be used on its own
 * Same size a a `String` (3 words wide, even inside an `Option`)
-* Lazy on create (no unexpected allocations)
+* Lazy instantiation (no unexpected allocations)
 * No dependencies
     * NOTE: `serde` optional for serialization/deserialization
 * Optional `no_std`
@@ -88,7 +95,7 @@ let hello = hello.into_owned();
 assert!(hello.is_inlined());
 
 // This is now "Inlined" as well (since it is short)
-let world = world.clone();
+let world = world.optimize();
 assert!(world.is_inlined());
 
 println!("{hello} {world}");
