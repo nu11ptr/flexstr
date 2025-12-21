@@ -27,7 +27,7 @@ win_min_unsafe = ["flexstr_support/win_min_unsafe", "safe"]
 # String type features
 bytes = ["flexstr_support/bytes"]
 cstr = ["flexstr_support/cstr"]
-osstr = ["flexstr_support/osstr"]
+osstr = ["flexstr_support/osstr", "std"]
 path = ["flexstr_support/path", "osstr"]
 str = ["flexstr_support/str"]
 

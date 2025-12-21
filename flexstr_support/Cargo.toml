@@ -27,6 +27,6 @@ win_min_unsafe = ["safe"]
 # String type features
 bytes = []
 cstr = []
-osstr = []
+osstr = ["std"]
 path = ["osstr"]
 str = []
