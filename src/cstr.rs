@@ -4,7 +4,7 @@ use core::{
     str::FromStr,
 };
 
-use crate::{
+use crate::flex::{
     FlexStr, ImmutableBytes, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl,
 };
 

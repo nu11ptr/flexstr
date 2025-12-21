@@ -13,7 +13,7 @@ use core::{
 #[cfg(feature = "std")]
 use std::{ffi::OsStr, path::Path};
 
-use crate::{FlexStr, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl};
+use crate::flex::{FlexStr, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl};
 
 use flexstr_support::StringToFromBytes;
 

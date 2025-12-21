@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 use core::{convert::Infallible, str::FromStr};
 
-use crate::{FlexStr, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl};
+use crate::flex::{FlexStr, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl};
 
 use flexstr_support::StringToFromBytes;
 
