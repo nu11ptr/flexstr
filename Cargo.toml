@@ -22,9 +22,13 @@ edition = "2024"
 
 [features]
 default = ["std", "str"]
+# Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
 safe = []
 std = ["serde?/std"]
+# Uses the minimum unsafe code possible to support OsStr/Path on Windows. Doesn't impact any other string types or operating systems.
+win_min_unsafe = ["safe"]
 
+# String type features
 bytes = []
 cstr = []
 osstr = []

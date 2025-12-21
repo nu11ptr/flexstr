@@ -1,5 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "safe", forbid(unsafe_code))]
+#![cfg_attr(
+    all(
+        not(all(feature = "win_min_unsafe", target_family = "windows")),
+        feature = "safe"
+    ),
+    forbid(unsafe_code)
+)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 

@@ -42,6 +42,7 @@ Lastly, this might be the only inline/clone efficient string crate that is gener
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
     * NOTE: This does induce a performance penalty, as would be expected
+    * NOTE 2: `OsStr`/`Path` support on Windows requires at least one unsafe call (`win_min_unsafe` feature).
 * Handles all Rust string types (`str`, `CStr`, `OsStr`, `Path`, `[u8]`)
 
 ## Cargo Features
@@ -49,13 +50,18 @@ Lastly, this might be the only inline/clone efficient string crate that is gener
 * **safe** = Use all safe functions and add `forbid(unsafe_code)` (performance penalty)
 * **std** = Use `std` (default)
 * **serde** = add `serde` dependency and adds serialization/deserialization
+* **win_min_unsafe** = enables the minimum necessary unsafe code on Windows to support `OsStr`/`Path`. No other othe string types or operating systems are impacted (implies `safe` feature).
+    * NOTE: The code will refuse to compile if this is not specified when ALL the following conditions are true:
+        * The `safe` feature is enabled
+        * The `osstr` and/or `path` feature(s) are enabled
+        * Compiling for Windows
 
 ### String Type Features:
 * **str** = Enable `str`-based strings (default)
 * **bytes** = Enable byte-based strings (`[u8]`)
 * **cstr** = Enable `CStr`-based strings
 * **osstr** = Enable `OsStr`-based strings
-* **path** = Enable `Path`-based strings
+* **path** = Enable `Path`-based strings (implies `osstr` feature)
 
 ## Example
 
