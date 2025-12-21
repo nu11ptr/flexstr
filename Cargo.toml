@@ -1,5 +1,5 @@
 [workspace]
-members = ["flexstr"]
+members = ["flexstr", "flexstr_support", "inline_flexstr"]
 exclude = ["benchmarks"]
 
 [package]
@@ -7,7 +7,7 @@ name = "flexstry"
 version = "0.10.0"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
-description = "A flexible, simple to use, immutable, clone-efficient string type for Rust"
+description = "A flexible, simple to use, clone-efficient string type for Rust"
 repository = "https://github.com/nu11ptr/flexstr"
 documentation = "https://docs.rs/flexstr"
 keywords = ["string", "rc_str", "arc_str", "refcount", "inline"]
@@ -23,22 +23,34 @@ edition = "2024"
 [features]
 default = ["std", "str"]
 # Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
-safe = []
-std = ["serde?/std"]
+safe = ["flexstr_support/safe", "inline_flexstr/safe"]
+std = ["flexstr_support/std", "inline_flexstr/std", "serde?/std"]
 # Uses the minimum unsafe code possible to support OsStr/Path on Windows. Doesn't impact any other string types or operating systems.
-win_min_unsafe = ["safe"]
+win_min_unsafe = [
+    "flexstr_support/win_min_unsafe",
+    "inline_flexstr/win_min_unsafe",
+    "safe",
+]
 
 # String type features
-bytes = []
-cstr = []
-osstr = []
-path = ["osstr"]
-str = []
+bytes = ["flexstr_support/bytes", "inline_flexstr/bytes"]
+cstr = ["flexstr_support/cstr", "inline_flexstr/cstr"]
+osstr = ["flexstr_support/osstr", "inline_flexstr/osstr"]
+path = ["flexstr_support/path", "inline_flexstr/path", "osstr"]
+str = ["flexstr_support/str", "inline_flexstr/str"]
 
 [dependencies.serde]
 version = "1"
 default-features = false
 optional = true
+
+[dependencies.inline_flexstr]
+path = "inline_flexstr"
+default-features = false
+
+[dependencies.flexstr_support]
+path = "flexstr_support"
+default-features = false
 
 [dev-dependencies.serde_json]
 version = "1"

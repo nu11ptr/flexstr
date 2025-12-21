@@ -10,7 +10,7 @@ use core::slice::SliceIndex;
 #[cfg(feature = "std")]
 use std::{io, net::ToSocketAddrs};
 
-use crate::{StringFromBytesMut, StringLike, StringToFromBytes};
+use flexstr_support::{StringFromBytesMut, StringLike, StringToFromBytes};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

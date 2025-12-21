@@ -1,0 +1,41 @@
+[package]
+name = "inline_flexstr"
+version = "0.1.0"
+authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "A simple to use, copy/clone-efficient inline string type for Rust"
+repository = "https://github.com/nu11ptr/flexstr/inline_flexstr"
+documentation = "https://docs.rs/inline_flexstr"
+keywords = ["string", "inline"]
+categories = [
+    "data-structures",
+    "memory-management",
+    "no-std",
+    "text-processing",
+]
+readme = "README.md"
+edition = "2024"
+
+[features]
+default = ["std", "str"]
+# Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
+safe = ["flexstr_support/safe"]
+std = ["flexstr_support/std", "serde?/std"]
+# Uses the minimum unsafe code possible to support OsStr/Path on Windows. Doesn't impact any other string types or operating systems.
+win_min_unsafe = ["flexstr_support/win_min_unsafe", "safe"]
+
+# String type features
+bytes = ["flexstr_support/bytes"]
+cstr = ["flexstr_support/cstr"]
+osstr = ["flexstr_support/osstr"]
+path = ["flexstr_support/path", "osstr"]
+str = ["flexstr_support/str"]
+
+[dependencies.flexstr_support]
+path = "../flexstr_support"
+default-features = false
+
+[dependencies.serde]
+version = "1"
+default-features = false
+optional = true

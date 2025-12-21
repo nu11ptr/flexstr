@@ -22,8 +22,6 @@ mod bytes;
 #[cfg(feature = "cstr")]
 /// Module for `CStr`-based strings
 mod cstr;
-/// Module for inline strings
-mod inline;
 #[cfg(all(feature = "std", feature = "osstr"))]
 /// Module for `OsStr`-based strings
 mod osstr;
@@ -34,43 +32,31 @@ mod path;
 /// Module for `str`-based strings
 mod str;
 
-pub use inline::{INLINE_CAPACITY, InlineFlexStr, TooLongForInlining};
-
 #[cfg(feature = "bytes")]
-pub use bytes::{InlineBytes, LocalBytes, SharedBytes};
+pub use bytes::{LocalBytes, SharedBytes};
 #[cfg(feature = "cstr")]
-pub use cstr::{InlineCStr, InteriorNulError, LocalCStr, SharedCStr, TooLongOrNulError};
+pub use cstr::{LocalCStr, SharedCStr};
 #[cfg(all(feature = "std", feature = "osstr"))]
-pub use osstr::{InlineOsStr, LocalOsStr, SharedOsStr};
+pub use osstr::{LocalOsStr, SharedOsStr};
 #[cfg(all(feature = "std", feature = "path"))]
-pub use path::{InlinePath, LocalPath, SharedPath};
+pub use path::{LocalPath, SharedPath};
 #[cfg(feature = "str")]
-pub use str::{InlineStr, LocalStr, SharedStr, TooLongOrUtf8Error};
+pub use str::{LocalStr, SharedStr};
 
 use alloc::borrow::{Borrow, Cow};
-#[cfg(feature = "cstr")]
-use alloc::ffi::CString;
-#[cfg(not(feature = "std"))]
-use alloc::string::String;
-#[cfg(all(not(feature = "std"), feature = "bytes"))]
-use alloc::vec::Vec;
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
 use core::cmp::Ordering;
-#[cfg(feature = "cstr")]
-use core::ffi::CStr;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::ops::{Deref, Index};
 use core::slice::SliceIndex;
-#[cfg(all(feature = "std", feature = "osstr"))]
-use std::ffi::{OsStr, OsString};
-#[cfg(all(feature = "std", feature = "path"))]
-use std::path::{Path, PathBuf};
 #[cfg(feature = "std")]
 use std::{io, net::ToSocketAddrs};
 
+use flexstr_support::{StringFromBytesMut, StringLike, StringToFromBytes};
+use inline_flexstr::InlineFlexStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -138,31 +124,10 @@ macro_rules! ref_counted_mut_impl {
 
 pub(crate) use ref_counted_mut_impl;
 
-// *** StringToFromBytes ***
-
-/// Trait for string types that can be converted to and from bytes
-pub trait StringToFromBytes: ToOwned + 'static {
-    /// Convert bytes to a string type
-    fn bytes_as_self(bytes: &[u8]) -> &Self;
-
-    /// Convert a string type to bytes (excludes nul for CStr)
-    #[inline]
-    fn self_as_bytes(&self) -> &[u8] {
-        self.self_as_raw_bytes()
-    }
-
-    /// Convert a string type to raw bytes (inludes nul for CStr)
-    fn self_as_raw_bytes(&self) -> &[u8];
-}
+// *** ImmutableBytes ***
 
 /// Marker trait for string types that don't provide conversion from bytes to mutable string reference
 pub trait ImmutableBytes: StringToFromBytes {}
-
-/// Trait for string types that can be converted from bytes to mutable string reference
-pub trait StringFromBytesMut: StringToFromBytes {
-    /// Convert bytes to a mutable string reference
-    fn bytes_as_self_mut(bytes: &mut [u8]) -> &mut Self;
-}
 
 // *** RefCounted ***
 
@@ -186,162 +151,6 @@ pub trait RefCountedMut<S: ?Sized + StringToFromBytes>: RefCounted<S> {
 
     /// Borrow the string as a mutable string reference. It will panic if the string is shared.
     fn as_mut(&mut self) -> &mut S;
-}
-
-// *** StringLike ***
-
-/// Trait for string types that provide various operations
-pub trait StringLike<S: ?Sized + StringToFromBytes>
-where
-    Self: Sized,
-{
-    /// Borrow a string reference as `&S`
-    fn as_ref_type(&self) -> &S;
-
-    /// Borrow the string as bytes
-    fn as_bytes(&self) -> &[u8];
-
-    /// Consume a string and convert it to an owned string. `S::to_owned` is called on Borrowed/Inlined/RefCounted variants.
-    /// Boxed variants are converted directly into `S::Owned` (most likely without copy or allocation).
-    fn into_owned_type(self) -> S::Owned
-    where
-        S::Owned: From<Box<S>>;
-
-    /// Convert a string reference to an owned string. `S::to_owned` is called on all variants.
-    fn to_owned_type(&self) -> S::Owned;
-
-    /// Returns true if this is an empty string
-    fn is_empty(&self) -> bool {
-        self.as_bytes().is_empty()
-    }
-
-    /// Returns the length of this string in bytes
-    fn len(&self) -> usize {
-        self.as_bytes().len()
-    }
-
-    /// Borrow the string as an `&str`
-    fn as_str(&self) -> &str
-    where
-        S: AsRef<str>,
-    {
-        self.as_ref_type().as_ref()
-    }
-
-    #[cfg(all(feature = "std", feature = "osstr"))]
-    /// Borrow the string as an `&OsStr`
-    fn as_os_str(&self) -> &OsStr
-    where
-        S: AsRef<OsStr>,
-    {
-        self.as_ref_type().as_ref()
-    }
-
-    #[cfg(all(feature = "std", feature = "path"))]
-    /// Borrow the string as a `&Path`
-    fn as_path(&self) -> &Path
-    where
-        S: AsRef<Path>,
-    {
-        self.as_ref_type().as_ref()
-    }
-
-    #[cfg(feature = "cstr")]
-    /// Borrow the string as a `&CStr`
-    fn as_c_str(&self) -> &CStr
-    where
-        S: AsRef<CStr>,
-    {
-        self.as_ref_type().as_ref()
-    }
-
-    /// Consume a string and convert it to a [String]
-    fn into_string(self) -> String
-    where
-        S::Owned: Into<String> + From<Box<S>>,
-    {
-        self.into_owned_type().into()
-    }
-
-    #[cfg(all(feature = "std", feature = "osstr"))]
-    /// Consume a string and convert it to an [OsString]
-    fn into_os_string(self) -> OsString
-    where
-        S::Owned: Into<OsString> + From<Box<S>>,
-    {
-        self.into_owned_type().into()
-    }
-
-    #[cfg(all(feature = "std", feature = "path"))]
-    /// Consume a string and convert it to a [PathBuf]
-    fn into_path_buf(self) -> PathBuf
-    where
-        S::Owned: Into<PathBuf> + From<Box<S>>,
-    {
-        self.into_owned_type().into()
-    }
-
-    #[cfg(feature = "cstr")]
-    /// Consume a string and convert it to a [CString]
-    fn into_c_string(self) -> CString
-    where
-        S::Owned: Into<CString> + From<Box<S>>,
-    {
-        self.into_owned_type().into()
-    }
-
-    #[cfg(feature = "bytes")]
-    /// Consume a string and convert it to a [`Vec<u8>`]
-    fn into_vec_bytes(self) -> Vec<u8>
-    where
-        S::Owned: Into<Vec<u8>> + From<Box<S>>,
-    {
-        self.into_owned_type().into()
-    }
-
-    /// Convert a string reference to a [String]
-    fn to_string(&self) -> String
-    where
-        S::Owned: Into<String>,
-    {
-        self.to_owned_type().into()
-    }
-
-    #[cfg(all(feature = "std", feature = "osstr"))]
-    /// Convert a string reference to an [OsString]
-    fn to_os_string(&self) -> OsString
-    where
-        S::Owned: Into<OsString>,
-    {
-        self.to_owned_type().into()
-    }
-
-    #[cfg(all(feature = "std", feature = "path"))]
-    /// Convert a string reference to a [PathBuf]
-    fn to_path_buf(&self) -> PathBuf
-    where
-        S::Owned: Into<PathBuf>,
-    {
-        self.to_owned_type().into()
-    }
-
-    #[cfg(feature = "cstr")]
-    /// Convert a string reference to a [CString]
-    fn to_c_string(&self) -> CString
-    where
-        S::Owned: Into<CString>,
-    {
-        self.to_owned_type().into()
-    }
-
-    #[cfg(feature = "bytes")]
-    /// Convert a string reference to a [`Vec<u8>`]
-    fn to_vec_bytes(&self) -> Vec<u8>
-    where
-        S::Owned: Into<Vec<u8>>,
-    {
-        self.to_owned_type().into()
-    }
 }
 
 // *** FlexStr ***
@@ -454,12 +263,9 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
     }
 
     fn copy_into_owned(s: &S) -> FlexStr<'static, S, R> {
-        let bytes = S::self_as_raw_bytes(s);
-
-        if bytes.len() <= INLINE_CAPACITY {
-            FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
-        } else {
-            FlexStr::RefCounted(s.into())
+        match InlineFlexStr::try_from_type(s) {
+            Ok(inline) => FlexStr::Inlined(inline),
+            Err(_) => FlexStr::RefCounted(s.into()),
         }
     }
 
@@ -472,16 +278,10 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
             // Borrowed and inlined strings are already optimized
             orig @ FlexStr::Borrowed(_) | orig @ FlexStr::Inlined(_) => orig,
             // There is probably a reason this is ref counted, but we can try to inline it first
-            FlexStr::RefCounted(s) => {
-                let bytes = S::self_as_raw_bytes(&s);
-
-                if bytes.len() <= INLINE_CAPACITY {
-                    FlexStr::Inlined(InlineFlexStr::from_bytes(bytes))
-                } else {
-                    // Too big, just keep it as it is
-                    FlexStr::RefCounted(s)
-                }
-            }
+            FlexStr::RefCounted(s) => match InlineFlexStr::try_from_type(&*s) {
+                Ok(inline) => FlexStr::Inlined(inline),
+                Err(_) => FlexStr::RefCounted(s),
+            },
             // This should be inlined or ref counted
             FlexStr::Boxed(s) => Self::copy_into_owned(&s),
         }
