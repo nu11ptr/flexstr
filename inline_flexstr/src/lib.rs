@@ -35,6 +35,9 @@ mod str;
 pub use bytes::InlineBytes;
 #[cfg(feature = "cstr")]
 pub use cstr::{InlineCStr, TooLongOrNulError};
+#[cfg(feature = "cstr")]
+pub use flexstr_support::InteriorNulError;
+pub use flexstr_support::StringLike;
 #[cfg(all(feature = "std", feature = "osstr"))]
 pub use osstr::InlineOsStr;
 #[cfg(all(feature = "std", feature = "path"))]

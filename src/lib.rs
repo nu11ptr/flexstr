@@ -38,6 +38,9 @@ pub use bytes::{LocalBytes, SharedBytes};
 #[cfg(feature = "cstr")]
 pub use cstr::{LocalCStr, SharedCStr};
 pub use flex::{FlexStr, ImmutableBytes, RefCounted, RefCountedMut};
+#[cfg(feature = "cstr")]
+pub use flexstr_support::InteriorNulError;
+pub use flexstr_support::StringLike;
 #[cfg(all(feature = "std", feature = "osstr"))]
 pub use osstr::{LocalOsStr, SharedOsStr};
 #[cfg(all(feature = "std", feature = "path"))]
