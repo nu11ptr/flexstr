@@ -49,7 +49,7 @@ Lastly, this might be the only inline/clone efficient string crate that is gener
 * **safe** = Use all safe functions and add `forbid(unsafe_code)` (performance penalty)
 * **std** = Use `std` (default)
 * **serde** = add `serde` dependency and adds serialization/deserialization
-* **win_min_unsafe** = enables the minimum necessary unsafe code on Windows to support `OsStr`/`Path`. No other othe string types or operating systems are impacted (implies `safe` feature).
+* **win_min_unsafe** = enables the minimum necessary unsafe code on Windows to support `OsStr`/`Path`. No other string types or operating systems are impacted (implies `safe` feature).
     * NOTE: The code will refuse to compile if this is not specified when ALL the following conditions are true:
         * The `safe` feature is enabled
         * The `osstr` and/or `path` feature(s) are enabled
@@ -69,7 +69,7 @@ It is just an enum that looks like this - you can probably guess much of how it 
 ```rust,ignore
 
 // `S` is just the raw string type (typically `str`)
-// `R` is just an `Arc` or a `Rc`.
+// `R` is just an `Arc` or an `Rc`.
 pub enum FlexStr<'s, S, R> {
     Borrowed(&'s S),
     Inlined(InlineFlexStr<S>),
