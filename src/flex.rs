@@ -224,21 +224,20 @@ impl<'s, S: ?Sized + StringToFromBytes, R: RefCounted<S>> FlexStr<'s, S, R> {
         }
     }
 
-    /// Optimize the string variant. This is a no-op for Inlined variants. Borrowed strings will
-    /// attempt to inline, but otherwise be left as borrowed. RefCounted strings will attempt to
-    /// inline, but otherwise be left as ref counted. Boxed strings will attempt to inline, but
-    /// otherwise be converted to a ref counted string.
+    /// Optimize the string variant. This is a no-op for Inlined/Borrowed variants. RefCounted
+    /// strings will attempt to inline, but otherwise be left as ref counted. Boxed strings will
+    /// attempt to inline, but otherwise be converted to a ref counted string.
     pub fn optimize(self) -> FlexStr<'s, S, R> {
         match self {
-            // Borrowed and inlined strings are already optimized
-            orig @ FlexStr::Borrowed(_) | orig @ FlexStr::Inlined(_) => orig,
+            // This should be inlined or ref counted
+            FlexStr::Boxed(s) => Self::copy_into_owned(&s),
             // There is probably a reason this is ref counted, but we can try to inline it first
             FlexStr::RefCounted(s) => match InlineFlexStr::try_from_type(&*s) {
                 Ok(inline) => FlexStr::Inlined(inline),
                 Err(_) => FlexStr::RefCounted(s),
             },
-            // This should be inlined or ref counted
-            FlexStr::Boxed(s) => Self::copy_into_owned(&s),
+            // Borrowed and inlined strings are already optimized
+            _ => self,
         }
     }
 
