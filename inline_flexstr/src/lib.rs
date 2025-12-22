@@ -13,6 +13,10 @@
 
 extern crate alloc;
 
+#[cfg(feature = "cstr")]
+#[doc = include_str!("../README.md")]
+mod readme_tests {}
+
 #[cfg(feature = "bytes")]
 /// Module for byte-based strings (`[u8]`)
 mod bytes;
