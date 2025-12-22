@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, RefCounted, StringLike};
+use flexstr::{FlexStr, RefCounted, StringLike};
 use flexstr_support::StringToFromBytes;
 
 /// Test as_str() method for str types
@@ -148,7 +148,10 @@ where
 {
     let flex_str: FlexStr<'_, S, R> = FlexStr::from_borrowed(s);
     let c_string = StringLike::into_c_string(flex_str);
-    assert_eq!(c_string.as_bytes_with_nul(), s.to_owned().into().as_bytes_with_nul());
+    assert_eq!(
+        c_string.as_bytes_with_nul(),
+        s.to_owned().into().as_bytes_with_nul()
+    );
 }
 
 /// Test to_c_string() method
@@ -193,4 +196,3 @@ where
     let vec_bytes = StringLike::to_vec_bytes(&flex_str);
     assert_eq!(vec_bytes, s.to_owned().into());
 }
-

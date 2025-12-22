@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, RefCounted};
+use flexstr::{FlexStr, RefCounted};
 use flexstr_support::StringToFromBytes;
 
 /// Test From implementation

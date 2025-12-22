@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
+use flexstr::{FlexStr, RefCounted};
 use flexstr_support::StringToFromBytes;
-use flexstry::{FlexStr, RefCounted};
 use std::net::ToSocketAddrs;
 
 /// Test ToSocketAddrs implementation for FlexStr

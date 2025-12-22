@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use core::fmt;
+use flexstr::{FlexStr, RefCounted};
 use flexstr_support::StringToFromBytes;
-use flexstry::{FlexStr, RefCounted};
 use inline_flexstr::{INLINE_CAPACITY, InlineFlexStr};
 
 /// Test variant query methods

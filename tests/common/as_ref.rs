@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use flexstry::{FlexStr, RefCounted};
+use flexstr::{FlexStr, RefCounted};
 
 /// Test AsRef<[u8]> for FlexStr<[u8], R>
 #[cfg(feature = "bytes")]

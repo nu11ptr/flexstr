@@ -2,7 +2,7 @@
 
 use core::fmt;
 use flexstr_support::StringToFromBytes;
-use flexstry::{FlexStr, RefCounted};
+use flexstr::{FlexStr, RefCounted};
 
 /// Test TryFrom success path for FlexStr
 pub fn test_try_from_flex_str_success<'s, T, S, R>(value: T)
@@ -82,7 +82,7 @@ pub fn test_try_from_str_cstr<R>()
 where
     R: RefCounted<core::ffi::CStr> + fmt::Debug,
 {
-    use flexstry::{FlexStr, InteriorNulError};
+    use flexstr::{FlexStr, InteriorNulError};
 
     // Valid CStr (no interior NUL)
     let s: &str = "test";
@@ -102,7 +102,7 @@ pub fn test_try_from_bytes_cstr<R>()
 where
     R: RefCounted<core::ffi::CStr> + fmt::Debug,
 {
-    use flexstry::{FlexStr, InteriorNulError};
+    use flexstr::{FlexStr, InteriorNulError};
 
     // Valid CStr (no interior NUL)
     let bytes: &[u8] = b"test";
@@ -123,7 +123,7 @@ pub fn test_try_from_osstr_str<R>()
 where
     R: RefCounted<str> + fmt::Debug,
 {
-    use flexstry::FlexStr;
+    use flexstr::FlexStr;
     use std::ffi::OsStr;
 
     // Valid UTF-8 OsStr
@@ -139,7 +139,7 @@ pub fn test_try_from_path_str<R>()
 where
     R: RefCounted<str> + fmt::Debug,
 {
-    use flexstry::FlexStr;
+    use flexstr::FlexStr;
     use std::path::Path;
 
     // Valid UTF-8 Path
@@ -156,7 +156,7 @@ where
     R: RefCounted<str> + fmt::Debug,
 {
     use alloc::string::FromUtf8Error;
-    use flexstry::FlexStr;
+    use flexstr::FlexStr;
 
     // Valid UTF-8 Vec<u8>
     let vec = b"test".to_vec();
@@ -177,7 +177,7 @@ where
     R: RefCounted<str> + fmt::Debug,
 {
     use alloc::ffi::{CString, IntoStringError};
-    use flexstry::FlexStr;
+    use flexstr::FlexStr;
 
     // Valid UTF-8 CString
     let cstring = CString::new("test").unwrap();

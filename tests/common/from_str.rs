@@ -2,7 +2,7 @@
 
 use core::fmt;
 use core::str::FromStr;
-use flexstry::{FlexStr, RefCounted};
+use flexstr::{FlexStr, RefCounted};
 use flexstr_support::StringToFromBytes;
 
 /// Test FromStr success for FlexStr
@@ -57,7 +57,7 @@ pub fn test_from_str_cstr_success<R>()
 where
     R: RefCounted<core::ffi::CStr> + fmt::Debug,
 {
-    use flexstry::FlexStr;
+    use flexstr::FlexStr;
     
     let flex_str = FlexStr::<'static, core::ffi::CStr, R>::from_str("test").unwrap();
     assert_eq!(flex_str.as_ref_type().to_bytes(), b"test");
@@ -69,7 +69,7 @@ pub fn test_from_str_cstr_error<R>()
 where
     R: RefCounted<core::ffi::CStr> + fmt::Debug,
 {
-    use flexstry::{FlexStr, InteriorNulError};
+    use flexstr::{FlexStr, InteriorNulError};
     
     // String with interior NUL should fail
     let result: Result<FlexStr<'static, core::ffi::CStr, R>, InteriorNulError> = FlexStr::from_str("test\0middle");

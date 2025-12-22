@@ -1,6 +1,6 @@
 use core::fmt;
 
-use flexstry::{FlexStr, ImmutableBytes, RefCountedMut};
+use flexstr::{FlexStr, ImmutableBytes, RefCountedMut};
 
 #[allow(dead_code)]
 pub fn test_mutation_immutable_bytes_borrowed<S, R>(s: &'static S)

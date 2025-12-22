@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::{rc::Rc, sync::Arc};
 
 #[cfg(feature = "serde")]
-use flexstry::{LocalCStr, SharedCStr};
+use flexstr::{LocalCStr, SharedCStr};
 
 use core::ffi::CStr;
 

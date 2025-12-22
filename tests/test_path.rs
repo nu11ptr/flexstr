@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::{rc::Rc, sync::Arc};
 
 #[cfg(feature = "serde")]
-use flexstry::{LocalPath, SharedPath};
+use flexstr::{LocalPath, SharedPath};
 use inline_flexstr::INLINE_CAPACITY;
 
 use std::path::Path;

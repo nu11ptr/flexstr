@@ -1,9 +1,9 @@
 [workspace]
-members = ["flexstr", "flexstr_support", "inline_flexstr"]
+members = ["flexstr_support", "inline_flexstr"]
 exclude = ["benchmarks"]
 
 [package]
-name = "flexstry"
+name = "flexstr"
 version = "0.10.0"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"

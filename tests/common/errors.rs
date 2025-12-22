@@ -7,7 +7,7 @@ use inline_flexstr::TooLongForInlining;
 use inline_flexstr::TooLongOrUtf8Error;
 
 #[cfg(feature = "cstr")]
-use flexstry::InteriorNulError;
+use flexstr::InteriorNulError;
 #[cfg(feature = "cstr")]
 use inline_flexstr::TooLongOrNulError;
 

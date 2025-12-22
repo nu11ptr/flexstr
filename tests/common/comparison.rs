@@ -2,7 +2,7 @@
 
 use core::fmt;
 use flexstr_support::StringToFromBytes;
-use flexstry::{FlexStr, RefCounted};
+use flexstr::{FlexStr, RefCounted};
 use inline_flexstr::InlineFlexStr;
 
 // Remove Debug requirement from R where not needed

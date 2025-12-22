@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use core::ffi::CStr;
-use flexstry::{FlexStr, RefCounted};
+use flexstr::{FlexStr, RefCounted};
 
 /// Test try_from_bytes_with_or_without_nul with valid CStr (with NUL)
 pub fn test_try_from_bytes_with_nul<R>()

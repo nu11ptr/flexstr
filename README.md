@@ -86,7 +86,7 @@ pub type SharedStr<'s> = FlexStr<'s, str, Arc<str>>;
 Even that you don't really need to concern yourself with. You can just use it how you would expect a simple wrapper to behave.
 
 ```rust
-use flexstry::*;
+use flexstr::*;
 
 // This will be a "Borrowed" variant
 let hello: SharedStr = "hello".into();

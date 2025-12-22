@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::sync::Arc;
 
 #[cfg(feature = "serde")]
-use flexstry::{LocalStr, SharedStr};
+use flexstr::{LocalStr, SharedStr};
 use inline_flexstr::INLINE_CAPACITY;
 
 mod common;

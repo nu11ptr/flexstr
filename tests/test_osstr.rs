@@ -6,7 +6,7 @@ use alloc::{rc::Rc, sync::Arc};
 use std::ffi::OsStr;
 
 #[cfg(feature = "serde")]
-use flexstry::{LocalOsStr, SharedOsStr};
+use flexstr::{LocalOsStr, SharedOsStr};
 use inline_flexstr::INLINE_CAPACITY;
 
 mod common;

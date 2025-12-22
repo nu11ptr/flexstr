@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use core::fmt;
+use flexstr::{FlexStr, RefCounted, StringLike};
 use flexstr_support::StringToFromBytes;
-use flexstry::{FlexStr, RefCounted, StringLike};
 use inline_flexstr::InlineFlexStr;
 
 /// Test creation from borrowed string

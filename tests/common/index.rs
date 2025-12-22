@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use core::fmt;
+use flexstr::{FlexStr, RefCounted};
 use flexstr_support::StringToFromBytes;
-use flexstry::{FlexStr, RefCounted};
 
 /// Test Index implementation for FlexStr
 /// This tests that FlexStr can be dereferenced to &S, which is required for Index
