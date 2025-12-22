@@ -1,6 +1,7 @@
 use core::fmt;
 
-use flexstry::{FlexStr, RefCountedMut, StringFromBytesMut};
+use flexstr_support::StringFromBytesMut;
+use flexstry::{FlexStr, RefCountedMut};
 
 #[allow(dead_code)]
 pub fn test_mutation_borrowed<S, R>(s: &'static S)

@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, RefCounted, StringLike, StringToFromBytes};
+use flexstry::{FlexStr, RefCounted, StringLike};
+use flexstr_support::StringToFromBytes;
 
 /// Test as_str() method for str types
 pub fn test_as_str<S, R>(s: &'static S)

@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, InlineFlexStr, RefCounted, StringToFromBytes};
+use flexstr_support::StringToFromBytes;
+use flexstry::{FlexStr, RefCounted};
+use inline_flexstr::InlineFlexStr;
 
 // Remove Debug requirement from R where not needed
 
@@ -181,65 +183,4 @@ where
     let cow_borrowed: Cow<'_, S> = Cow::Borrowed(s);
     assert_eq!(flex_str.as_ref_type(), cow_borrowed.as_ref());
     assert_eq!(cow_borrowed.as_ref(), flex_str.as_ref_type());
-}
-
-/// Test PartialEq with owned types (String, Cow, etc.) for InlineFlexStr
-pub fn test_inline_partial_eq_with_owned_types<S>(s: &'static S)
-where
-    S: ?Sized + StringToFromBytes + PartialEq + fmt::Debug,
-    S::Owned: PartialEq<S> + AsRef<S>,
-{
-    use alloc::borrow::Cow;
-
-    // Input should be small enough to inline
-    let inline_str =
-        InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
-    let owned: S::Owned = s.to_owned();
-
-    // Test InlineFlexStr == S::Owned (through PartialEq implementation)
-    assert_eq!(inline_str.as_ref_type(), owned.as_ref());
-    // Test reverse comparison: S::Owned == InlineFlexStr
-    assert_eq!(owned.as_ref(), inline_str.as_ref_type());
-
-    // Test with Cow::Owned
-    let cow_owned: Cow<'_, S> = Cow::Owned(owned);
-    assert_eq!(inline_str.as_ref_type(), cow_owned.as_ref());
-    assert_eq!(cow_owned.as_ref(), inline_str.as_ref_type());
-
-    // Test with Cow::Borrowed
-    let cow_borrowed: Cow<'_, S> = Cow::Borrowed(s);
-    assert_eq!(inline_str.as_ref_type(), cow_borrowed.as_ref());
-    assert_eq!(cow_borrowed.as_ref(), inline_str.as_ref_type());
-}
-
-/// Test PartialOrd implementation for InlineFlexStr
-pub fn test_inline_partial_ord<S>(s1: &'static S, s2: &'static S)
-where
-    S: ?Sized + StringToFromBytes + PartialOrd,
-{
-    // Inputs should be small enough to inline
-    let inline_str1 =
-        InlineFlexStr::try_from_type(s1).expect("test input should be small enough to inline");
-    let inline_str2 =
-        InlineFlexStr::try_from_type(s2).expect("test input should be small enough to inline");
-
-    // Test inputs should be comparable (partial_cmp should return Some)
-    let ord = s1
-        .partial_cmp(s2)
-        .expect("test inputs should be comparable");
-    assert_eq!(inline_str1.partial_cmp(&inline_str2), Some(ord));
-}
-
-/// Test Ord implementation for InlineFlexStr
-pub fn test_inline_ord<S>(s1: &'static S, s2: &'static S)
-where
-    S: ?Sized + StringToFromBytes + Ord,
-{
-    // Inputs should be small enough to inline
-    let inline_str1 =
-        InlineFlexStr::try_from_type(s1).expect("test input should be small enough to inline");
-    let inline_str2 =
-        InlineFlexStr::try_from_type(s2).expect("test input should be small enough to inline");
-
-    assert_eq!(inline_str1.cmp(&inline_str2), s1.cmp(s2));
 }

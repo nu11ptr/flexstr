@@ -6,7 +6,8 @@ use alloc::{rc::Rc, sync::Arc};
 use std::ffi::OsStr;
 
 #[cfg(feature = "serde")]
-use flexstry::{InlineOsStr, LocalOsStr, SharedOsStr};
+use flexstry::{LocalOsStr, SharedOsStr};
+use inline_flexstr::INLINE_CAPACITY;
 
 mod common;
 
@@ -22,12 +23,6 @@ fn serialize_deserialize_test_local_osstr() {
 #[test]
 fn serialize_deserialize_test_shared_osstr() {
     common::serialize::serialize_deserialize_test::<SharedOsStr<'_>, OsStr>(OsStr::new("test"));
-}
-
-#[cfg(feature = "serde")]
-#[test]
-fn serialize_deserialize_test_inline_osstr() {
-    common::serialize::serialize_deserialize_test::<InlineOsStr, OsStr>(OsStr::new("test"));
 }
 
 // *** Basic Tests ***
@@ -187,21 +182,6 @@ fn test_to_os_string() {
 
 // *** TryFrom Tests ***
 
-#[test]
-fn test_try_from_osstr_too_long() {
-    common::try_from::test_try_from_osstr_too_long();
-}
-
-#[test]
-fn test_try_from_str_osstr_too_long() {
-    common::try_from::test_try_from_str_osstr_too_long();
-}
-
-#[test]
-fn test_try_from_path_osstr_too_long() {
-    common::try_from::test_try_from_path_osstr_too_long();
-}
-
 // *** From Tests ***
 
 #[test]
@@ -236,16 +216,6 @@ fn test_from_str_osstr_success() {
     common::from_str::test_from_str_osstr_success::<Arc<OsStr>>();
 }
 
-#[test]
-fn test_from_str_inline_osstr_success() {
-    common::from_str::test_from_str_inline_osstr_success();
-}
-
-#[test]
-fn test_from_str_inline_osstr_error() {
-    common::from_str::test_from_str_inline_osstr_error();
-}
-
 // *** AsRef Tests ***
 
 #[test]
@@ -253,23 +223,7 @@ fn test_as_ref_osstr_flex_str() {
     common::as_ref::test_as_ref_osstr_flex_str::<Arc<OsStr>>(OsStr::new("test"));
 }
 
-#[test]
-fn test_as_ref_osstr_inline() {
-    common::as_ref::test_as_ref_osstr_inline(OsStr::new("test"));
-}
-
-// *** InlineFlexStr Edge Cases ***
-
-#[test]
-fn test_inline_default_osstr() {
-    common::inline_edge_cases::test_inline_default::<OsStr>();
-}
-
-#[test]
-fn test_try_from_type_too_long_osstr() {
-    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
-    common::inline_edge_cases::test_try_from_type_too_long::<OsStr>(OsStr::new(long_str));
-}
+// *** FlexStr Edge Cases ***
 
 #[test]
 fn test_optimize_ref_counted_to_inlined_osstr() {
@@ -280,7 +234,7 @@ fn test_optimize_ref_counted_to_inlined_osstr() {
 
 #[test]
 fn test_optimize_ref_counted_stays_ref_counted_osstr() {
-    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(INLINE_CAPACITY + 1)));
     common::inline_edge_cases::test_optimize_ref_counted_stays_ref_counted::<OsStr, Arc<OsStr>>(
         OsStr::new(long_str),
     );

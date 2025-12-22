@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::{rc::Rc, sync::Arc};
 
 #[cfg(feature = "serde")]
-use flexstry::{InlineCStr, LocalCStr, SharedCStr};
+use flexstry::{LocalCStr, SharedCStr};
 
 use core::ffi::CStr;
 
@@ -23,12 +23,6 @@ fn serialize_deserialize_test_local_cstr() {
 #[test]
 fn serialize_deserialize_test_shared_cstr() {
     common::serialize::serialize_deserialize_test::<SharedCStr<'_>, CStr>(c"test");
-}
-
-#[cfg(feature = "serde")]
-#[test]
-fn serialize_deserialize_test_inline_cstr() {
-    common::serialize::serialize_deserialize_test::<InlineCStr, CStr>(c"test");
 }
 
 // *** Basic Tests ***
@@ -219,42 +213,6 @@ fn test_as_bytes_with_nul() {
     common::cstr_specific::test_as_bytes_with_nul::<Arc<CStr>>(c"test");
 }
 
-#[test]
-fn test_inline_try_from_bytes_with_nul() {
-    common::cstr_specific::test_inline_try_from_bytes_with_nul();
-}
-
-#[test]
-fn test_inline_try_from_bytes_without_nul() {
-    common::cstr_specific::test_inline_try_from_bytes_without_nul();
-}
-
-#[test]
-fn test_inline_try_from_bytes_interior_nul() {
-    common::cstr_specific::test_inline_try_from_bytes_interior_nul();
-}
-
-#[test]
-fn test_inline_try_from_bytes_too_long() {
-    common::cstr_specific::test_inline_try_from_bytes_too_long();
-}
-
-// *** InlineFlexStr Edge Cases ***
-
-#[test]
-fn test_inline_default_cstr() {
-    common::inline_edge_cases::test_inline_default::<CStr>();
-}
-
-#[test]
-fn test_try_from_type_too_long_cstr() {
-    let mut long_bytes = vec![b'x'; flexstry::INLINE_CAPACITY];
-    long_bytes.push(0);
-    let long_bytes_static: &'static [u8] = Box::leak(long_bytes.into_boxed_slice());
-    let long_cstr = CStr::from_bytes_with_nul(long_bytes_static).unwrap();
-    common::inline_edge_cases::test_try_from_type_too_long::<CStr>(long_cstr);
-}
-
 // *** Mutation Tests ***
 
 #[test]
@@ -304,11 +262,6 @@ fn test_partial_eq_with_owned_types_cstr() {
     common::comparison::test_partial_eq_with_owned_types::<CStr, Arc<CStr>>(c"test");
 }
 
-#[test]
-fn test_inline_partial_eq_with_owned_types_cstr() {
-    common::comparison::test_inline_partial_eq_with_owned_types::<CStr>(c"test");
-}
-
 // *** TryFrom Tests ***
 
 #[test]
@@ -319,16 +272,6 @@ fn test_try_from_str_cstr() {
 #[test]
 fn test_try_from_bytes_cstr() {
     common::try_from::test_try_from_bytes_cstr::<Arc<CStr>>();
-}
-
-#[test]
-fn test_try_from_str_inline_cstr() {
-    common::try_from::test_try_from_str_inline_cstr();
-}
-
-#[test]
-fn test_try_from_bytes_inline_cstr() {
-    common::try_from::test_try_from_bytes_inline_cstr();
 }
 
 // *** FromStr Tests ***
@@ -343,24 +286,9 @@ fn test_from_str_cstr_error() {
     common::from_str::test_from_str_cstr_error::<Arc<CStr>>();
 }
 
-#[test]
-fn test_from_str_inline_cstr_success() {
-    common::from_str::test_from_str_inline_cstr_success();
-}
-
-#[test]
-fn test_from_str_inline_cstr_error() {
-    common::from_str::test_from_str_inline_cstr_error();
-}
-
 // *** AsRef Tests ***
 
 #[test]
 fn test_as_ref_cstr_flex_str() {
     common::as_ref::test_as_ref_cstr_flex_str::<Arc<CStr>>(c"test");
-}
-
-#[test]
-fn test_as_ref_cstr_inline() {
-    common::as_ref::test_as_ref_cstr_inline(c"test");
 }

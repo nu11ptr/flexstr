@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, RefCounted, StringToFromBytes};
+use flexstry::{FlexStr, RefCounted};
+use flexstr_support::StringToFromBytes;
 
 /// Test From implementation
 pub fn test_from<'s, T, S, R>(value: T)

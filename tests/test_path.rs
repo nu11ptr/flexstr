@@ -5,7 +5,8 @@ extern crate alloc;
 use alloc::{rc::Rc, sync::Arc};
 
 #[cfg(feature = "serde")]
-use flexstry::{InlinePath, LocalPath, SharedPath};
+use flexstry::{LocalPath, SharedPath};
+use inline_flexstr::INLINE_CAPACITY;
 
 use std::path::Path;
 
@@ -23,12 +24,6 @@ fn serialize_deserialize_test_local_path() {
 #[test]
 fn serialize_deserialize_test_shared_path() {
     common::serialize::serialize_deserialize_test::<SharedPath<'_>, Path>(Path::new("test"));
-}
-
-#[cfg(feature = "serde")]
-#[test]
-fn serialize_deserialize_test_inline_path() {
-    common::serialize::serialize_deserialize_test::<InlinePath, Path>(Path::new("test"));
 }
 
 // *** Basic Tests ***
@@ -183,21 +178,6 @@ fn test_to_path_buf() {
 
 // *** TryFrom Tests ***
 
-#[test]
-fn test_try_from_path_too_long() {
-    common::try_from::test_try_from_path_too_long();
-}
-
-#[test]
-fn test_try_from_str_path_too_long() {
-    common::try_from::test_try_from_str_path_too_long();
-}
-
-#[test]
-fn test_try_from_osstr_path_too_long() {
-    common::try_from::test_try_from_osstr_path_too_long();
-}
-
 // *** From Tests ***
 
 #[test]
@@ -232,16 +212,6 @@ fn test_from_str_path_success() {
     common::from_str::test_from_str_path_success::<Arc<Path>>();
 }
 
-#[test]
-fn test_from_str_inline_path_success() {
-    common::from_str::test_from_str_inline_path_success();
-}
-
-#[test]
-fn test_from_str_inline_path_error() {
-    common::from_str::test_from_str_inline_path_error();
-}
-
 // *** AsRef Tests ***
 
 #[test]
@@ -249,24 +219,7 @@ fn test_as_ref_path_flex_str() {
     common::as_ref::test_as_ref_path_flex_str::<Arc<Path>>(Path::new("test"));
 }
 
-#[test]
-fn test_as_ref_path_inline() {
-    common::as_ref::test_as_ref_path_inline(Path::new("test"));
-}
-
-// *** InlineFlexStr Edge Cases ***
-
-// Path doesn't implement Default, so skip this test
-// #[test]
-// fn test_inline_default_path() {
-//     common::inline_edge_cases::test_inline_default::<Path>();
-// }
-
-#[test]
-fn test_try_from_type_too_long_path() {
-    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
-    common::inline_edge_cases::test_try_from_type_too_long::<Path>(Path::new(long_str));
-}
+// *** FlexStr Edge Cases ***
 
 #[test]
 fn test_optimize_ref_counted_to_inlined_path() {
@@ -277,7 +230,7 @@ fn test_optimize_ref_counted_to_inlined_path() {
 
 #[test]
 fn test_optimize_ref_counted_stays_ref_counted_path() {
-    let long_str: &'static str = Box::leak(Box::new("x".repeat(flexstry::INLINE_CAPACITY + 1)));
+    let long_str: &'static str = Box::leak(Box::new("x".repeat(INLINE_CAPACITY + 1)));
     common::inline_edge_cases::test_optimize_ref_counted_stays_ref_counted::<Path, Arc<Path>>(
         Path::new(long_str),
     );

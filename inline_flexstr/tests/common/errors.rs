@@ -7,7 +7,7 @@ use inline_flexstr::TooLongForInlining;
 use inline_flexstr::TooLongOrUtf8Error;
 
 #[cfg(feature = "cstr")]
-use flexstry::InteriorNulError;
+use flexstr_support::InteriorNulError;
 #[cfg(feature = "cstr")]
 use inline_flexstr::TooLongOrNulError;
 
@@ -94,3 +94,4 @@ pub fn test_too_long_or_nul_error_nul() {
 
     test_error_display(err);
 }
+

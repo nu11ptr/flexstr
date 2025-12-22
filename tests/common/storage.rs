@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, InlineFlexStr, RefCounted, StringToFromBytes};
+use flexstr_support::StringToFromBytes;
+use flexstry::{FlexStr, RefCounted};
+use inline_flexstr::{INLINE_CAPACITY, InlineFlexStr};
 
 /// Test variant query methods
 pub fn test_variant_queries<S, R>(s: &'static S)
@@ -62,7 +64,7 @@ where
 
     // Input should be small enough to inline
     assert!(
-        s.self_as_raw_bytes().len() <= flexstry::INLINE_CAPACITY,
+        s.self_as_raw_bytes().len() <= INLINE_CAPACITY,
         "test input should be small enough to inline"
     );
     assert!(owned.is_inlined() || owned.is_borrowed());
@@ -77,7 +79,7 @@ where
     R: RefCounted<S>,
 {
     assert!(
-        s.self_as_raw_bytes().len() > flexstry::INLINE_CAPACITY,
+        s.self_as_raw_bytes().len() > INLINE_CAPACITY,
         "test input must be too large to inline"
     );
 

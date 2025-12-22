@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{
-    FlexStr, InlineFlexStr, RefCounted, StringLike, StringToFromBytes, TooLongForInlining,
-};
+use flexstr_support::StringToFromBytes;
+use flexstry::{FlexStr, RefCounted, StringLike};
+use inline_flexstr::{INLINE_CAPACITY, InlineFlexStr, TooLongForInlining};
 
 /// Test empty string operations
 pub fn test_empty_string<S, R>(empty: &'static S)
@@ -40,7 +40,7 @@ where
     let bytes = s.self_as_raw_bytes();
     assert_eq!(
         bytes.len(),
-        flexstry::INLINE_CAPACITY,
+        INLINE_CAPACITY,
         "test input must be exactly at capacity"
     );
 
@@ -59,7 +59,7 @@ where
 {
     let bytes = s.self_as_raw_bytes();
     assert!(
-        bytes.len() < flexstry::INLINE_CAPACITY,
+        bytes.len() < INLINE_CAPACITY,
         "test input must be smaller than capacity"
     );
 
@@ -75,18 +75,18 @@ where
 pub fn test_try_from_too_long() {
     // Create a string that's definitely too long
     // This is tricky to do generically, so we'll test the error type
-    let _long_bytes = [0u8; flexstry::INLINE_CAPACITY + 1];
+    let _long_bytes = [0u8; INLINE_CAPACITY + 1];
 
     // Try to create from bytes if possible
     // This will depend on the specific string type
     // For now, we'll just verify the error type exists
     let err = TooLongForInlining {
-        length: flexstry::INLINE_CAPACITY + 1,
-        inline_capacity: flexstry::INLINE_CAPACITY,
+        length: INLINE_CAPACITY + 1,
+        inline_capacity: INLINE_CAPACITY,
     };
 
-    assert_eq!(err.length, flexstry::INLINE_CAPACITY + 1);
-    assert_eq!(err.inline_capacity, flexstry::INLINE_CAPACITY);
+    assert_eq!(err.length, INLINE_CAPACITY + 1);
+    assert_eq!(err.inline_capacity, INLINE_CAPACITY);
 }
 
 /// Test various string lengths

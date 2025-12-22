@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstry::{FlexStr, InlineFlexStr, RefCounted, StringLike, StringToFromBytes};
+use flexstr_support::StringToFromBytes;
+use flexstry::{FlexStr, RefCounted, StringLike};
+use inline_flexstr::InlineFlexStr;
 
 /// Test creation from borrowed string
 pub fn test_creation_from_borrowed<S, R>(s: &'static S)

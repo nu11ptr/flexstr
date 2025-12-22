@@ -5,7 +5,8 @@ extern crate alloc;
 use alloc::sync::Arc;
 
 #[cfg(feature = "serde")]
-use flexstry::{InlineBytes, LocalBytes, SharedBytes};
+use flexstry::{LocalBytes, SharedBytes};
+use inline_flexstr::INLINE_CAPACITY;
 
 mod common;
 
@@ -21,12 +22,6 @@ fn serialize_deserialize_test_local_bytes() {
 #[test]
 fn serialize_deserialize_test_shared_bytes() {
     common::serialize::serialize_deserialize_test::<SharedBytes<'_>, [u8]>(b"test");
-}
-
-#[cfg(feature = "serde")]
-#[test]
-fn serialize_deserialize_test_inline_bytes() {
-    common::serialize::serialize_deserialize_test::<InlineBytes, [u8]>(b"test");
 }
 
 // *** Basic Tests ***
@@ -186,16 +181,6 @@ fn test_to_vec_bytes() {
 
 // *** TryFrom Tests ***
 
-#[test]
-fn test_try_from_bytes_too_long_bytes() {
-    common::try_from::test_try_from_bytes_too_long();
-}
-
-#[test]
-fn test_try_from_str_too_long_bytes() {
-    common::try_from::test_try_from_str_too_long();
-}
-
 // *** From Tests ***
 
 #[test]
@@ -215,16 +200,6 @@ fn test_from_str_bytes_success() {
     common::from_str::test_from_str_bytes_success::<Arc<[u8]>>();
 }
 
-#[test]
-fn test_from_str_inline_bytes_success() {
-    common::from_str::test_from_str_inline_bytes_success();
-}
-
-#[test]
-fn test_from_str_inline_bytes_error() {
-    common::from_str::test_from_str_inline_bytes_error();
-}
-
 // *** AsRef Tests ***
 
 #[test]
@@ -232,28 +207,7 @@ fn test_as_ref_bytes_flex_str() {
     common::as_ref::test_as_ref_bytes_flex_str::<Arc<[u8]>>(b"test");
 }
 
-#[test]
-fn test_as_ref_bytes_inline() {
-    common::as_ref::test_as_ref_bytes_inline(b"test");
-}
-
-// *** InlineFlexStr Edge Cases ***
-
-#[test]
-fn test_inline_default_bytes() {
-    common::inline_edge_cases::test_inline_default::<[u8]>();
-}
-
-#[test]
-fn test_as_mut_type_bytes() {
-    common::inline_edge_cases::test_as_mut_type_bytes();
-}
-
-#[test]
-fn test_try_from_type_too_long_bytes() {
-    let long_bytes: &'static [u8] = Box::leak(Box::new([0u8; flexstry::INLINE_CAPACITY + 1]));
-    common::inline_edge_cases::test_try_from_type_too_long::<[u8]>(long_bytes);
-}
+// *** FlexStr Edge Cases ***
 
 #[test]
 fn test_optimize_ref_counted_to_inlined_bytes() {
@@ -262,7 +216,7 @@ fn test_optimize_ref_counted_to_inlined_bytes() {
 
 #[test]
 fn test_optimize_ref_counted_stays_ref_counted_bytes() {
-    let long_bytes: &'static [u8] = Box::leak(Box::new([0u8; flexstry::INLINE_CAPACITY + 1]));
+    let long_bytes: &'static [u8] = Box::leak(Box::new([0u8; INLINE_CAPACITY + 1]));
     common::inline_edge_cases::test_optimize_ref_counted_stays_ref_counted::<[u8], Arc<[u8]>>(
         long_bytes,
     );
