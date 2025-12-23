@@ -119,7 +119,7 @@ impl FromStr for InlineFlexStr<str> {
 #[cfg(feature = "sqlx")]
 impl<'r, DB: sqlx::Database> sqlx::Decode<'r, DB> for InlineFlexStr<str>
 where
-    for<'a> &'a str: sqlx::Decode<'r, DB>,
+    &'r str: sqlx::Decode<'r, DB>,
 {
     fn decode(
         value: <DB as sqlx::Database>::ValueRef<'r>,
@@ -132,12 +132,14 @@ where
 #[cfg(feature = "sqlx")]
 impl<'r, DB: sqlx::Database> sqlx::Encode<'r, DB> for InlineFlexStr<str>
 where
-    for<'a> &'a str: sqlx::Encode<'r, DB>,
+    String: sqlx::Encode<'r, DB>,
 {
     fn encode_by_ref(
         &self,
         buf: &mut <DB as sqlx::Database>::ArgumentBuffer<'r>,
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
-        <&str as sqlx::Encode<'r, DB>>::encode(self, buf)
+        // There might be a more efficient way to do this (or not?), but the lifetimes seem to be contraining
+        // us to using an owned type here. Works at the cost of an allocation/copy.
+        <String as sqlx::Encode<'r, DB>>::encode(self.to_string(), buf)
     }
 }

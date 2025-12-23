@@ -127,25 +127,28 @@ impl<R: RefCounted<str>> FromStr for FlexStr<'static, str, R> {
 #[cfg(feature = "sqlx")]
 impl<'r, 's, DB: sqlx::Database, R: RefCounted<str>> sqlx::Decode<'r, DB> for FlexStr<'s, str, R>
 where
-    for<'a> &'a str: sqlx::Decode<'r, DB>,
+    &'r str: sqlx::Decode<'r, DB>,
 {
     fn decode(
         value: <DB as sqlx::Database>::ValueRef<'r>,
     ) -> Result<Self, sqlx::error::BoxDynError> {
         let value = <&str as sqlx::Decode<DB>>::decode(value)?;
-        Ok(value.into())
+        let s: FlexStr<'_, str, R> = value.into();
+        Ok(s.into_owned())
     }
 }
 
 #[cfg(feature = "sqlx")]
 impl<'r, 's, DB: sqlx::Database, R: RefCounted<str>> sqlx::Encode<'r, DB> for FlexStr<'s, str, R>
 where
-    for<'a> &'a str: sqlx::Encode<'r, DB>,
+    String: sqlx::Encode<'r, DB>,
 {
     fn encode_by_ref(
         &self,
         buf: &mut <DB as sqlx::Database>::ArgumentBuffer<'r>,
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
-        <&str as sqlx::Encode<'r, DB>>::encode(self, buf)
+        // There might be a more efficient way to do this (or not?), but the lifetimes seem to be contraining
+        // us to using an owned type here. Works at the cost of an allocation/copy.
+        <String as sqlx::Encode<'r, DB>>::encode(self.to_string(), buf)
     }
 }
