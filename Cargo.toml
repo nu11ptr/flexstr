@@ -19,6 +19,7 @@ categories = [
 ]
 readme = "README.md"
 edition = "2024"
+exclude = ["docs/**"]
 
 [features]
 default = ["std", "str"]
