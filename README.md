@@ -9,22 +9,10 @@ A flexible, simple to use, clone-efficient `String` replacement for Rust. It uni
 
 ## Overview
 
-TL;DR - If you've used `Cow`, but you wish cloning owned strings was more performant and that being owned didn't always imply heap allocation, this crate might be what you are looking for. The operations are "lazy" (like `Cow`), and it tries not to do work the user is not expecting.
+If you've used `Cow`, but you wish cloning owned strings was more performant and that being owned didn't always imply heap allocation, this crate might be what you are looking for. The operations are "lazy" (like `Cow`), and it tries not to do work the user is not expecting.
 
-Longer:
 
-There are now many clone efficient, inlined string crates available at this point, but this crate is a bit different. First, it is simple: it is just an enum, so you are always in control of what type of string it contains. Its basic semantics are modeled after the basic `Cow` in the stdlib. `Cow` is pretty handy, but borrowed/owned alone isn't always sufficient (this crate adds ref counted and inlined strings). Clones should ideally not allocate new space (until mutation is required). Also, it would be nice if short strings didn't allocate at all, since short strings are often prevalent. The goal was a unified string type that can handle just about any situation, and bring all those use cases together in a single type.
-
-Each one of the enum variants excels at different use cases, but is brought together in a single type for maximum flexibility:
-
-  - **Borrowed** - Clone/copy performance, memory efficiency and optimal `&str` interop
-  - **Inlined** - Clone/copy performance for short strings, memory efficiency and mutability
-  - **RefCounted** - Clone performance for long strings, memory efficiency and optimal `Arc<str>`/`Rc<str>` interop
-  - **Boxed** - Mutability and optimal `String`/`Box<str>` interop
-
-If you have used previous versions of this crate, you should be aware this new version is a ground up rewrite with a solidly different thought process, API and design. Even if the previous versions didn't match your needs, this one might. *Users should be aware that nearly all the string construction code is not yet present in this version.* The new way to do this (workaround?) is to do the work as a `String` and then import it into a `LocalStr` or `SharedStr`. Moving into and out of the boxed variant (`from_owned`) should be near zero cost.
-
-Lastly, this might be the only inline/clone efficient string crate that is generic over all the Rust string types (`str`, `CStr`, `OsStr`, `Path`, `[u8]`).
+> **Users of previous versions:** you should be aware this new version is a ground up rewrite with a solidly different thought process, API and design. Even if the previous versions didn't match your needs, this one might. *Users should be aware that nearly all the string construction code is not yet present in this version.* The new way to do this (workaround?) is to do the work as a `String` and then import it into a `LocalStr` or `SharedStr`. Moving into and out of the boxed variant (`from_owned`) should be near zero cost.
 
 ## Features
 
