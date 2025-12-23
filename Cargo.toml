@@ -4,7 +4,7 @@ exclude = ["benchmarks"]
 
 [package]
 name = "flexstr"
-version = "0.10.2"
+version = "0.10.3"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A flexible, simple to use, clone-efficient string type for Rust"
@@ -52,12 +52,12 @@ optional = true
 
 [dependencies.inline_flexstr]
 path = "inline_flexstr"
-version = "0.1.2"
+version = "0.1.3"
 default-features = false
 
 [dependencies.flexstr_support]
 path = "flexstr_support"
-version = "0.1.2"
+version = "0.1.3"
 default-features = false
 
 [dev-dependencies.serde_json]

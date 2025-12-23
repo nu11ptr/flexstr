@@ -1,6 +1,6 @@
 [package]
 name = "inline_flexstr"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A simple to use, copy/clone-efficient inline string type for Rust"
@@ -33,7 +33,7 @@ str = ["flexstr_support/str"]
 
 [dependencies.flexstr_support]
 path = "../flexstr_support"
-version = "0.1.2"
+version = "0.1.3"
 default-features = false
 
 [dependencies.serde]

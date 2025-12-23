@@ -1,6 +1,6 @@
 [package]
 name = "flexstr_support"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "Support crate for 'flexstr' and 'inline_flexstr'"
