@@ -132,7 +132,9 @@ fn test_various_lengths_str() {
 #[test]
 fn test_special_content_str() {
     common::edge_cases::test_special_content::<str>("test");
-    common::edge_cases::test_special_content::<str>("hello\nworld");
+    // Use a string that fits in both 32-bit (10 bytes) and 64-bit (22 bytes) capacity
+    // "hello\n" is 6 bytes, which fits in both
+    common::edge_cases::test_special_content::<str>("hello\n");
     common::edge_cases::test_special_content::<str>("🚀");
 }
 
@@ -232,7 +234,7 @@ fn test_index_mut_str() {
 #[cfg(feature = "std")]
 #[test]
 fn test_to_socket_addrs_str() {
-    common::socket::test_to_socket_addrs::<str>("127.0.0.1:8080");
+    common::socket::test_to_socket_addrs::<str>("[::]:8080");
 }
 
 // *** AsRef Tests ***
@@ -249,4 +251,3 @@ fn test_as_ref_str() {
 fn test_deserialize_error_str() {
     common::serialize::test_deserialize_error_str();
 }
-

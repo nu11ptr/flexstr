@@ -1,0 +1,5 @@
+[target.wasm32-wasip1]
+runner = "wasmtime run --"
+
+[target.wasm32-wasip2]
+runner = "wasmtime run --"

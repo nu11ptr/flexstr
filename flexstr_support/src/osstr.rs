@@ -28,6 +28,14 @@ impl StringToFromBytes for OsStr {
         OsStrExt::from_bytes(bytes)
     }
 
+    #[cfg(all(feature = "safe", target_os = "wasi"))]
+    #[inline]
+    fn bytes_as_self(bytes: &[u8]) -> &Self {
+        use std::os::wasi::prelude::OsStrExt;
+
+        OsStrExt::from_bytes(bytes)
+    }
+
     #[cfg(any(
         not(feature = "safe"),
         all(feature = "win_min_unsafe", target_family = "windows")

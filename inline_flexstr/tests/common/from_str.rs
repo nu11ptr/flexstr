@@ -49,7 +49,7 @@ pub fn test_from_str_bytes_error() {
 #[cfg(all(feature = "std", feature = "osstr"))]
 pub fn test_from_str_osstr_success() {
     use std::ffi::OsStr;
-    
+
     let inline_str = InlineFlexStr::<OsStr>::from_str("test").unwrap();
     assert_eq!(inline_str.as_ref_type(), OsStr::new("test"));
 }
@@ -67,7 +67,7 @@ pub fn test_from_str_osstr_error() {
 #[cfg(all(feature = "std", feature = "path"))]
 pub fn test_from_str_path_success() {
     use std::path::Path;
-    
+
     let inline_str = InlineFlexStr::<Path>::from_str("test").unwrap();
     assert_eq!(inline_str.as_ref_type(), Path::new("test"));
 }
@@ -92,14 +92,16 @@ pub fn test_from_str_cstr_success() {
 #[cfg(feature = "cstr")]
 pub fn test_from_str_cstr_error() {
     use inline_flexstr::TooLongOrNulError;
-    
-    // String with interior NUL should fail
-    let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> = InlineFlexStr::from_str("test\0middle");
+
+    // String with interior NUL should fail - use a string that fits in 32-bit capacity (10 bytes)
+    // "ab\0cd" is 5 bytes, which fits in both 32-bit and 64-bit capacity
+    let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> =
+        InlineFlexStr::from_str("ab\0cd");
     result.unwrap_err();
-    
+
     // String too long should fail
     let long_str = "x".repeat(inline_flexstr::INLINE_CAPACITY + 1);
-    let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> = InlineFlexStr::from_str(&long_str);
+    let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> =
+        InlineFlexStr::from_str(&long_str);
     result.unwrap_err();
 }
-

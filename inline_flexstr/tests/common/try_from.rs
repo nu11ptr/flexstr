@@ -132,8 +132,9 @@ pub fn test_try_from_str_cstr() {
     let inline_str = result.unwrap();
     assert_eq!(inline_str.as_ref_type().to_bytes(), b"test");
 
-    // Invalid CStr (interior NUL)
-    let s_with_nul: &str = "test\0middle";
+    // Invalid CStr (interior NUL) - use a string that fits in 32-bit capacity (10 bytes)
+    // "ab\0cd" is 5 bytes, which fits in both 32-bit and 64-bit capacity
+    let s_with_nul: &str = "ab\0cd";
     let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> = s_with_nul.try_into();
     result.unwrap_err();
 
@@ -155,8 +156,9 @@ pub fn test_try_from_bytes_cstr() {
     let inline_str = result.unwrap();
     assert_eq!(inline_str.as_ref_type().to_bytes(), b"test");
 
-    // Invalid CStr (interior NUL)
-    let bytes_with_nul: &[u8] = b"test\0middle";
+    // Invalid CStr (interior NUL) - use bytes that fit in 32-bit capacity (10 bytes)
+    // b"ab\0cd" is 5 bytes, which fits in both 32-bit and 64-bit capacity
+    let bytes_with_nul: &[u8] = b"ab\0cd";
     let result: Result<InlineFlexStr<core::ffi::CStr>, TooLongOrNulError> =
         bytes_with_nul.try_into();
     result.unwrap_err();
