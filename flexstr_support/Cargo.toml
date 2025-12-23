@@ -1,6 +1,6 @@
 [package]
 name = "flexstr_support"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "Support crate for 'flexstr' and 'inline_flexstr'"
@@ -30,3 +30,7 @@ cstr = []
 osstr = ["std"]
 path = ["osstr"]
 str = []
+
+[package.metadata.docs.rs]
+features = ["bytes", "cstr", "osstr", "path", "serde", "std", "str"]
+rustdoc-args = ["--cfg", "docsrs"]
