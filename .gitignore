@@ -3,3 +3,5 @@ target/
 /.idea
 tarpaulin-report.html
 **/*.rs.bk
+.DS_Store
+

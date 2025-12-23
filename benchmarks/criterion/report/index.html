@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Index - Criterion.rs</title>
+    <style type="text/css">
+        body {
+            font: 14px Helvetica Neue;
+            text-rendering: optimizelegibility;
+        }
+
+        .body {
+            width: 960px;
+            margin: auto;
+        }
+
+        a:link {
+            color: #1F78B4;
+            text-decoration: none;
+        }
+
+        h2 {
+            font-size: 36px;
+            font-weight: 300;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        #footer {
+            height: 40px;
+            background: #888;
+            color: white;
+            font-size: larger;
+            font-weight: 300;
+        }
+
+        #footer a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        #footer p {
+            text-align: center
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #888;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="body">
+        <h2>Criterion.rs Benchmark Index</h2>
+        See individual benchmark pages below for more details.
+        <ul>
+            <li><a href="../Clone/report/index.html">Clone</a></li>
+            
+            <ul>
+                <li>
+                    <table>
+                        <tr>
+                            <th></th>
+                            <th><a href="../Clone/Arc_str_/report/index.html">Arc&lt;str&gt;</a></th>
+                            <th><a href="../Clone/FlexStr 0.10 (LocalStr - Boxed)/report/index.html">FlexStr 0.10 (LocalStr - Boxed)</a></th>
+                            <th><a href="../Clone/FlexStr 0.10 (LocalStr - Optimized)/report/index.html">FlexStr 0.10 (LocalStr - Optimized)</a></th>
+                            <th><a href="../Clone/FlexStr 0.10 (SharedStr - Boxed)/report/index.html">FlexStr 0.10 (SharedStr - Boxed)</a></th>
+                            <th><a href="../Clone/FlexStr 0.10 (SharedStr - Optimized)/report/index.html">FlexStr 0.10 (SharedStr - Optimized)</a></th>
+                            <th><a href="../Clone/FlexStr 0.9 (LocalStr)/report/index.html">FlexStr 0.9 (LocalStr)</a></th>
+                            <th><a href="../Clone/FlexStr 0.9 (SharedStr)/report/index.html">FlexStr 0.9 (SharedStr)</a></th>
+                            <th><a href="../Clone/InlineFlexStr 0.1 (InlineStr)/report/index.html">InlineFlexStr 0.1 (InlineStr)</a></th>
+                            <th><a href="../Clone/Rc_str_/report/index.html">Rc&lt;str&gt;</a></th>
+                            <th><a href="../Clone/String/report/index.html">String</a></th>
+                        </tr>
+                        <tr>
+                            <th><a href="../Clone/0/report/index.html">0</a></th>
+                            <td><a href="../Clone/Arc_str_/0/report/index.html">Clone/Arc&lt;str&gt;/0</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Boxed)/0/report/index.html">Clone/FlexStr 0.10 (LocalStr - Boxed)/0</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Optimized)/0/report/index.html">Clone/FlexStr 0.10 (LocalStr - Optimized)/0</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Boxed)/0/report/index.html">Clone/FlexStr 0.10 (SharedStr - Boxed)/0</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Optimized)/0/report/index.html">Clone/FlexStr 0.10 (SharedStr - Optimized)/0</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (LocalStr)/0/report/index.html">Clone/FlexStr 0.9 (LocalStr)/0</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (SharedStr)/0/report/index.html">Clone/FlexStr 0.9 (SharedStr)/0</a></td>
+                            <td><a href="../Clone/InlineFlexStr 0.1 (InlineStr)/0/report/index.html">Clone/InlineFlexStr 0.1 (InlineStr)/0</a></td>
+                            <td><a href="../Clone/Rc_str_/0/report/index.html">Clone/Rc&lt;str&gt;/0</a></td>
+                            <td><a href="../Clone/String/0/report/index.html">Clone/String/0</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Clone/10/report/index.html">10</a></th>
+                            <td><a href="../Clone/Arc_str_/10/report/index.html">Clone/Arc&lt;str&gt;/10</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Boxed)/10/report/index.html">Clone/FlexStr 0.10 (LocalStr - Boxed)/10</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Optimized)/10/report/index.html">Clone/FlexStr 0.10 (LocalStr - Optimized)/10</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Boxed)/10/report/index.html">Clone/FlexStr 0.10 (SharedStr - Boxed)/10</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Optimized)/10/report/index.html">Clone/FlexStr 0.10 (SharedStr - Optimized)/10</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (LocalStr)/10/report/index.html">Clone/FlexStr 0.9 (LocalStr)/10</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (SharedStr)/10/report/index.html">Clone/FlexStr 0.9 (SharedStr)/10</a></td>
+                            <td><a href="../Clone/InlineFlexStr 0.1 (InlineStr)/10/report/index.html">Clone/InlineFlexStr 0.1 (InlineStr)/10</a></td>
+                            <td><a href="../Clone/Rc_str_/10/report/index.html">Clone/Rc&lt;str&gt;/10</a></td>
+                            <td><a href="../Clone/String/10/report/index.html">Clone/String/10</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Clone/20/report/index.html">20</a></th>
+                            <td><a href="../Clone/Arc_str_/20/report/index.html">Clone/Arc&lt;str&gt;/20</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Boxed)/20/report/index.html">Clone/FlexStr 0.10 (LocalStr - Boxed)/20</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Optimized)/20/report/index.html">Clone/FlexStr 0.10 (LocalStr - Optimized)/20</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Boxed)/20/report/index.html">Clone/FlexStr 0.10 (SharedStr - Boxed)/20</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Optimized)/20/report/index.html">Clone/FlexStr 0.10 (SharedStr - Optimized)/20</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (LocalStr)/20/report/index.html">Clone/FlexStr 0.9 (LocalStr)/20</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (SharedStr)/20/report/index.html">Clone/FlexStr 0.9 (SharedStr)/20</a></td>
+                            <td><a href="../Clone/InlineFlexStr 0.1 (InlineStr)/20/report/index.html">Clone/InlineFlexStr 0.1 (InlineStr)/20</a></td>
+                            <td><a href="../Clone/Rc_str_/20/report/index.html">Clone/Rc&lt;str&gt;/20</a></td>
+                            <td><a href="../Clone/String/20/report/index.html">Clone/String/20</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Clone/100/report/index.html">100</a></th>
+                            <td><a href="../Clone/Arc_str_/100/report/index.html">Clone/Arc&lt;str&gt;/100</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Boxed)/100/report/index.html">Clone/FlexStr 0.10 (LocalStr - Boxed)/100</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Optimized)/100/report/index.html">Clone/FlexStr 0.10 (LocalStr - Optimized)/100</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Boxed)/100/report/index.html">Clone/FlexStr 0.10 (SharedStr - Boxed)/100</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Optimized)/100/report/index.html">Clone/FlexStr 0.10 (SharedStr - Optimized)/100</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (LocalStr)/100/report/index.html">Clone/FlexStr 0.9 (LocalStr)/100</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (SharedStr)/100/report/index.html">Clone/FlexStr 0.9 (SharedStr)/100</a></td>
+                            <td><a href="../Clone/InlineFlexStr 0.1 (InlineStr)/100/report/index.html">Clone/InlineFlexStr 0.1 (InlineStr)/100</a></td>
+                            <td><a href="../Clone/Rc_str_/100/report/index.html">Clone/Rc&lt;str&gt;/100</a></td>
+                            <td><a href="../Clone/String/100/report/index.html">Clone/String/100</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Clone/500/report/index.html">500</a></th>
+                            <td><a href="../Clone/Arc_str_/500/report/index.html">Clone/Arc&lt;str&gt;/500</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Boxed)/500/report/index.html">Clone/FlexStr 0.10 (LocalStr - Boxed)/500</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (LocalStr - Optimized)/500/report/index.html">Clone/FlexStr 0.10 (LocalStr - Optimized)/500</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Boxed)/500/report/index.html">Clone/FlexStr 0.10 (SharedStr - Boxed)/500</a></td>
+                            <td><a href="../Clone/FlexStr 0.10 (SharedStr - Optimized)/500/report/index.html">Clone/FlexStr 0.10 (SharedStr - Optimized)/500</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (LocalStr)/500/report/index.html">Clone/FlexStr 0.9 (LocalStr)/500</a></td>
+                            <td><a href="../Clone/FlexStr 0.9 (SharedStr)/500/report/index.html">Clone/FlexStr 0.9 (SharedStr)/500</a></td>
+                            <td><a href="../Clone/InlineFlexStr 0.1 (InlineStr)/500/report/index.html">Clone/InlineFlexStr 0.1 (InlineStr)/500</a></td>
+                            <td><a href="../Clone/Rc_str_/500/report/index.html">Clone/Rc&lt;str&gt;/500</a></td>
+                            <td><a href="../Clone/String/500/report/index.html">Clone/String/500</a></td>
+                        </tr>
+                    </table>
+                </li>
+            </ul>
+            <li><a href="../Import as borrowed, own and destroy/report/index.html">Import as borrowed, own and destroy</a></li>
+            
+            <ul>
+                <li>
+                    <table>
+                        <tr>
+                            <th></th>
+                            <th><a href="../Import as borrowed, own and destroy/Cow_&#39;_, str_/report/index.html">Cow&lt;&#39;_, str&gt;</a></th>
+                            <th><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/report/index.html">FlexStr 0.10 (LocalStr)</a></th>
+                            <th><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/report/index.html">FlexStr 0.10 (SharedStr)</a></th>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as borrowed, own and destroy/0/report/index.html">0</a></th>
+                            <td><a href="../Import as borrowed, own and destroy/Cow_&#39;_, str_/0/report/index.html">Import as borrowed, own and destroy/Cow&lt;&#39;_, str&gt;/0</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/0/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/0</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/0/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/0</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as borrowed, own and destroy/10/report/index.html">10</a></th>
+                            <td><a href="../Import as borrowed, own and destroy/Cow_&#39;_, str_/10/report/index.html">Import as borrowed, own and destroy/Cow&lt;&#39;_, str&gt;/10</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/10/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/10</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/10/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/10</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as borrowed, own and destroy/20/report/index.html">20</a></th>
+                            <td><a href="../Import as borrowed, own and destroy/Cow_&#39;_, str_/20/report/index.html">Import as borrowed, own and destroy/Cow&lt;&#39;_, str&gt;/20</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/20/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/20</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/20/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/20</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as borrowed, own and destroy/100/report/index.html">100</a></th>
+                            <td><a href="../Import as borrowed, own and destroy/Cow_&#39;_, str_/100/report/index.html">Import as borrowed, own and destroy/Cow&lt;&#39;_, str&gt;/100</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/100/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/100</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/100/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/100</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as borrowed, own and destroy/500/report/index.html">500</a></th>
+                            <td><a href="../Import as borrowed, own and destroy/Cow_&#39;_, str_/500/report/index.html">Import as borrowed, own and destroy/Cow&lt;&#39;_, str&gt;/500</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/500/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (LocalStr)/500</a></td>
+                            <td><a href="../Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/500/report/index.html">Import as borrowed, own and destroy/FlexStr 0.10 (SharedStr)/500</a></td>
+                        </tr>
+                    </table>
+                </li>
+            </ul>
+            <li><a href="../Import as owned and destroy/report/index.html">Import as owned and destroy</a></li>
+            
+            <ul>
+                <li>
+                    <table>
+                        <tr>
+                            <th></th>
+                            <th><a href="../Import as owned and destroy/Arc_str_/report/index.html">Arc&lt;str&gt;</a></th>
+                            <th><a href="../Import as owned and destroy/Cow_&#39;_, str_/report/index.html">Cow&lt;&#39;_, str&gt;</a></th>
+                            <th><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/report/index.html">FlexStr 0.10 (LocalStr - As is)</a></th>
+                            <th><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/report/index.html">FlexStr 0.10 (LocalStr - Optimized)</a></th>
+                            <th><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/report/index.html">FlexStr 0.10 (SharedStr - As is)</a></th>
+                            <th><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/report/index.html">FlexStr 0.10 (SharedStr - Optimized)</a></th>
+                            <th><a href="../Import as owned and destroy/FlexStr 0.9 (LocalStr)/report/index.html">FlexStr 0.9 (LocalStr)</a></th>
+                            <th><a href="../Import as owned and destroy/FlexStr 0.9 (SharedStr)/report/index.html">FlexStr 0.9 (SharedStr)</a></th>
+                            <th><a href="../Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/report/index.html">InlineFlexStr 0.1 (InlineStr)</a></th>
+                            <th><a href="../Import as owned and destroy/Rc_str_/report/index.html">Rc&lt;str&gt;</a></th>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as owned and destroy/0/report/index.html">0</a></th>
+                            <td><a href="../Import as owned and destroy/Arc_str_/0/report/index.html">Import as owned and destroy/Arc&lt;str&gt;/0</a></td>
+                            <td><a href="../Import as owned and destroy/Cow_&#39;_, str_/0/report/index.html">Import as owned and destroy/Cow&lt;&#39;_, str&gt;/0</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/0/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/0</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/0/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/0</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/0/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/0</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/0/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/0</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (LocalStr)/0/report/index.html">Import as owned and destroy/FlexStr 0.9 (LocalStr)/0</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (SharedStr)/0/report/index.html">Import as owned and destroy/FlexStr 0.9 (SharedStr)/0</a></td>
+                            <td><a href="../Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/0/report/index.html">Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/0</a></td>
+                            <td><a href="../Import as owned and destroy/Rc_str_/0/report/index.html">Import as owned and destroy/Rc&lt;str&gt;/0</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as owned and destroy/10/report/index.html">10</a></th>
+                            <td><a href="../Import as owned and destroy/Arc_str_/10/report/index.html">Import as owned and destroy/Arc&lt;str&gt;/10</a></td>
+                            <td><a href="../Import as owned and destroy/Cow_&#39;_, str_/10/report/index.html">Import as owned and destroy/Cow&lt;&#39;_, str&gt;/10</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/10/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/10</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/10/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/10</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/10/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/10</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/10/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/10</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (LocalStr)/10/report/index.html">Import as owned and destroy/FlexStr 0.9 (LocalStr)/10</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (SharedStr)/10/report/index.html">Import as owned and destroy/FlexStr 0.9 (SharedStr)/10</a></td>
+                            <td><a href="../Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/10/report/index.html">Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/10</a></td>
+                            <td><a href="../Import as owned and destroy/Rc_str_/10/report/index.html">Import as owned and destroy/Rc&lt;str&gt;/10</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as owned and destroy/20/report/index.html">20</a></th>
+                            <td><a href="../Import as owned and destroy/Arc_str_/20/report/index.html">Import as owned and destroy/Arc&lt;str&gt;/20</a></td>
+                            <td><a href="../Import as owned and destroy/Cow_&#39;_, str_/20/report/index.html">Import as owned and destroy/Cow&lt;&#39;_, str&gt;/20</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/20/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/20</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/20/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/20</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/20/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/20</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/20/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/20</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (LocalStr)/20/report/index.html">Import as owned and destroy/FlexStr 0.9 (LocalStr)/20</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (SharedStr)/20/report/index.html">Import as owned and destroy/FlexStr 0.9 (SharedStr)/20</a></td>
+                            <td><a href="../Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/20/report/index.html">Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/20</a></td>
+                            <td><a href="../Import as owned and destroy/Rc_str_/20/report/index.html">Import as owned and destroy/Rc&lt;str&gt;/20</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as owned and destroy/100/report/index.html">100</a></th>
+                            <td><a href="../Import as owned and destroy/Arc_str_/100/report/index.html">Import as owned and destroy/Arc&lt;str&gt;/100</a></td>
+                            <td><a href="../Import as owned and destroy/Cow_&#39;_, str_/100/report/index.html">Import as owned and destroy/Cow&lt;&#39;_, str&gt;/100</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/100/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/100</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/100/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/100</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/100/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/100</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/100/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/100</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (LocalStr)/100/report/index.html">Import as owned and destroy/FlexStr 0.9 (LocalStr)/100</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (SharedStr)/100/report/index.html">Import as owned and destroy/FlexStr 0.9 (SharedStr)/100</a></td>
+                            <td><a href="../Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/100/report/index.html">Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/100</a></td>
+                            <td><a href="../Import as owned and destroy/Rc_str_/100/report/index.html">Import as owned and destroy/Rc&lt;str&gt;/100</a></td>
+                        </tr>
+                        <tr>
+                            <th><a href="../Import as owned and destroy/500/report/index.html">500</a></th>
+                            <td><a href="../Import as owned and destroy/Arc_str_/500/report/index.html">Import as owned and destroy/Arc&lt;str&gt;/500</a></td>
+                            <td><a href="../Import as owned and destroy/Cow_&#39;_, str_/500/report/index.html">Import as owned and destroy/Cow&lt;&#39;_, str&gt;/500</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/500/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - As is)/500</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/500/report/index.html">Import as owned and destroy/FlexStr 0.10 (LocalStr - Optimized)/500</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/500/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - As is)/500</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/500/report/index.html">Import as owned and destroy/FlexStr 0.10 (SharedStr - Optimized)/500</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (LocalStr)/500/report/index.html">Import as owned and destroy/FlexStr 0.9 (LocalStr)/500</a></td>
+                            <td><a href="../Import as owned and destroy/FlexStr 0.9 (SharedStr)/500/report/index.html">Import as owned and destroy/FlexStr 0.9 (SharedStr)/500</a></td>
+                            <td><a href="../Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/500/report/index.html">Import as owned and destroy/InlineFlexStr 0.1 (InlineStr)/500</a></td>
+                            <td><a href="../Import as owned and destroy/Rc_str_/500/report/index.html">Import as owned and destroy/Rc&lt;str&gt;/500</a></td>
+                        </tr>
+                    </table>
+                </li>
+            </ul>
+        </ul>
+    </div>
+    <div id="footer">
+        <p>This report was generated by
+            <a href="https://github.com/criterion-rs/criterion.rs">Criterion.rs</a>, a statistics-driven benchmarking
+            library in Rust.</p>
+    </div>
+</body>
+</html>
