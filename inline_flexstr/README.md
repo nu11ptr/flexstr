@@ -54,6 +54,10 @@ let world: InlineCStr = c"world!".try_into().expect("string too long");
 println!("{hello} {world:?}");
 ```
 
+## Performance
+
+In general, it performs quite well given that it is mostly just a thin wrapper over the stdlib. See the [benchmarks](../benchmarks/README.md) page for more details.
+
 ## AI Usage
 
 The code was written by hand with care (although AI tab completion was used). Any contributions should be completely understood by the contributor, whether AI assisted or not.
