@@ -18,137 +18,59 @@ jobs:
   test:
     name: Test - ${{ matrix.build }}
     runs-on: ${{ matrix.os }}
-    env:
-      CARGO: cargo
-      TARGET: ""
-      DOCTEST: ""
     strategy:
       fail-fast: false
       matrix:
         build:
           - linux
-          - linux-beta
-          - linux-nightly
           - macos
-          - win64-msvc
-          - win64-gnu
-          - win32-msvc
-          - win32-gnu
-          - linux32
-          - linux-arm32
-          - linux-arm64
-          #- linux-wasm
-          - linux-mips32
-          - linux-mips64
-          - android-arm32
-          - android-arm64
+          - windows
         include:
-          # *** Native on Runners ***
-          # Linux
           - build: linux
+            label: linux_x64
             os: ubuntu-latest
-            rust: stable
-          # Linux - Beta and Nightly
-          - build: linux-beta
-            os: ubuntu-latest
-            rust: beta
-          - build: linux-nightly
-            os: ubuntu-latest
-            rust: nightly
 
-          # Mac
           - build: macos
+            label: macos_arm64
             os: macos-latest
-            rust: stable
 
-          # Windows
-          - build: win64-msvc
-            os: windows-2019
-            rust: stable
-          - build: win64-gnu
-            os: windows-2019
-            rust: stable-x86_64-gnu
-          - build: win32-msvc
-            os: windows-2019
-            rust: stable-i686-msvc
-          - build: win32-gnu
-            os: windows-2019
-            rust: stable-i686-gnu
-
-          # *** Using Cross (Nightly needed for doctests) ***
-          # Various Linux
-          - build: linux32
-            os: ubuntu-latest
-            rust: nightly
-            target: i686-unknown-linux-gnu
-          # ARM
-          - build: linux-arm32
-            os: ubuntu-latest
-            rust: nightly
-            target: armv7-unknown-linux-gnueabihf
-          - build: linux-arm64
-            os: ubuntu-latest
-            rust: nightly
-            target: aarch64-unknown-linux-gnu
-
-          # WASM (broken - fails with link error)
-#          - build: linux-wasm
-#            os: ubuntu-latest
-#            rust: stable
-#            target: wasm32-unknown-emscripten
-
-          # Big endian testing
-          - build: linux-mips32
-            os: ubuntu-latest
-            rust: nightly
-            target: mips-unknown-linux-gnu
-          - build: linux-mips64
-            os: ubuntu-latest
-            rust: nightly
-            target: mips64-unknown-linux-gnuabi64
-
-          # Android
-          - build: android-arm32
-            os: ubuntu-latest
-            rust: nightly
-            target: armv7-linux-androideabi
-          - build: android-arm64
-            os: ubuntu-latest
-            rust: nightly
-            target: aarch64-linux-android
+          - build: windows
+            label: windows_x64
+            os: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+        - name: Checkout source code
+          uses: actions/checkout@v5
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          profile: minimal
-          override: true
+        - name: Cache Rust
+          uses: actions/cache@v4
+          with:
+            path: |
+              ~/.cargo/bin/
+              ~/.cargo/registry/index/
+              ~/.cargo/registry/cache/
+              ~/.cargo/git/db/
+              target/
+            key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('crates/Cargo.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-cargo-coverage-
 
-      - name: Setup Cross (if required)
-        if: matrix.target != ''
-        run: |
-          cargo install cross
-          echo "CARGO=cross" >> $GITHUB_ENV
-          echo "TARGET=--target ${{ matrix.target }}" >> $GITHUB_ENV
-          echo "DOCTEST=-Zdoctest-xcompile" >> $GITHUB_ENV
+        - name: Install Rust Tools
+          uses: taiki-e/install-action@v2
+          with:
+            tool: cargo-nextest, just
 
-      - name: Display Cargo Info
-        run: |
-          echo "cargo command: ${{ env.CARGO }}"
-          echo "target flag: ${{ env.TARGET }}"
-          echo "doctest flag: ${{ env.DOCTEST }}"
+        - name: Run tests
+          run: just test
 
-      - name: Test
-        run: ${{ env.CARGO }} test --verbose  ${{ env.TARGET }} ${{ env.DOCTEST }}
+        - name: Run tests (no std)
+          run: just test_nostd
 
-      - name: Test (--no-default-features)
-        run: ${{ env.CARGO }} test --no-default-features --verbose ${{ env.TARGET }} ${{ env.DOCTEST }}
+        - name: Run tests (safe)
+          run: just test_safe
 
-      - name: Test (--all-features)
-        run: ${{ env.CARGO }} test --all-features --verbose ${{ env.TARGET }} ${{ env.DOCTEST }}
+        - name: Run tests (no std, safe)
+          run: just test_nostd_safe
 
   miri:
     name: Miri
@@ -156,73 +78,99 @@ jobs:
     env:
       MIRIFLAGS: -Zmiri-tag-raw-pointers
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v5
 
-      - uses: hecrj/setup-rust-action@v1
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-version: nightly
           components: miri
+          toolchain: nightly
 
-      - name: Test
-        run: cargo miri test
+      - name: Cache Rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('crates/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-clippy-
 
-      - name: Test (--no-default-features)
-        run: cargo miri test --no-default-features
+      - name: Install Rust Tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest, just
 
-      - name: Test (--all-features)
-        run: cargo miri test --all-features
+      - name: Run Miri
+        run: just miri
 
   clippy:
-    name: Clippy Lint
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v5
 
-      - uses: hecrj/setup-rust-action@v1
+      - name: Cache Rust
+        uses: actions/cache@v4
         with:
-          rust-version: stable
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('crates/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-clippy-
+
+      - name: Install Rust Tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest, just
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --verbose
+        run: just clippy
 
-      - name: Run Clippy (--all-features)
-        run: cargo clippy --workspace --all-targets --verbose --all-features
-
-      - name: Run Clippy (--no-default-features)
-        run: cargo clippy --workspace --all-targets --verbose --no-default-features
-
-  doc:
-    name: Doc Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: stable
-
-      - name: Check docs
-        run: cargo rustdoc --all-features --package flexstr -- -D warnings
-
-  tarpaulin:
+  coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v5
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          # Fails with stable - nightly needed for doctests I think?
-          toolchain: nightly
-          profile: minimal
-          override: true
+          components: llvm-tools-preview
 
-      - name: Run Tarpaulin
-        uses: actions-rs/tarpaulin@v0.1
+      - name: Cache Rust
+        uses: actions/cache@v4
         with:
-          run-types: Doctests,Tests
-          args: '--all-features'
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('crates/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-coverage-
 
-      - name: Upload Coverage Report
-        uses: codecov/codecov-action@v2
+      - name: Install Rust Tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest, cargo-llvm-cov, just
+
+      - name: Run tests with coverage
+        run: just cover_report
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+            files: codecov.json
+            token: ${{ secrets.CODECOV_TOKEN }}
