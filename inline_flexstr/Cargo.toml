@@ -41,6 +41,11 @@ version = "1"
 default-features = false
 optional = true
 
+[dependencies.sqlx]
+version = "0.8"
+default-features = false
+optional = true
+
 [dev-dependencies.serde_json]
 version = "1"
 

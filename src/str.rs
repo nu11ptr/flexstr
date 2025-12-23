@@ -121,3 +121,31 @@ impl<R: RefCounted<str>> FromStr for FlexStr<'static, str, R> {
         Ok(FlexStr::from_borrowed(s).into_owned())
     }
 }
+
+// *** SQLx ***
+
+#[cfg(feature = "sqlx")]
+impl<'r, 's, DB: sqlx::Database, R: RefCounted<str>> sqlx::Decode<'r, DB> for FlexStr<'s, str, R>
+where
+    for<'a> &'a str: sqlx::Decode<'r, DB>,
+{
+    fn decode(
+        value: <DB as sqlx::Database>::ValueRef<'r>,
+    ) -> Result<Self, sqlx::error::BoxDynError> {
+        let value = <&str as sqlx::Decode<DB>>::decode(value)?;
+        Ok(value.into())
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl<'r, 's, DB: sqlx::Database, R: RefCounted<str>> sqlx::Encode<'r, DB> for FlexStr<'s, str, R>
+where
+    for<'a> &'a str: sqlx::Encode<'r, DB>,
+{
+    fn encode_by_ref(
+        &self,
+        buf: &mut <DB as sqlx::Database>::ArgumentBuffer<'r>,
+    ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
+        <&str as sqlx::Encode<'r, DB>>::encode(self, buf)
+    }
+}

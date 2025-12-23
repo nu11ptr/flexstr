@@ -24,8 +24,8 @@ If you've used `Cow`, but you wish cloning owned strings was more performant and
 * Inlined string type can be used on its own
 * Same size a a `String` (3 words wide, even inside an `Option`)
 * Lazy instantiation (no unexpected allocations)
-* No dependencies
-    * NOTE: `serde` optional for serialization/deserialization
+* No external dependencies
+    * NOTE: `serde`/`sqlx` optional for serialization/deserialization/encode/decode
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
     * NOTE: This does induce a performance penalty, as would be expected

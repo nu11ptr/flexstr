@@ -45,6 +45,11 @@ version = "1"
 default-features = false
 optional = true
 
+[dependencies.sqlx]
+version = "0.8"
+default-features = false
+optional = true
+
 [dependencies.inline_flexstr]
 path = "inline_flexstr"
 version = "0.1.2"

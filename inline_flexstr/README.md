@@ -17,8 +17,8 @@ A fast inline string crate. Essentially it never allocates on the heap, but is l
 * O(1) copy/clone
 * Mutable
 * Same size a a `String` (3 words wide, even inside an `Option`)
-* No dependencies
-    * NOTE: `serde` optional for serialization/deserialization
+* No external dependencies
+    * NOTE: `serde`/`sqlx` optional for serialization/deserialization/encode/decode
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
     * NOTE: This does induce a performance penalty, as would be expected

@@ -113,3 +113,31 @@ impl FromStr for InlineFlexStr<str> {
         InlineFlexStr::try_from_type(s)
     }
 }
+
+// *** SQLx ***
+
+#[cfg(feature = "sqlx")]
+impl<'r, DB: sqlx::Database> sqlx::Decode<'r, DB> for InlineFlexStr<str>
+where
+    for<'a> &'a str: sqlx::Decode<'r, DB>,
+{
+    fn decode(
+        value: <DB as sqlx::Database>::ValueRef<'r>,
+    ) -> Result<Self, sqlx::error::BoxDynError> {
+        let value = <&str as sqlx::Decode<DB>>::decode(value)?;
+        Ok(value.try_into()?)
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl<'r, DB: sqlx::Database> sqlx::Encode<'r, DB> for InlineFlexStr<str>
+where
+    for<'a> &'a str: sqlx::Encode<'r, DB>,
+{
+    fn encode_by_ref(
+        &self,
+        buf: &mut <DB as sqlx::Database>::ArgumentBuffer<'r>,
+    ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
+        <&str as sqlx::Encode<'r, DB>>::encode(self, buf)
+    }
+}
