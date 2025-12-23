@@ -33,6 +33,7 @@ str = ["flexstr_support/str"]
 
 [dependencies.flexstr_support]
 path = "../flexstr_support"
+version = "0.1.0"
 default-features = false
 
 [dependencies.serde]

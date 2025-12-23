@@ -46,10 +46,12 @@ optional = true
 
 [dependencies.inline_flexstr]
 path = "inline_flexstr"
+version = "0.1.0"
 default-features = false
 
 [dependencies.flexstr_support]
 path = "flexstr_support"
+version = "0.1.0"
 default-features = false
 
 [dev-dependencies.serde_json]
