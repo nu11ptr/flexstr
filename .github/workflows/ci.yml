@@ -171,19 +171,19 @@ jobs:
 
       # Serde doesn't work on WASI yet when using OsStr/Path (https://github.com/serde-rs/serde/issues/3020)
       - name: Run tests
-        run: just std_features=bytes,cstr,osstr,path test --target wasm32-wasip1
+        run: just std_features=bytes,cstr,osstr,path,sqlx test --target wasm32-wasip1
 
       - name: Run tests (serde)
-        run: just std_features=bytes,cstr,serde test --target wasm32-wasip1
+        run: just std_features=bytes,cstr,serde,sqlx test --target wasm32-wasip1
 
       - name: Run tests (no std)
         run: just test_nostd --target wasm32-wasip1
 
       - name: Run tests (safe)
-        run: just std_features=bytes,cstr,osstr,path test_safe --target wasm32-wasip1
+        run: just std_features=bytes,cstr,osstr,path,sqlx test_safe --target wasm32-wasip1
 
       - name: Run tests (safe, serde)
-        run: just std_features=bytes,cstr,serde test_safe --target wasm32-wasip1
+        run: just std_features=bytes,cstr,serde,sqlx test_safe --target wasm32-wasip1
 
       - name: Run tests (no std, safe)
         run: just test_nostd_safe --target wasm32-wasip1

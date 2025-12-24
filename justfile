@@ -1,4 +1,4 @@
-std_features := "bytes,cstr,osstr,path,serde"
+std_features := "bytes,cstr,osstr,path,serde,sqlx,sqlx_pg_arrays"
 nostd_features := "bytes,cstr,serde,str"
 safe_features := if os() == "windows" { "safe,win_min_unsafe" } else { "safe" }
 

@@ -35,6 +35,8 @@ If you've used `Cow`, but you wish cloning owned strings was more performant and
 ## Cargo Features
 
 * **safe** = Use all safe functions and add `forbid(unsafe_code)` (performance penalty)
+* **sqlx** = Enable sqlx encode/decode/type support
+* **sqlx_pg_arrays** = Enable sqlx Postgres array support (implies `sqlx` feature)
 * **std** = Use `std` (default)
 * **serde** = add `serde` dependency and adds serialization/deserialization
 * **win_min_unsafe** = enables the minimum necessary unsafe code on Windows to support `OsStr`/`Path`. No other string types or operating systems are impacted (implies `safe` feature).
