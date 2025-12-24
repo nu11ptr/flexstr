@@ -138,8 +138,40 @@ where
         &self,
         buf: &mut <DB as sqlx::Database>::ArgumentBuffer<'r>,
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
-        // There might be a more efficient way to do this (or not?), but the lifetimes seem to be contraining
+        // There might be a more efficient way to do this (or not?), but the lifetimes seem to be constraining
         // us to using an owned type here. Works at the cost of an allocation/copy.
         <String as sqlx::Encode<'r, DB>>::encode(self.to_string(), buf)
+    }
+
+    fn size_hint(&self) -> usize {
+        self.len()
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl<'r, DB: sqlx::Database> sqlx::Type<DB> for InlineFlexStr<str>
+where
+    str: sqlx::Type<DB>,
+{
+    fn type_info() -> <DB as sqlx::Database>::TypeInfo {
+        <str as sqlx::Type<DB>>::type_info()
+    }
+
+    fn compatible(ty: &<DB as sqlx::Database>::TypeInfo) -> bool {
+        <str as sqlx::Type<DB>>::compatible(ty)
+    }
+}
+
+#[cfg(all(feature = "sqlx", feature = "sqlx_pg_arrays"))]
+impl sqlx::postgres::PgHasArrayType for InlineFlexStr<str>
+where
+    for<'a> &'a str: sqlx::postgres::PgHasArrayType,
+{
+    fn array_type_info() -> sqlx::postgres::PgTypeInfo {
+        <&str as sqlx::postgres::PgHasArrayType>::array_type_info()
+    }
+
+    fn array_compatible(ty: &sqlx::postgres::PgTypeInfo) -> bool {
+        <&str as sqlx::postgres::PgHasArrayType>::array_compatible(ty)
     }
 }

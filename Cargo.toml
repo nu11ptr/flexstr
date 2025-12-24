@@ -23,6 +23,7 @@ exclude = ["docs/**"]
 
 [features]
 default = ["std", "str"]
+sqlx_pg_arrays = ["sqlx", "sqlx/postgres"]
 # Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
 safe = ["flexstr_support/safe", "inline_flexstr/safe"]
 std = ["flexstr_support/std", "inline_flexstr/std", "serde?/std"]
