@@ -12,6 +12,8 @@ where
     fn into_boxed(self) -> Self::BoxType;
 
     fn from_boxed(boxed: &mut Self::BoxType) -> Self;
+
+    fn clone_boxed(boxed: &Self::BoxType) -> Self::BoxType;
 }
 
 // *** OwnedOpsMut ***
@@ -57,5 +59,17 @@ where
 
     pub fn push_str(&mut self, s: &S) {
         self.with_mut_str(|str| str.push_str(s));
+    }
+}
+
+impl<S: ?Sized + StringToFromBytes, B> Clone for BoxedFlexStr<S, B>
+where
+    S::Owned: OwnedToFromBoxed<S, BoxType = B>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: S::Owned::clone_boxed(&self.inner),
+            _marker: PhantomData,
+        }
     }
 }
