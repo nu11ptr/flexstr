@@ -1,5 +1,5 @@
 [workspace]
-members = ["flexstr_support", "inline_flexstr"]
+members = ["boxed_flexstr", "flexstr_support", "inline_flexstr"]
 exclude = ["benchmarks"]
 
 [package]

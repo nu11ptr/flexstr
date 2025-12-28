@@ -1,0 +1,61 @@
+use core::marker::PhantomData;
+use flexstr_support::StringToFromBytes;
+
+// *** OwnedToFromBoxedInner ***
+
+pub trait OwnedToFromBoxed<S: ?Sized + StringToFromBytes>
+where
+    S::Owned: OwnedToFromBoxed<S>,
+{
+    type BoxType;
+
+    fn into_boxed(self) -> Self::BoxType;
+
+    fn from_boxed(boxed: &mut Self::BoxType) -> Self;
+}
+
+// *** OwnedOpsMut ***
+
+pub trait OwnedOpsMut<S: ?Sized + StringToFromBytes> {
+    fn push_str(&mut self, s: &S);
+}
+
+// *** BoxedFlexStr ***
+
+pub struct BoxedFlexStr<S: ?Sized + StringToFromBytes, B>
+where
+    S::Owned: OwnedToFromBoxed<S, BoxType = B>,
+{
+    inner: B,
+    _marker: PhantomData<S>,
+}
+
+impl<S: ?Sized + StringToFromBytes, B> BoxedFlexStr<S, B>
+where
+    S::Owned: OwnedToFromBoxed<S, BoxType = B>,
+{
+    pub fn new(s: S::Owned) -> Self {
+        Self {
+            inner: s.into_boxed(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<S: ?Sized + StringToFromBytes, B> BoxedFlexStr<S, B>
+where
+    S::Owned: OwnedToFromBoxed<S, BoxType = B> + OwnedOpsMut<S>,
+{
+    pub fn with_mut_str<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut S::Owned),
+    {
+        let mut str: S::Owned = S::Owned::from_boxed(&mut self.inner);
+        f(&mut str);
+        self.inner = str.into_boxed();
+    }
+
+    pub fn push_str(&mut self, s: &S) {
+        self.with_mut_str(|str| str.push_str(s));
+    }
+}

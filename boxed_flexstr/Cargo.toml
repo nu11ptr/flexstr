@@ -1,0 +1,57 @@
+[package]
+name = "boxed_flexstr"
+version = "0.1.0"
+authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "A simple to use, compact, mutable boxed string type for Rust"
+repository = "https://github.com/nu11ptr/flexstr/boxed_flexstr"
+documentation = "https://docs.rs/boxed_flexstr"
+keywords = ["string", "boxed"]
+categories = [
+    "data-structures",
+    "memory-management",
+    "no-std",
+    "text-processing",
+]
+readme = "README.md"
+edition = "2024"
+
+
+[features]
+default = ["std", "str"]
+32_bit_large_strings = []
+sqlx_pg_arrays = ["sqlx", "sqlx/postgres"]
+# Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
+safe = ["flexstr_support/safe"]
+std = ["flexstr_support/std", "serde?/std"]
+# Uses the minimum unsafe code possible to support OsStr/Path on Windows. Doesn't impact any other string types or operating systems.
+win_min_unsafe = ["flexstr_support/win_min_unsafe", "safe"]
+
+# String type features
+bytes = ["flexstr_support/bytes"]
+cstr = ["flexstr_support/cstr"]
+osstr = ["flexstr_support/osstr", "std"]
+path = ["flexstr_support/path", "osstr"]
+str = ["flexstr_support/str"]
+
+[dependencies.flexstr_support]
+path = "../flexstr_support"
+version = "0.1.3"
+default-features = false
+
+[dependencies.serde]
+version = "1"
+default-features = false
+optional = true
+
+[dependencies.sqlx]
+version = "0.8"
+default-features = false
+optional = true
+
+[dev-dependencies.serde_json]
+version = "1"
+
+[package.metadata.docs.rs]
+features = ["bytes", "cstr", "osstr", "path", "serde", "std", "str"]
+rustdoc-args = ["--cfg", "docsrs"]
