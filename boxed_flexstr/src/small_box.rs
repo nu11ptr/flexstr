@@ -86,6 +86,7 @@ struct LengthCapacity {
     cap: u32,
 }
 
+#[cfg(target_pointer_width = "64")]
 impl LengthCapacity {
     const MAX_CAPACITY: usize = u32::MAX as usize;
 

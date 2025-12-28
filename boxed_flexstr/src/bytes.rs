@@ -21,11 +21,13 @@ impl OwnedToFromBoxed<[u8]> for Vec<u8> {
         let len = self.len();
         let cap = self.capacity();
         core::mem::forget(self);
+        // SAFETY: The raw parts are valid as they are not modified
         unsafe { SmallBox::new(ptr, len, cap) }
     }
 
     #[inline]
     fn from_boxed(boxed: &mut SmallBox<[u8]>) -> Self {
+        // SAFETY: The raw parts are valid as they are not modified
         unsafe { Vec::from_raw_parts(boxed.ptr() as *mut u8, boxed.len(), boxed.cap()) }
     }
 }
