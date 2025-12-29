@@ -1,6 +1,7 @@
-use alloc::ffi::CString;
 #[cfg(not(feature = "safe"))]
 use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, ffi::CString};
 use core::ffi::CStr;
 
 #[cfg(not(feature = "safe"))]

@@ -1,5 +1,5 @@
-#[cfg(not(feature = "safe"))]
-use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, vec::Vec};
 
 #[cfg(not(feature = "safe"))]
 use crate::small_box::SmallBox;
