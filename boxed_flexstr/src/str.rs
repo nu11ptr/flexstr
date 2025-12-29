@@ -1,4 +1,7 @@
 #[cfg(not(feature = "safe"))]
+use alloc::string::String;
+
+#[cfg(not(feature = "safe"))]
 use crate::small_box::SmallBox;
 use crate::{
     BoxedFlexStr,

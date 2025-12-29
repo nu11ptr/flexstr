@@ -1,4 +1,6 @@
 use alloc::ffi::CString;
+#[cfg(not(feature = "safe"))]
+use alloc::vec::Vec;
 use core::ffi::CStr;
 
 #[cfg(not(feature = "safe"))]
