@@ -1,5 +1,7 @@
+#[cfg(all(not(feature = "std"), feature = "safe"))]
+use alloc::boxed::Box;
 #[cfg(not(feature = "std"))]
-use alloc::{boxed::Box, string::String};
+use alloc::string::String;
 
 #[cfg(not(feature = "safe"))]
 use crate::small_box::SmallBox;

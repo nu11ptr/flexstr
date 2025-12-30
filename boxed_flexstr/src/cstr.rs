@@ -1,7 +1,8 @@
-#[cfg(not(feature = "safe"))]
+#[cfg(all(not(feature = "std"), feature = "safe"))]
+use alloc::boxed::Box;
+use alloc::ffi::CString;
+#[cfg(all(not(feature = "std"), not(feature = "safe")))]
 use alloc::vec::Vec;
-#[cfg(not(feature = "std"))]
-use alloc::{boxed::Box, ffi::CString};
 use core::ffi::CStr;
 
 #[cfg(not(feature = "safe"))]
