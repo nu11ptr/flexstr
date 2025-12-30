@@ -1,17 +1,10 @@
 use std::path::{Path, PathBuf};
 
+use crate::boxed::{BoxedFlexStr, OwnedOpsMut, OwnedToFromBoxed};
 #[cfg(not(feature = "safe"))]
 use crate::small_box::SmallBox;
-use crate::{
-    BoxedFlexStr,
-    boxed::{OwnedOpsMut, OwnedToFromBoxed},
-};
 
-#[cfg(feature = "safe")]
-pub type BoxedPath = BoxedFlexStr<Path, Option<Box<Path>>>;
-
-#[cfg(not(feature = "safe"))]
-pub type BoxedPath = BoxedFlexStr<Path, SmallBox<Path>>;
+pub type BoxedPath = BoxedFlexStr<Path>;
 
 #[cfg(not(feature = "large_strings"))]
 const _: () = assert!(
@@ -79,7 +72,7 @@ impl OwnedToFromBoxed<Path> for PathBuf {
     }
 
     #[inline]
-    fn clone_boxed(boxed: &Option<Box<Path>>) -> Option<Box<Path>> {
+    fn clone_boxed(boxed: &Self::BoxType) -> Self::BoxType {
         boxed.clone()
     }
 }

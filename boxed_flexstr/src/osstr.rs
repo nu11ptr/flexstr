@@ -1,17 +1,10 @@
 use std::ffi::{OsStr, OsString};
 
+use crate::boxed::{BoxedFlexStr, OwnedOpsMut, OwnedToFromBoxed};
 #[cfg(not(feature = "safe"))]
 use crate::small_box::SmallBox;
-use crate::{
-    BoxedFlexStr,
-    boxed::{OwnedOpsMut, OwnedToFromBoxed},
-};
 
-#[cfg(feature = "safe")]
-pub type BoxedOsStr = BoxedFlexStr<OsStr, Option<Box<OsStr>>>;
-
-#[cfg(not(feature = "safe"))]
-pub type BoxedOsStr = BoxedFlexStr<OsStr, SmallBox<OsStr>>;
+pub type BoxedOsStr = BoxedFlexStr<OsStr>;
 
 #[cfg(not(feature = "large_strings"))]
 const _: () = assert!(
@@ -79,7 +72,7 @@ impl OwnedToFromBoxed<OsStr> for OsString {
     }
 
     #[inline]
-    fn clone_boxed(boxed: &Option<Box<OsStr>>) -> Option<Box<OsStr>> {
+    fn clone_boxed(boxed: &Self::BoxType) -> Self::BoxType {
         boxed.clone()
     }
 }

@@ -1,4 +1,5 @@
 use core::marker::PhantomData;
+
 use flexstr_support::StringToFromBytes;
 
 // *** OwnedToFromBoxedInner ***
@@ -24,7 +25,13 @@ pub trait OwnedOpsMut<S: ?Sized + StringToFromBytes> {
 
 // *** BoxedFlexStr ***
 
-pub struct BoxedFlexStr<S: ?Sized + StringToFromBytes, B>
+#[cfg(feature = "safe")]
+pub type BoxedFlexStr<S> = Boxed<S, Option<alloc::boxed::Box<S>>>;
+
+#[cfg(not(feature = "safe"))]
+pub type BoxedFlexStr<S> = Boxed<S, crate::small_box::SmallBox<S>>;
+
+pub struct Boxed<S: ?Sized + StringToFromBytes, B>
 where
     S::Owned: OwnedToFromBoxed<S, BoxType = B>,
 {
@@ -32,7 +39,7 @@ where
     _marker: PhantomData<S>,
 }
 
-impl<S: ?Sized + StringToFromBytes, B> BoxedFlexStr<S, B>
+impl<S: ?Sized + StringToFromBytes, B> Boxed<S, B>
 where
     S::Owned: OwnedToFromBoxed<S, BoxType = B>,
 {
@@ -44,7 +51,7 @@ where
     }
 }
 
-impl<S: ?Sized + StringToFromBytes, B> BoxedFlexStr<S, B>
+impl<S: ?Sized + StringToFromBytes, B> Boxed<S, B>
 where
     S::Owned: OwnedToFromBoxed<S, BoxType = B> + OwnedOpsMut<S>,
 {
@@ -62,7 +69,7 @@ where
     }
 }
 
-impl<S: ?Sized + StringToFromBytes, B> Clone for BoxedFlexStr<S, B>
+impl<S: ?Sized + StringToFromBytes, B> Clone for Boxed<S, B>
 where
     S::Owned: OwnedToFromBoxed<S, BoxType = B>,
 {

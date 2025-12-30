@@ -1,24 +1,15 @@
 #[cfg(not(feature = "std"))]
-use alloc::boxed::Box;
-#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+use crate::boxed::{BoxedFlexStr, OwnedOpsMut, OwnedToFromBoxed};
 #[cfg(not(feature = "safe"))]
 use crate::small_box::SmallBox;
-use crate::{
-    BoxedFlexStr,
-    boxed::{OwnedOpsMut, OwnedToFromBoxed},
-};
 
-#[cfg(feature = "safe")]
-pub type BoxedBytes = BoxedFlexStr<[u8], Option<Box<[u8]>>>;
-
-#[cfg(not(feature = "safe"))]
-pub type BoxedBytes = BoxedFlexStr<[u8], SmallBox<[u8]>>;
+pub type BoxedBytes = BoxedFlexStr<[u8]>;
 
 #[cfg(not(feature = "large_strings"))]
 const _: () = assert!(
-    size_of::<BoxedBytes>() <= size_of::<Box<[u8]>>(),
+    size_of::<BoxedBytes>() <= size_of::<alloc::boxed::Box<[u8]>>(),
     "BoxedBytes must be less than or equal to the size of Box<[u8]>"
 );
 
@@ -59,7 +50,7 @@ impl OwnedToFromBoxed<[u8]> for Vec<u8> {
 
 #[cfg(feature = "safe")]
 impl OwnedToFromBoxed<[u8]> for Vec<u8> {
-    type BoxType = Option<Box<[u8]>>;
+    type BoxType = Option<alloc::boxed::Box<[u8]>>;
 
     #[inline]
     fn into_boxed(self) -> Self::BoxType {
@@ -75,7 +66,7 @@ impl OwnedToFromBoxed<[u8]> for Vec<u8> {
     }
 
     #[inline]
-    fn clone_boxed(boxed: &Option<Box<[u8]>>) -> Option<Box<[u8]>> {
+    fn clone_boxed(boxed: &Self::BoxType) -> Self::BoxType {
         boxed.clone()
     }
 }

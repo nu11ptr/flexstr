@@ -1,23 +1,17 @@
-#[cfg(not(feature = "std"))]
-use alloc::boxed::Box;
 use alloc::ffi::CString;
 #[cfg(all(not(feature = "std"), not(feature = "safe")))]
 use alloc::vec::Vec;
 use core::ffi::CStr;
 
+use crate::boxed::{BoxedFlexStr, OwnedToFromBoxed};
 #[cfg(not(feature = "safe"))]
 use crate::small_box::SmallBox;
-use crate::{BoxedFlexStr, boxed::OwnedToFromBoxed};
 
-#[cfg(feature = "safe")]
-pub type BoxedCStr = BoxedFlexStr<CStr, Option<Box<CStr>>>;
-
-#[cfg(not(feature = "safe"))]
-pub type BoxedCStr = BoxedFlexStr<CStr, SmallBox<CStr>>;
+pub type BoxedCStr = BoxedFlexStr<CStr>;
 
 #[cfg(not(feature = "large_strings"))]
 const _: () = assert!(
-    size_of::<BoxedCStr>() <= size_of::<Box<CStr>>(),
+    size_of::<BoxedCStr>() <= size_of::<alloc::boxed::Box<CStr>>(),
     "BoxedCStr must be less than or equal to the size of Box<CStr>"
 );
 
@@ -66,7 +60,7 @@ impl OwnedToFromBoxed<CStr> for CString {
 
 #[cfg(feature = "safe")]
 impl OwnedToFromBoxed<CStr> for CString {
-    type BoxType = Option<Box<CStr>>;
+    type BoxType = Option<alloc::boxed::Box<CStr>>;
 
     #[inline]
     fn into_boxed(self) -> Self::BoxType {
@@ -82,7 +76,7 @@ impl OwnedToFromBoxed<CStr> for CString {
     }
 
     #[inline]
-    fn clone_boxed(boxed: &Option<Box<CStr>>) -> Option<Box<CStr>> {
+    fn clone_boxed(boxed: &Self::BoxType) -> Self::BoxType {
         boxed.clone()
     }
 }
