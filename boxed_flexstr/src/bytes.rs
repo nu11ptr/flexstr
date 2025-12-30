@@ -16,6 +16,7 @@ pub type BoxedBytes = BoxedFlexStr<[u8], Option<Box<[u8]>>>;
 #[cfg(not(feature = "safe"))]
 pub type BoxedBytes = BoxedFlexStr<[u8], SmallBox<[u8]>>;
 
+#[cfg(not(feature = "large_strings"))]
 const _: () = assert!(
     size_of::<BoxedBytes>() <= size_of::<Box<[u8]>>(),
     "BoxedBytes must be less than or equal to the size of Box<[u8]>"

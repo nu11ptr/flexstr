@@ -7,14 +7,14 @@ use crate::boxed::OwnedToFromBoxed;
 
 // *** LengthCapacity - 32-bit (16-bit length/capacity) ***
 
-#[cfg(all(not(feature = "32_bit_large_strings"), target_pointer_width = "32"))]
+#[cfg(all(not(feature = "large_strings"), target_pointer_width = "32"))]
 #[derive(Clone, Copy)]
 struct LengthCapacity {
     len: u16,
     cap: u16,
 }
 
-#[cfg(all(not(feature = "32_bit_large_strings"), target_pointer_width = "32"))]
+#[cfg(all(not(feature = "large_strings"), target_pointer_width = "32"))]
 impl LengthCapacity {
     const MAX_CAPACITY: usize = u16::MAX as usize;
 
@@ -41,7 +41,7 @@ impl LengthCapacity {
 
 // *** LengthCapacity - 32-bit (24-bit length/capacity) ***
 
-#[cfg(all(feature = "32_bit_large_strings", target_pointer_width = "32"))]
+#[cfg(all(feature = "large_strings", target_pointer_width = "32"))]
 #[derive(Clone, Copy)]
 struct LengthCapacity {
     len: u16,
@@ -50,7 +50,7 @@ struct LengthCapacity {
     cap_extra: u8,
 }
 
-#[cfg(all(feature = "32_bit_large_strings", target_pointer_width = "32"))]
+#[cfg(all(feature = "large_strings", target_pointer_width = "32"))]
 impl LengthCapacity {
     const MAX_CAPACITY: usize = u16::MAX as usize + ((u8::MAX as usize) << 16);
 
@@ -78,16 +78,16 @@ impl LengthCapacity {
     }
 }
 
-// *** LengthCapacity - 64-bit ***
+// *** LengthCapacity - 64-bit (32-bit length/capacity) ***
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(all(not(feature = "large_strings"), target_pointer_width = "64"))]
 #[derive(Clone, Copy)]
 struct LengthCapacity {
     len: u32,
     cap: u32,
 }
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(all(not(feature = "large_strings"), target_pointer_width = "64"))]
 impl LengthCapacity {
     const MAX_CAPACITY: usize = u32::MAX as usize;
 
@@ -110,6 +110,45 @@ impl LengthCapacity {
     #[inline]
     pub fn cap(&self) -> usize {
         self.cap as usize
+    }
+}
+
+// *** LengthCapacity - 64-bit (48-bit length/capacity) ***
+
+#[cfg(all(feature = "large_strings", target_pointer_width = "64"))]
+#[derive(Clone, Copy)]
+struct LengthCapacity {
+    len: u32,
+    cap: u32,
+    len_extra: u16,
+    cap_extra: u16,
+}
+
+#[cfg(all(feature = "large_strings", target_pointer_width = "64"))]
+impl LengthCapacity {
+    const MAX_CAPACITY: usize = u32::MAX as usize + ((u16::MAX as usize) << 32);
+
+    #[inline]
+    pub fn new(len: usize, cap: usize) -> Self {
+        if cap > Self::MAX_CAPACITY {
+            panic!("String is too large after mutation");
+        }
+        Self {
+            len: len as u32,
+            cap: cap as u32,
+            len_extra: (len >> 32) as u16,
+            cap_extra: (cap >> 32) as u16,
+        }
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.len as usize + ((self.len_extra as usize) << 32)
+    }
+
+    #[inline]
+    pub fn cap(&self) -> usize {
+        self.cap as usize + ((self.cap_extra as usize) << 32)
     }
 }
 

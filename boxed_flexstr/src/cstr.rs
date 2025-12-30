@@ -15,6 +15,7 @@ pub type BoxedCStr = BoxedFlexStr<CStr, Option<Box<CStr>>>;
 #[cfg(not(feature = "safe"))]
 pub type BoxedCStr = BoxedFlexStr<CStr, SmallBox<CStr>>;
 
+#[cfg(not(feature = "large_strings"))]
 const _: () = assert!(
     size_of::<BoxedCStr>() <= size_of::<Box<CStr>>(),
     "BoxedCStr must be less than or equal to the size of Box<CStr>"
