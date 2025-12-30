@@ -149,7 +149,7 @@ where
 }
 
 #[cfg(feature = "sqlx")]
-impl<'r, DB: sqlx::Database> sqlx::Type<DB> for InlineFlexStr<str>
+impl<DB: sqlx::Database> sqlx::Type<DB> for InlineFlexStr<str>
 where
     str: sqlx::Type<DB>,
 {

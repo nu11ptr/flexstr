@@ -171,7 +171,7 @@ where
 }
 
 #[cfg(feature = "sqlx")]
-impl<'r, 's, DB: sqlx::Database, R: RefCounted<str>> sqlx::Type<DB> for FlexStr<'s, str, R>
+impl<'s, DB: sqlx::Database, R: RefCounted<str>> sqlx::Type<DB> for FlexStr<'s, str, R>
 where
     str: sqlx::Type<DB>,
 {
