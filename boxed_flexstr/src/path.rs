@@ -13,6 +13,16 @@ pub type BoxedPath = BoxedFlexStr<Path, Option<Box<Path>>>;
 #[cfg(not(feature = "safe"))]
 pub type BoxedPath = BoxedFlexStr<Path, SmallBox<Path>>;
 
+const _: () = assert!(
+    size_of::<BoxedPath>() <= size_of::<Box<Path>>(),
+    "BoxedPath must be less than or equal to the size of Box<Path>"
+);
+
+const _: () = assert!(
+    size_of::<Option<BoxedPath>>() <= size_of::<PathBuf>(),
+    "Option<BoxedPath> must be less than or equal to the size of PathBuf"
+);
+
 #[cfg(not(feature = "safe"))]
 impl OwnedToFromBoxed<Path> for PathBuf {
     type BoxType = SmallBox<Path>;

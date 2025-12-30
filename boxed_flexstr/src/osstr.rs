@@ -13,6 +13,16 @@ pub type BoxedOsStr = BoxedFlexStr<OsStr, Option<Box<OsStr>>>;
 #[cfg(not(feature = "safe"))]
 pub type BoxedOsStr = BoxedFlexStr<OsStr, SmallBox<OsStr>>;
 
+const _: () = assert!(
+    size_of::<BoxedOsStr>() <= size_of::<Box<OsStr>>(),
+    "BoxedOsStr must be less than or equal to the size of Box<OsStr>"
+);
+
+const _: () = assert!(
+    size_of::<Option<BoxedOsStr>>() <= size_of::<OsString>(),
+    "Option<BoxedOsStr> must be less than or equal to the size of OsString"
+);
+
 #[cfg(not(feature = "safe"))]
 impl OwnedToFromBoxed<OsStr> for OsString {
     type BoxType = SmallBox<OsStr>;

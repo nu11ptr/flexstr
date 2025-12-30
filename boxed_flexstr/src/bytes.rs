@@ -16,6 +16,16 @@ pub type BoxedBytes = BoxedFlexStr<[u8], Option<Box<[u8]>>>;
 #[cfg(not(feature = "safe"))]
 pub type BoxedBytes = BoxedFlexStr<[u8], SmallBox<[u8]>>;
 
+const _: () = assert!(
+    size_of::<BoxedBytes>() <= size_of::<Box<[u8]>>(),
+    "BoxedBytes must be less than or equal to the size of Box<[u8]>"
+);
+
+const _: () = assert!(
+    size_of::<Option<BoxedBytes>>() <= size_of::<Vec<u8>>(),
+    "Option<BoxedBytes> must be less than or equal to the size of Vec<u8>"
+);
+
 #[cfg(not(feature = "safe"))]
 impl OwnedToFromBoxed<[u8]> for Vec<u8> {
     type BoxType = SmallBox<[u8]>;

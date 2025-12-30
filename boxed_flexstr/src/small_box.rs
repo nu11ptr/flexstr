@@ -1,4 +1,5 @@
 use core::marker::PhantomData;
+use core::ptr::NonNull;
 
 use flexstr_support::StringToFromBytes;
 
@@ -51,7 +52,7 @@ struct LengthCapacity {
 
 #[cfg(all(feature = "32_bit_large_strings", target_pointer_width = "32"))]
 impl LengthCapacity {
-    const MAX_CAPACITY: usize = u16::MAX as usize + u8::MAX as usize;
+    const MAX_CAPACITY: usize = u16::MAX as usize + ((u8::MAX as usize) << 16);
 
     #[inline]
     pub fn new(len: usize, cap: usize) -> Self {
@@ -118,7 +119,7 @@ pub struct SmallBox<S: ?Sized + StringToFromBytes>
 where
     S::Owned: OwnedToFromBoxed<S, BoxType = SmallBox<S>>,
 {
-    ptr: *mut u8,
+    ptr: NonNull<u8>,
     len_cap: LengthCapacity,
     _marker: PhantomData<S>,
 }
@@ -127,16 +128,17 @@ impl<S: ?Sized + StringToFromBytes> SmallBox<S>
 where
     S::Owned: OwnedToFromBoxed<S, BoxType = SmallBox<S>>,
 {
-    pub unsafe fn new(ptr: *const u8, len: usize, cap: usize) -> Self {
+    pub(crate) unsafe fn new(ptr: *const u8, len: usize, cap: usize) -> Self {
         Self {
-            ptr: ptr as *mut u8,
+            // SAFETY: The caller is responsible for ensuring the pointer is valid
+            ptr: unsafe { NonNull::new_unchecked(ptr as *mut u8) },
             len_cap: LengthCapacity::new(len, cap),
             _marker: PhantomData,
         }
     }
 
     pub fn ptr(&self) -> *const u8 {
-        self.ptr
+        self.ptr.as_ptr()
     }
 
     pub fn len(&self) -> usize {

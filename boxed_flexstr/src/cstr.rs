@@ -15,6 +15,17 @@ pub type BoxedCStr = BoxedFlexStr<CStr, Option<Box<CStr>>>;
 #[cfg(not(feature = "safe"))]
 pub type BoxedCStr = BoxedFlexStr<CStr, SmallBox<CStr>>;
 
+const _: () = assert!(
+    size_of::<BoxedCStr>() <= size_of::<Box<CStr>>(),
+    "BoxedCStr must be less than or equal to the size of Box<CStr>"
+);
+
+// NOTE: We need to manually add an extra word due to `CString` being a `Box<[u8]>`, it is only 2 words vs the needed 3.
+const _: () = assert!(
+    size_of::<Option<BoxedCStr>>() <= size_of::<CString>() + size_of::<usize>(),
+    "Option<BoxedCStr> must be less than or equal to the size of CString"
+);
+
 #[cfg(not(feature = "safe"))]
 impl OwnedToFromBoxed<CStr> for CString {
     type BoxType = SmallBox<CStr>;
