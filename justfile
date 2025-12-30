@@ -27,4 +27,4 @@ miri $MIRIFLAGS="-Zmiri-ignore-leaks":
     cargo +nightly miri nextest run -F {{std_features}} --workspace
 
 clippy:
-    cargo clippy -F {{std_features}} --workspace --all-targets
+    cargo clippy -F {{std_features}} --workspace --all-targets -- -D warnings
