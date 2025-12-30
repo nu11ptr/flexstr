@@ -1,4 +1,4 @@
-#[cfg(all(not(feature = "std"), feature = "safe"))]
+#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;

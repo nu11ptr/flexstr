@@ -1,4 +1,4 @@
-#[cfg(all(not(feature = "std"), feature = "safe"))]
+#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 use alloc::ffi::CString;
 #[cfg(all(not(feature = "std"), not(feature = "safe")))]
