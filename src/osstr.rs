@@ -12,10 +12,16 @@ use crate::flex::{
 use flexstr_support::StringToFromBytes;
 
 /// Local `OsStr` type (NOTE: This can't be shared between threads)
-pub type LocalOsStr<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
+pub type LocalOsStr = FlexStr<'static, OsStr, Rc<OsStr>>;
 
 /// Shared `OsStr` type
-pub type SharedOsStr<'s> = FlexStr<'s, OsStr, Arc<OsStr>>;
+pub type SharedOsStr = FlexStr<'static, OsStr, Arc<OsStr>>;
+
+/// Local `OsStr` type that can optionally hold borrows (NOTE: This can't be shared between threads)
+pub type LocalOsStrRef<'s> = FlexStr<'s, OsStr, Rc<OsStr>>;
+
+/// Shared `OsStr` type that can optionally hold borrows
+pub type SharedOsStrRef<'s> = FlexStr<'s, OsStr, Arc<OsStr>>;
 
 const _: () = assert!(
     size_of::<Option<LocalOsStr>>() <= size_of::<OsString>(),

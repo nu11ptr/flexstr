@@ -12,10 +12,16 @@ use crate::flex::{
 use flexstr_support::StringToFromBytes;
 
 /// Local `Path` type (NOTE: This can't be shared between threads)
-pub type LocalPath<'s> = FlexStr<'s, Path, Rc<Path>>;
+pub type LocalPath = FlexStr<'static, Path, Rc<Path>>;
 
 /// Shared `Path` type
-pub type SharedPath<'s> = FlexStr<'s, Path, Arc<Path>>;
+pub type SharedPath = FlexStr<'static, Path, Arc<Path>>;
+
+/// Local `Path` type that can optionally hold borrows (NOTE: This can't be shared between threads)
+pub type LocalPathRef<'s> = FlexStr<'s, Path, Rc<Path>>;
+
+/// Shared `Path` type that can optionally hold borrows
+pub type SharedPathRef<'s> = FlexStr<'s, Path, Arc<Path>>;
 
 const _: () = assert!(
     size_of::<Option<LocalPath>>() <= size_of::<PathBuf>(),

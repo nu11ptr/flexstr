@@ -8,14 +8,21 @@ use crate::flex::{
     FlexStr, ImmutableBytes, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl,
 };
 
-use flexstr_support::{InteriorNulError, StringToFromBytes};
+pub use flexstr_support::InteriorNulError;
+use flexstr_support::StringToFromBytes;
 use inline_flexstr::{InlineFlexStr, TooLongOrNulError};
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
-pub type LocalCStr<'s> = FlexStr<'s, CStr, Rc<CStr>>;
+pub type LocalCStr = FlexStr<'static, CStr, Rc<CStr>>;
 
 /// Shared `CStr` type
-pub type SharedCStr<'s> = FlexStr<'s, CStr, Arc<CStr>>;
+pub type SharedCStr = FlexStr<'static, CStr, Arc<CStr>>;
+
+/// Local `CStr` type that can optionally hold borrows (NOTE: This can't be shared between threads)
+pub type LocalCStrRef<'s> = FlexStr<'s, CStr, Rc<CStr>>;
+
+/// Shared `CStr` type that can optionally hold borrows
+pub type SharedCStrRef<'s> = FlexStr<'s, CStr, Arc<CStr>>;
 
 // NOTE: This one is a bit different because CString is just a Box<[u8]>. Instead of equal size,
 // we should be at most one machine word larger.

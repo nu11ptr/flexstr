@@ -16,13 +16,13 @@ mod common;
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_local_cstr() {
-    common::serialize::serialize_deserialize_test::<LocalCStr<'_>, CStr>(c"test");
+    common::serialize::serialize_deserialize_test::<LocalCStr, CStr>(c"test");
 }
 
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_shared_cstr() {
-    common::serialize::serialize_deserialize_test::<SharedCStr<'_>, CStr>(c"test");
+    common::serialize::serialize_deserialize_test::<SharedCStr, CStr>(c"test");
 }
 
 // *** Basic Tests ***

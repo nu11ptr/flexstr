@@ -18,10 +18,16 @@ use crate::flex::{FlexStr, RefCounted, RefCountedMut, partial_eq_impl, ref_count
 use flexstr_support::StringToFromBytes;
 
 /// Local `str` type (NOTE: This can't be shared between threads)
-pub type LocalStr<'s> = FlexStr<'s, str, Rc<str>>;
+pub type LocalStr = FlexStr<'static, str, Rc<str>>;
 
 /// Shared `str` type
-pub type SharedStr<'s> = FlexStr<'s, str, Arc<str>>;
+pub type SharedStr = FlexStr<'static, str, Arc<str>>;
+
+/// Local `str` type that can optionally hold borrows (NOTE: This can't be shared between threads)
+pub type LocalStrRef<'s> = FlexStr<'s, str, Rc<str>>;
+
+/// Shared `str` type that can optionally hold borrows
+pub type SharedStrRef<'s> = FlexStr<'s, str, Arc<str>>;
 
 const _: () = assert!(
     size_of::<Option<LocalStr>>() <= size_of::<String>(),

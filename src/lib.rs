@@ -18,20 +18,20 @@ mod readme_tests {}
 
 #[cfg(feature = "bytes")]
 /// Module for byte-based strings (`[u8]`)
-mod bytes;
+pub mod bytes;
 #[cfg(feature = "cstr")]
 /// Module for `CStr`-based strings
-mod cstr;
+pub mod cstr;
 mod flex;
 #[cfg(all(feature = "std", feature = "osstr"))]
 /// Module for `OsStr`-based strings
-mod osstr;
+pub mod osstr;
 #[cfg(all(feature = "std", feature = "path"))]
 /// Module for `Path`-based strings
-mod path;
+pub mod path;
 #[cfg(feature = "str")]
 /// Module for `str`-based strings
-mod str;
+pub mod str;
 
 #[cfg(feature = "bytes")]
 pub use bytes::{LocalBytes, SharedBytes};

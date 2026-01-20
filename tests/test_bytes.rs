@@ -15,13 +15,13 @@ mod common;
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_local_bytes() {
-    common::serialize::serialize_deserialize_test::<LocalBytes<'_>, [u8]>(b"test");
+    common::serialize::serialize_deserialize_test::<LocalBytes, [u8]>(b"test");
 }
 
 #[cfg(feature = "serde")]
 #[test]
 fn serialize_deserialize_test_shared_bytes() {
-    common::serialize::serialize_deserialize_test::<SharedBytes<'_>, [u8]>(b"test");
+    common::serialize::serialize_deserialize_test::<SharedBytes, [u8]>(b"test");
 }
 
 // *** Basic Tests ***
