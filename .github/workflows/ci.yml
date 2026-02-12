@@ -98,7 +98,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-miri-${{ hashFiles('crates/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-miri-
+            ${{ runner.os }}-cargo-miri-${{ hashFiles('crates/Cargo.lock') }}
 
       - name: Install Rust Tools
         uses: taiki-e/install-action@v2
