@@ -96,7 +96,21 @@ assert!(world.is_inlined());
 println!("{hello} {world}");
 ```
 
-## Performance
+## Performance / Efficiency
+
+There is no single ideal variant in the enum. They all perform different roles. A naive usage of this crate may or may not result in increased performance/efficiency, but a strategic one, that understands which variant is holding the string at all times, will almost certainly improve memory efficiency and/or performance in string heavy code.
+
+| Enum Variant   |     |                                          Clone                                          |         Memory Efficiency         |           Mutation            |   `String` Conversion   |  `&str` Access   |
+| -------------- | :-: | :-------------------------------------------------------------------------------------: | :-------------------------------: | :---------------------------: | :---------------------: | :--------------: |
+|                |     |                                                                                         |                                   |                               |                         |                  |
+| **Borrowed**   |     |                              ✅ Fastest, O(1), copy 2 words                              |   ✅ **Highest**<br>(reference)    | ❌ Slow, maybe allocate + copy | ❌ Slow, allocate + copy | ✅ Fast, in place |
+| **Inlined**    |     |                              ✅ Fastest, O(1), copy 3 words                              |     ✅ **Highest**<br>(inline)     |       ✅ Fast, in place        | ❌ Slow, allocate + copy | ✅ Fast, in place |
+| **RefCounted** |     | ✅ Local = Very fast, O(1), inc ref count<br>✅ Shared = Fast, O(1), inc atomic ref count | ✅ **Good**<br>(heap, single copy) | ❌ Slow, maybe allocate + copy | ❌ Slow, allocate + copy | ✅ Fast, in place |
+| **Boxed**      |     |                          ❌ Slower, O(n), maybe allocate + copy                          | ❌ **Lowest**<br>(heap, per copy)  |       ✅ Fast, in place        |  ✅ Fast, headers only*   | ✅ Fast, in place |
+
+*In the current version, the usage of `Box<str>` implies that a `String` to `Box<str>` conversion may require an allocation/copy, if there is excess capacity. A new `BoxStr` type is in progress to fix this situation (by maintaining both capacity and length, not just length).
+
+### Benchmarks
 
 In general, it performs quite well given that it is mostly just a thin wrapper over the stdlib. See the [benchmarks](benchmarks/README.md) page for more details.
 
