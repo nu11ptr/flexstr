@@ -117,7 +117,7 @@ where
     S: ?Sized + StringToFromBytes,
 {
     /// Convert a borrowed string to an owned FlexStr
-    fn to_owned(s: &Self) -> FlexStr<'static, S, R>;
+    fn to_owned_opt(s: &Self) -> FlexStr<'static, S, R>;
 }
 
 impl<R, S> ToOwnedFlexStr<R, S> for S
@@ -125,7 +125,7 @@ where
     R: RefCounted<S>,
     S: ?Sized + StringToFromBytes,
 {
-    fn to_owned(s: &Self) -> FlexStr<'static, S, R> {
+    fn to_owned_opt(s: &Self) -> FlexStr<'static, S, R> {
         FlexStr::from_borrowed(s).into_owned()
     }
 }
