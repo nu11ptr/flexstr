@@ -108,6 +108,52 @@ pub trait RefCountedMut<S: ?Sized + StringToFromBytes>: RefCounted<S> {
     fn as_mut(&mut self) -> &mut S;
 }
 
+// *** ToOwnedFlexStr ***
+
+/// Trait for types that can be converted to an owned FlexStr
+pub trait ToOwnedFlexStr<R, S>
+where
+    R: RefCounted<S>,
+    S: ?Sized + StringToFromBytes,
+{
+    /// Convert a borrowed string to an owned FlexStr
+    fn to_owned(s: &Self) -> FlexStr<'static, S, R>;
+}
+
+impl<R, S> ToOwnedFlexStr<R, S> for S
+where
+    R: RefCounted<S>,
+    S: ?Sized + StringToFromBytes,
+{
+    fn to_owned(s: &Self) -> FlexStr<'static, S, R> {
+        FlexStr::from_borrowed(s).into_owned()
+    }
+}
+
+// *** IntoOptimizedFlexStr ***
+
+/// Trait for types that can be converted to an optimized FlexStr
+pub trait IntoOptimizedFlexStr<R, S>
+where
+    R: RefCounted<S>,
+    S: ?Sized + StringToFromBytes,
+    Box<S>: From<S::Owned>,
+{
+    /// Convert a string to an optimized FlexStr
+    fn into_opt(self) -> FlexStr<'static, S, R>;
+}
+
+impl<R, S> IntoOptimizedFlexStr<R, S> for S::Owned
+where
+    R: RefCounted<S>,
+    S: ?Sized + StringToFromBytes,
+    Box<S>: From<S::Owned>,
+{
+    fn into_opt(self) -> FlexStr<'static, S, R> {
+        FlexStr::from_owned(self).optimize()
+    }
+}
+
 // *** FlexStr ***
 
 #[doc(alias = "SharedStr")]

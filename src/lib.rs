@@ -37,7 +37,9 @@ pub mod str;
 pub use bytes::{LocalBytes, SharedBytes};
 #[cfg(feature = "cstr")]
 pub use cstr::{LocalCStr, SharedCStr};
-pub use flex::{FlexStr, ImmutableBytes, RefCounted, RefCountedMut};
+pub use flex::{
+    FlexStr, ImmutableBytes, IntoOptimizedFlexStr, RefCounted, RefCountedMut, ToOwnedFlexStr,
+};
 #[cfg(feature = "cstr")]
 pub use flexstr_support::InteriorNulError;
 pub use flexstr_support::StringLike;
