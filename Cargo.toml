@@ -4,7 +4,7 @@ exclude = ["benchmarks"]
 
 [package]
 name = "flexstr"
-version = "0.11.1"
+version = "0.11.2"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A flexible, simple to use, clone-efficient string type for Rust"
