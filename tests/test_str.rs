@@ -4,8 +4,10 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 
+#[cfg(any(feature = "prost", feature = "serde"))]
+use flexstr::SharedStr;
 #[cfg(feature = "serde")]
-use flexstr::{LocalStr, SharedStr};
+use flexstr::LocalStr;
 use inline_flexstr::INLINE_CAPACITY;
 
 mod common;
@@ -434,6 +436,111 @@ fn test_from_str_cstr_error() {
 #[test]
 fn test_as_ref_str_flex_str() {
     common::as_ref::test_as_ref_str_flex_str::<Arc<str>>("test");
+}
+
+// *** Prost Tests ***
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_decode_shared_str() {
+    common::prost::encode_decode_round_trip::<SharedStr>("test");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_decode_shared_str_long() {
+    common::prost::encode_decode_round_trip::<SharedStr>(
+        "this is a very long string that definitely won't fit inline",
+    );
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_decode_shared_str_empty() {
+    common::prost::encode_decode_round_trip::<SharedStr>("");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_decode_shared_str_unicode() {
+    common::prost::encode_decode_round_trip::<SharedStr>("hello 🌍🚀");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_length_delimited_shared_str() {
+    common::prost::encode_length_delimited_round_trip::<SharedStr>("test");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_wire_format_shared_str() {
+    common::prost::verify_wire_format::<SharedStr>("test");
+    common::prost::verify_wire_format::<SharedStr>("");
+    common::prost::verify_wire_format::<SharedStr>("hello 🌍🚀");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_decode_empty_shared_str() {
+    common::prost::decode_empty::<SharedStr>();
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_clear_shared_str() {
+    common::prost::clear_test::<SharedStr>("test");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_decode_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::prost::encode_decode_round_trip::<InlineStr>("test");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_decode_inline_str_empty() {
+    use inline_flexstr::InlineStr;
+    common::prost::encode_decode_round_trip::<InlineStr>("");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_wire_format_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::prost::verify_wire_format::<InlineStr>("test");
+    common::prost::verify_wire_format::<InlineStr>("");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_decode_empty_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::prost::decode_empty::<InlineStr>();
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_clear_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::prost::clear_test::<InlineStr>("test");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_inline_str_too_long() {
+    use inline_flexstr::InlineStr;
+    use prost::Message;
+
+    // Encode a string that's too long for inline storage
+    let long: SharedStr = "this is a very long string that definitely won't fit inline".into();
+    let encoded = long.encode_to_vec();
+
+    // Decoding into InlineStr should fail
+    let result = InlineStr::decode(&encoded[..]);
+    assert!(result.is_err(), "should fail for string too long for inline storage");
 }
 
 // *** Serialize Tests ***

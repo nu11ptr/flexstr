@@ -23,10 +23,11 @@ exclude = ["docs/**"]
 
 [features]
 default = ["std", "str"]
+prost = ["dep:prost", "inline_flexstr/prost"]
 sqlx_pg_arrays = ["sqlx", "sqlx/postgres"]
 # Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
 safe = ["flexstr_support/safe", "inline_flexstr/safe"]
-std = ["flexstr_support/std", "inline_flexstr/std", "serde?/std"]
+std = ["flexstr_support/std", "inline_flexstr/std", "serde?/std", "prost?/std"]
 # Uses the minimum unsafe code possible to support OsStr/Path on Windows. Doesn't impact any other string types or operating systems.
 win_min_unsafe = [
     "flexstr_support/win_min_unsafe",
@@ -43,6 +44,11 @@ str = ["flexstr_support/str", "inline_flexstr/str"]
 
 [dependencies.serde]
 version = "1"
+default-features = false
+optional = true
+
+[dependencies.prost]
+version = "0.13"
 default-features = false
 optional = true
 
@@ -65,5 +71,5 @@ default-features = false
 version = "1"
 
 [package.metadata.docs.rs]
-features = ["bytes", "cstr", "osstr", "path", "serde", "std", "str"]
+features = ["bytes", "cstr", "osstr", "path", "prost", "serde", "std", "str"]
 rustdoc-args = ["--cfg", "docsrs"]

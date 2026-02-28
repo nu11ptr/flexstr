@@ -14,6 +14,8 @@ pub mod index;
 pub mod inline_edge_cases;
 #[cfg(any(feature = "str", feature = "bytes"))]
 pub mod mutate;
+#[cfg(feature = "prost")]
+pub mod prost;
 #[cfg(any(feature = "cstr", feature = "osstr", feature = "path"))]
 pub mod mutate_fallback;
 #[cfg(feature = "serde")]

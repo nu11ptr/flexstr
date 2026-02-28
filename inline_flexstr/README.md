@@ -18,7 +18,7 @@ A fast inline string crate. Essentially it never allocates on the heap, but is l
 * Mutable
 * Same size a a `String` (3 words wide, even inside an `Option`)
 * No external dependencies
-    * NOTE: `serde`/`sqlx` optional for serialization/deserialization/encode/decode
+    * NOTE: `serde`/`sqlx`/`prost` optional for serialization/deserialization/encode/decode
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
     * NOTE: This does induce a performance penalty, as would be expected
@@ -27,6 +27,7 @@ A fast inline string crate. Essentially it never allocates on the heap, but is l
 
 ## Cargo Features
 
+* **prost** = Enable `prost::Message` implementation for protobuf encoding/decoding
 * **safe** = Use all safe functions and add `forbid(unsafe_code)` (performance penalty)
 * **sqlx** = Enable sqlx encode/decode/type support
 * **sqlx_pg_arrays** = Enable sqlx Postgres array support (implies `sqlx` feature)

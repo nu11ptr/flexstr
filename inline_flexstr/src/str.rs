@@ -114,6 +114,65 @@ impl FromStr for InlineFlexStr<str> {
     }
 }
 
+// *** Prost ***
+
+#[cfg(feature = "prost")]
+impl prost::Message for InlineFlexStr<str> {
+    fn encode_raw(&self, buf: &mut impl prost::bytes::BufMut)
+    where
+        Self: Sized,
+    {
+        buf.put_slice(self.as_ref_type().as_bytes());
+    }
+
+    fn merge_field(
+        &mut self,
+        tag: u32,
+        wire_type: prost::encoding::WireType,
+        buf: &mut impl prost::bytes::Buf,
+        ctx: prost::encoding::DecodeContext,
+    ) -> Result<(), prost::DecodeError>
+    where
+        Self: Sized,
+    {
+        prost::encoding::skip_field(wire_type, tag, buf, ctx)
+    }
+
+    fn encoded_len(&self) -> usize {
+        self.as_ref_type().len()
+    }
+
+    fn clear(&mut self) {
+        *self = Default::default();
+    }
+
+    fn merge(&mut self, mut buf: impl prost::bytes::Buf) -> Result<(), prost::DecodeError>
+    where
+        Self: Sized,
+    {
+        let bytes = buf.copy_to_bytes(buf.remaining());
+        let s = core::str::from_utf8(&bytes)
+            .map_err(|_| prost::DecodeError::new("invalid UTF-8 in string field"))?;
+        *self = InlineFlexStr::try_from_type(s)
+            .map_err(|_| prost::DecodeError::new("string too long for inline storage"))?;
+        Ok(())
+    }
+
+    fn merge_length_delimited(
+        &mut self,
+        mut buf: impl prost::bytes::Buf,
+    ) -> Result<(), prost::DecodeError>
+    where
+        Self: Sized,
+    {
+        let len = prost::encoding::decode_varint(&mut buf)? as usize;
+        if buf.remaining() < len {
+            return Err(prost::DecodeError::new("buffer underflow"));
+        }
+        self.merge(buf.take(len))
+    }
+}
+
 // *** SQLx ***
 
 #[cfg(feature = "sqlx")]

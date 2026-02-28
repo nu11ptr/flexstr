@@ -25,7 +25,7 @@ If you've used `Cow`, but you wish cloning owned strings was more performant and
 * Same size a a `String` (3 words wide, even inside an `Option`)
 * Lazy instantiation (no unexpected allocations)
 * No external dependencies
-    * NOTE: `serde`/`sqlx` optional for serialization/deserialization/encode/decode
+    * NOTE: `serde`/`sqlx`/`prost` optional for serialization/deserialization/encode/decode
 * Optional `no_std`
 * Optional `safe` feature that forbids any `unsafe` usage
     * NOTE: This does induce a performance penalty, as would be expected
@@ -34,6 +34,7 @@ If you've used `Cow`, but you wish cloning owned strings was more performant and
 
 ## Cargo Features
 
+* **prost** = Enable `prost::Message` implementation for protobuf encoding/decoding
 * **safe** = Use all safe functions and add `forbid(unsafe_code)` (performance penalty)
 * **sqlx** = Enable sqlx encode/decode/type support
 * **sqlx_pg_arrays** = Enable sqlx Postgres array support (implies `sqlx` feature)
