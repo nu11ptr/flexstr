@@ -6,7 +6,7 @@ use alloc::sync::Arc;
 
 #[cfg(feature = "serde")]
 use flexstr::LocalStr;
-#[cfg(any(feature = "prost", feature = "serde"))]
+#[cfg(any(feature = "prost", feature = "serde", feature = "utoipa"))]
 use flexstr::SharedStr;
 use inline_flexstr::INLINE_CAPACITY;
 
@@ -603,6 +603,34 @@ fn prost_encode_string_decode_inline_str() {
     use inline_flexstr::InlineStr;
     common::prost::encode_string_decode_flex::<InlineStr>("test");
     common::prost::encode_string_decode_flex::<InlineStr>("");
+}
+
+// *** Utoipa Tests ***
+
+#[cfg(feature = "utoipa")]
+#[test]
+fn utoipa_schema_is_string_shared_str() {
+    common::utoipa::schema_is_string::<SharedStr>();
+}
+
+#[cfg(feature = "utoipa")]
+#[test]
+fn utoipa_name_is_string_shared_str() {
+    common::utoipa::name_is_string::<SharedStr>();
+}
+
+#[cfg(feature = "utoipa")]
+#[test]
+fn utoipa_schema_is_string_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::utoipa::schema_is_string::<InlineStr>();
+}
+
+#[cfg(feature = "utoipa")]
+#[test]
+fn utoipa_name_is_string_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::utoipa::name_is_string::<InlineStr>();
 }
 
 // *** Serialize Tests ***

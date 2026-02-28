@@ -25,3 +25,5 @@ pub mod socket;
 pub mod storage;
 pub mod stringlike;
 pub mod try_from;
+#[cfg(feature = "utoipa")]
+pub mod utoipa;

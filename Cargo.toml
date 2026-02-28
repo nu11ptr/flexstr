@@ -25,6 +25,7 @@ exclude = ["docs/**"]
 default = ["std", "str"]
 prost = ["dep:prost", "inline_flexstr/prost"]
 sqlx_pg_arrays = ["sqlx", "sqlx/postgres"]
+utoipa = ["dep:utoipa", "inline_flexstr/utoipa"]
 # Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
 safe = ["flexstr_support/safe", "inline_flexstr/safe"]
 std = ["flexstr_support/std", "inline_flexstr/std", "serde?/std", "prost?/std"]
@@ -57,6 +58,10 @@ version = "0.8"
 default-features = false
 optional = true
 
+[dependencies.utoipa]
+version = "5"
+optional = true
+
 [dependencies.inline_flexstr]
 path = "inline_flexstr"
 version = "0.1.7"
@@ -71,5 +76,5 @@ default-features = false
 version = "1"
 
 [package.metadata.docs.rs]
-features = ["bytes", "cstr", "osstr", "path", "prost", "serde", "std", "str"]
+features = ["bytes", "cstr", "osstr", "path", "prost", "serde", "std", "str", "utoipa"]
 rustdoc-args = ["--cfg", "docsrs"]

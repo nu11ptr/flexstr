@@ -265,3 +265,23 @@ where
         <&str as sqlx::postgres::PgHasArrayType>::array_compatible(ty)
     }
 }
+
+// *** Utoipa ***
+
+#[cfg(feature = "utoipa")]
+impl<'s, R: RefCounted<str>> utoipa::PartialSchema for FlexStr<'s, str, R> {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        utoipa::openapi::schema::ObjectBuilder::new()
+            .schema_type(utoipa::openapi::schema::SchemaType::new(
+                utoipa::openapi::schema::Type::String,
+            ))
+            .into()
+    }
+}
+
+#[cfg(feature = "utoipa")]
+impl<'s, R: RefCounted<str>> utoipa::ToSchema for FlexStr<'s, str, R> {
+    fn name() -> Cow<'static, str> {
+        Cow::Borrowed("String")
+    }
+}
