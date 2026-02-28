@@ -40,6 +40,7 @@ If you've used `Cow`, but you wish cloning owned strings was more performant and
 * **sqlx_pg_arrays** = Enable sqlx Postgres array support (implies `sqlx` feature)
 * **std** = Use `std` (default)
 * **serde** = add `serde` dependency and adds serialization/deserialization
+* **utoipa** = Enable `utoipa::ToSchema` implementation for OpenAPI schema generation
 * **win_min_unsafe** = enables the minimum necessary unsafe code on Windows to support `OsStr`/`Path`. No other string types or operating systems are impacted (implies `safe` feature).
     * NOTE: The code will refuse to compile if this is not specified when ALL the following conditions are true:
         * The `safe` feature is enabled
