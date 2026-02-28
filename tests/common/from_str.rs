@@ -34,7 +34,7 @@ where
     R: RefCounted<std::ffi::OsStr>,
 {
     use std::ffi::OsStr;
-    
+
     let flex_str = FlexStr::<'static, OsStr, R>::from_str("test").unwrap();
     assert_eq!(flex_str.as_ref_type(), OsStr::new("test"));
 }
@@ -46,7 +46,7 @@ where
     R: RefCounted<std::path::Path>,
 {
     use std::path::Path;
-    
+
     let flex_str = FlexStr::<'static, Path, R>::from_str("test").unwrap();
     assert_eq!(flex_str.as_ref_type(), Path::new("test"));
 }
@@ -58,7 +58,7 @@ where
     R: RefCounted<core::ffi::CStr> + fmt::Debug,
 {
     use flexstr::FlexStr;
-    
+
     let flex_str = FlexStr::<'static, core::ffi::CStr, R>::from_str("test").unwrap();
     assert_eq!(flex_str.as_ref_type().to_bytes(), b"test");
 }
@@ -70,10 +70,9 @@ where
     R: RefCounted<core::ffi::CStr> + fmt::Debug,
 {
     use flexstr::{FlexStr, InteriorNulError};
-    
+
     // String with interior NUL should fail
-    let result: Result<FlexStr<'static, core::ffi::CStr, R>, InteriorNulError> = FlexStr::from_str("test\0middle");
+    let result: Result<FlexStr<'static, core::ffi::CStr, R>, InteriorNulError> =
+        FlexStr::from_str("test\0middle");
     result.unwrap_err();
 }
-
-

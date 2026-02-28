@@ -19,4 +19,3 @@ where
 
     assert_eq!(original_fmt, inline_fmt);
 }
-

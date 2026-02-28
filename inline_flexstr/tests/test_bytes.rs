@@ -160,4 +160,3 @@ fn test_from_str_bytes_error() {
 fn test_as_ref_bytes() {
     common::as_ref::test_as_ref_bytes(b"test");
 }
-

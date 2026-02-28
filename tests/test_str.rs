@@ -4,10 +4,10 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 
-#[cfg(any(feature = "prost", feature = "serde"))]
-use flexstr::SharedStr;
 #[cfg(feature = "serde")]
 use flexstr::LocalStr;
+#[cfg(any(feature = "prost", feature = "serde"))]
+use flexstr::SharedStr;
 use inline_flexstr::INLINE_CAPACITY;
 
 mod common;
@@ -540,7 +540,10 @@ fn prost_inline_str_too_long() {
 
     // Decoding into InlineStr should fail
     let result = InlineStr::decode(&encoded[..]);
-    assert!(result.is_err(), "should fail for string too long for inline storage");
+    assert!(
+        result.is_err(),
+        "should fail for string too long for inline storage"
+    );
 }
 
 // *** Prost Cross-Type Interoperability Tests ***

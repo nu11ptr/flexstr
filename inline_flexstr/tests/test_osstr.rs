@@ -156,4 +156,3 @@ fn test_from_str_osstr_error() {
 fn test_as_ref_osstr() {
     common::as_ref::test_as_ref_osstr(OsStr::new("test"));
 }
-

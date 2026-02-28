@@ -128,7 +128,10 @@ where
     )
     .unwrap();
 
-    assert_eq!(decoded, s, "String decoded from flex-encoded field should match");
+    assert_eq!(
+        decoded, s,
+        "String decoded from flex-encoded field should match"
+    );
 }
 
 /// Encode a String using `string::encode`, then decode as a flex type using

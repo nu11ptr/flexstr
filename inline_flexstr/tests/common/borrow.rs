@@ -19,4 +19,3 @@ where
     let borrowed_mut: &mut S = inline_str.borrow_mut();
     assert_eq!(borrowed_mut, s);
 }
-

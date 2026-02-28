@@ -162,7 +162,10 @@ where
     let inline_str =
         InlineFlexStr::try_from_type(s).expect("test input should be small enough to inline");
     let c_string = StringLike::into_c_string(inline_str);
-    assert_eq!(c_string.as_bytes_with_nul(), s.to_owned().into().as_bytes_with_nul());
+    assert_eq!(
+        c_string.as_bytes_with_nul(),
+        s.to_owned().into().as_bytes_with_nul()
+    );
 }
 
 /// Test to_c_string() method
@@ -210,4 +213,3 @@ where
     let vec_bytes = StringLike::to_vec_bytes(&inline_str);
     assert_eq!(vec_bytes, s.to_owned().into());
 }
-

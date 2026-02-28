@@ -94,4 +94,3 @@ pub fn test_too_long_or_nul_error_nul() {
 
     test_error_display(err);
 }
-

@@ -18,4 +18,3 @@ where
     assert!(iter.next().is_some());
     assert!(iter.next().is_none());
 }
-

@@ -41,4 +41,3 @@ where
     // Verify the mutable reference equals the original via PartialEq
     assert_eq!(original_ref, inline_ref);
 }
-

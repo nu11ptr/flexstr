@@ -51,4 +51,3 @@ pub fn test_as_ref_str(s: &'static str) {
     let str_ref: &str = inline_str.as_ref();
     assert_eq!(str_ref, s);
 }
-

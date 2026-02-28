@@ -24,7 +24,7 @@ where
     R: RefCounted<str>,
 {
     use alloc::string::String;
-    
+
     let s = String::from("test");
     let flex_str: FlexStr<'_, str, R> = s.into();
     assert_eq!(flex_str.as_ref_type(), "test");
@@ -59,7 +59,7 @@ where
     R: RefCounted<std::ffi::OsStr>,
 {
     use std::ffi::OsString;
-    
+
     let os_string: OsString = OsString::from("test");
     let flex_str: FlexStr<'_, std::ffi::OsStr, R> = os_string.into();
     assert_eq!(flex_str.as_ref_type(), std::ffi::OsStr::new("test"));
@@ -83,7 +83,7 @@ where
     R: RefCounted<std::ffi::OsStr>,
 {
     use std::path::PathBuf;
-    
+
     let path_buf = PathBuf::from("test");
     let flex_str: FlexStr<'_, std::ffi::OsStr, R> = path_buf.into();
     assert_eq!(flex_str.as_ref_type(), std::ffi::OsStr::new("test"));
@@ -107,7 +107,7 @@ where
     R: RefCounted<std::ffi::OsStr>,
 {
     use std::path::Path;
-    
+
     let path = Path::new("test");
     let flex_str: FlexStr<'_, std::ffi::OsStr, R> = path.into();
     assert_eq!(flex_str.as_ref_type(), std::ffi::OsStr::new("test"));
@@ -120,7 +120,7 @@ where
     R: RefCounted<std::path::Path>,
 {
     use std::path::{Path, PathBuf};
-    
+
     let path_buf = PathBuf::from("test");
     let flex_str: FlexStr<'_, Path, R> = path_buf.into();
     assert_eq!(flex_str.as_ref_type(), Path::new("test"));
@@ -133,7 +133,7 @@ where
     R: RefCounted<std::path::Path>,
 {
     use std::path::Path;
-    
+
     let s = String::from("test");
     let flex_str: FlexStr<'_, Path, R> = s.into();
     assert_eq!(flex_str.as_ref_type(), Path::new("test"));
@@ -147,7 +147,7 @@ where
 {
     use std::ffi::OsString;
     use std::path::Path;
-    
+
     let os_string = OsString::from("test");
     let flex_str: FlexStr<'_, Path, R> = os_string.into();
     assert_eq!(flex_str.as_ref_type(), Path::new("test"));
@@ -160,7 +160,7 @@ where
     R: RefCounted<std::path::Path>,
 {
     use std::path::Path;
-    
+
     let s = "test";
     let flex_str: FlexStr<'_, Path, R> = s.into();
     assert_eq!(flex_str.as_ref_type(), Path::new("test"));
@@ -174,9 +174,8 @@ where
 {
     use std::ffi::OsStr;
     use std::path::Path;
-    
+
     let os_str = OsStr::new("test");
     let flex_str: FlexStr<'_, Path, R> = os_str.into();
     assert_eq!(flex_str.as_ref_type(), Path::new("test"));
 }
-

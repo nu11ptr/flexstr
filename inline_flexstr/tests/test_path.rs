@@ -162,4 +162,3 @@ fn test_from_str_path_error() {
 fn test_as_ref_path() {
     common::as_ref::test_as_ref_path(Path::new("test"));
 }
-

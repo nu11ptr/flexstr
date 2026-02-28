@@ -32,4 +32,3 @@ where
     let owned = StringLike::into_owned_type(inline_str);
     assert_eq!(owned.as_ref(), s);
 }
-

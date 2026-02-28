@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstr_support::StringToFromBytes;
 use flexstr::{FlexStr, RefCounted};
+use flexstr_support::StringToFromBytes;
 
 /// Test TryFrom success path for FlexStr
 pub fn test_try_from_flex_str_success<'s, T, S, R>(value: T)

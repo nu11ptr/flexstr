@@ -203,4 +203,3 @@ fn test_try_from_bytes_too_long() {
 fn test_as_bytes_with_nul() {
     common::cstr_specific::test_as_bytes_with_nul(c"test");
 }
-

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use core::fmt;
-use flexstr_support::StringToFromBytes;
 use flexstr::{FlexStr, RefCounted};
+use flexstr_support::StringToFromBytes;
 use inline_flexstr::InlineFlexStr;
 
 // Remove Debug requirement from R where not needed
