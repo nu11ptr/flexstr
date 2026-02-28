@@ -4,7 +4,7 @@ exclude = ["benchmarks"]
 
 [package]
 name = "flexstr"
-version = "0.11.4"
+version = "0.11.5"
 authors = ["Scott Meeuwsen <smeeuwsen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A flexible, simple to use, clone-efficient string type for Rust"
@@ -48,7 +48,7 @@ default-features = false
 optional = true
 
 [dependencies.prost]
-version = "0.13"
+version = "0.14"
 default-features = false
 optional = true
 
@@ -59,7 +59,7 @@ optional = true
 
 [dependencies.inline_flexstr]
 path = "inline_flexstr"
-version = "0.1.6"
+version = "0.1.7"
 default-features = false
 
 [dependencies.flexstr_support]

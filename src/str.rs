@@ -131,6 +131,7 @@ impl<R: RefCounted<str>> FromStr for FlexStr<'static, str, R> {
 // *** Prost ***
 
 #[cfg(feature = "prost")]
+#[allow(deprecated)] // DecodeError::new is deprecated in prost 0.14 with no public replacement yet
 impl<R: RefCounted<str>> prost::Message for FlexStr<'static, str, R>
 where
     Self: Default + core::fmt::Debug + Send + Sync,

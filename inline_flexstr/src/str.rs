@@ -117,6 +117,7 @@ impl FromStr for InlineFlexStr<str> {
 // *** Prost ***
 
 #[cfg(feature = "prost")]
+#[allow(deprecated)] // DecodeError::new is deprecated in prost 0.14 with no public replacement yet
 impl prost::Message for InlineFlexStr<str> {
     fn encode_raw(&self, buf: &mut impl prost::bytes::BufMut)
     where
