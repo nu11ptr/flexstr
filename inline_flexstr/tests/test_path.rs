@@ -156,6 +156,20 @@ fn test_from_str_path_error() {
     common::from_str::test_from_str_path_error();
 }
 
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_empty_after_path() {
+    common::zeroize::test_zeroize_empty_after::<Path>(Path::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_bytes_cleared_path() {
+    common::zeroize::test_zeroize_bytes_cleared::<Path>(Path::new("test"));
+}
+
 // *** AsRef Tests ***
 
 #[test]

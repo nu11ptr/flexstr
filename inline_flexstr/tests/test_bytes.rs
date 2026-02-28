@@ -154,6 +154,20 @@ fn test_from_str_bytes_error() {
     common::from_str::test_from_str_bytes_error();
 }
 
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_empty_after_bytes() {
+    common::zeroize::test_zeroize_empty_after::<[u8]>(b"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_bytes_cleared_bytes() {
+    common::zeroize::test_zeroize_bytes_cleared::<[u8]>(b"test");
+}
+
 // *** AsRef Tests ***
 
 #[test]

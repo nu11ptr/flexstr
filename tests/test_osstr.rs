@@ -291,3 +291,43 @@ fn test_mutation_boxed_osstr() {
         OsStr::new("test").into(),
     );
 }
+
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inlined_osstr() {
+    common::zeroize::test_zeroize_inlined::<OsStr, Arc<OsStr>>(OsStr::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_borrowed_osstr() {
+    common::zeroize::test_zeroize_borrowed::<OsStr, Arc<OsStr>>(OsStr::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_osstr() {
+    common::zeroize::test_zeroize_ref_counted::<OsStr, Arc<OsStr>>(Arc::from(OsStr::new("test")));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_shared_osstr() {
+    common::zeroize::test_zeroize_ref_counted_shared::<OsStr, Arc<OsStr>>(Arc::from(OsStr::new(
+        "test",
+    )));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_boxed_osstr() {
+    common::zeroize::test_zeroize_boxed::<OsStr, Arc<OsStr>>(OsStr::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inline_bytes_cleared_osstr() {
+    common::zeroize::test_zeroize_inline_bytes_cleared::<OsStr>(OsStr::new("test"));
+}

@@ -26,6 +26,7 @@ default = ["std", "str"]
 prost = ["dep:prost", "inline_flexstr/prost"]
 sqlx_pg_arrays = ["sqlx", "sqlx/postgres"]
 utoipa = ["dep:utoipa", "inline_flexstr/utoipa"]
+zeroize = ["dep:zeroize", "inline_flexstr/zeroize"]
 # Does not use and forbids all unsafe code (unless windows_min_unsafe is also enabled, but that only impacts Windows)
 safe = ["flexstr_support/safe", "inline_flexstr/safe"]
 std = ["flexstr_support/std", "inline_flexstr/std", "serde?/std", "prost?/std"]
@@ -62,6 +63,11 @@ optional = true
 version = "5"
 optional = true
 
+[dependencies.zeroize]
+version = "1"
+default-features = false
+optional = true
+
 [dependencies.inline_flexstr]
 path = "inline_flexstr"
 version = "0.1.8"
@@ -76,5 +82,5 @@ default-features = false
 version = "1"
 
 [package.metadata.docs.rs]
-features = ["bytes", "cstr", "osstr", "path", "prost", "serde", "std", "str", "utoipa"]
+features = ["bytes", "cstr", "osstr", "path", "prost", "serde", "std", "str", "utoipa", "zeroize"]
 rustdoc-args = ["--cfg", "docsrs"]

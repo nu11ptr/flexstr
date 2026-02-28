@@ -46,4 +46,10 @@ impl StringToFromBytes for CStr {
     fn self_as_raw_bytes(&self) -> &[u8] {
         self.to_bytes_with_nul()
     }
+
+    #[inline]
+    fn empty_raw_bytes() -> &'static [u8] {
+        // CStr requires at least a NUL terminator byte
+        &[0]
+    }
 }

@@ -16,3 +16,5 @@ pub mod serialize;
 pub mod socket;
 pub mod stringlike;
 pub mod try_from;
+#[cfg(feature = "zeroize")]
+pub mod zeroize;

@@ -633,4 +633,42 @@ fn utoipa_name_is_string_inline_str() {
     common::utoipa::name_is_string::<InlineStr>();
 }
 
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inlined_str() {
+    common::zeroize::test_zeroize_inlined::<str, Arc<str>>("test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_borrowed_str() {
+    common::zeroize::test_zeroize_borrowed::<str, Arc<str>>("test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_str() {
+    common::zeroize::test_zeroize_ref_counted::<str, Arc<str>>("test".into());
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_shared_str() {
+    common::zeroize::test_zeroize_ref_counted_shared::<str, Arc<str>>("test".into());
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_boxed_str() {
+    common::zeroize::test_zeroize_boxed::<str, Arc<str>>("test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inline_bytes_cleared_str() {
+    common::zeroize::test_zeroize_inline_bytes_cleared::<str>("test");
+}
+
 // *** Serialize Tests ***

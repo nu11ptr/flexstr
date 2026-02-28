@@ -243,3 +243,41 @@ fn test_mutation_ref_counted_bytes() {
 fn test_mutation_boxed_bytes() {
     common::mutate::test_mutation_boxed::<[u8], Arc<[u8]>>(b"test".into());
 }
+
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inlined_bytes() {
+    common::zeroize::test_zeroize_inlined::<[u8], Arc<[u8]>>(b"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_borrowed_bytes() {
+    common::zeroize::test_zeroize_borrowed::<[u8], Arc<[u8]>>(b"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_bytes() {
+    common::zeroize::test_zeroize_ref_counted::<[u8], Arc<[u8]>>(Arc::from(&b"test"[..]));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_shared_bytes() {
+    common::zeroize::test_zeroize_ref_counted_shared::<[u8], Arc<[u8]>>(Arc::from(&b"test"[..]));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_boxed_bytes() {
+    common::zeroize::test_zeroize_boxed::<[u8], Arc<[u8]>>(b"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inline_bytes_cleared_bytes() {
+    common::zeroize::test_zeroize_inline_bytes_cleared::<[u8]>(b"test");
+}

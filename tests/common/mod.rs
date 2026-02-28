@@ -27,3 +27,5 @@ pub mod stringlike;
 pub mod try_from;
 #[cfg(feature = "utoipa")]
 pub mod utoipa;
+#[cfg(feature = "zeroize")]
+pub mod zeroize;

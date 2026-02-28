@@ -58,6 +58,11 @@ macro_rules! ref_counted_mut_impl {
                 // PANIC SAFETY: We only use this when we know the Arc is newly created
                 Arc::get_mut(self).expect("Arc is shared")
             }
+
+            #[inline]
+            fn try_as_mut(&mut self) -> Option<&mut $str_type> {
+                Arc::get_mut(self)
+            }
         }
 
         // NOTE: Cannot be implemented generically because CloneToUninit is needed
@@ -72,6 +77,11 @@ macro_rules! ref_counted_mut_impl {
             fn as_mut(&mut self) -> &mut $str_type {
                 // PANIC SAFETY: We only use this when we know the Rc is newly created
                 Rc::get_mut(self).expect("Rc is shared")
+            }
+
+            #[inline]
+            fn try_as_mut(&mut self) -> Option<&mut $str_type> {
+                Rc::get_mut(self)
             }
         }
     };
@@ -106,6 +116,11 @@ pub trait RefCountedMut<S: ?Sized + StringToFromBytes>: RefCounted<S> {
 
     /// Borrow the string as a mutable string reference. It will panic if the string is shared.
     fn as_mut(&mut self) -> &mut S;
+
+    /// Try to borrow the string as a mutable string reference. Returns `None` if the data is shared.
+    fn try_as_mut(&mut self) -> Option<&mut S> {
+        None
+    }
 }
 
 // *** ToOwnedFlexStr ***
@@ -712,5 +727,52 @@ where
         Box::deserialize(deserializer)
             .map(FlexStr::Boxed)
             .map(FlexStr::optimize)
+    }
+}
+
+// *** Zeroize ***
+
+/// Zero the raw bytes of a DST behind a mutable reference.
+///
+/// The zeroed value remains valid for all supported string types: all-zero bytes
+/// produce valid `str` (NUL is valid UTF-8), `[u8]`, `CStr` (NUL terminator),
+/// `OsStr`, and `Path`. None of these types have `Drop` impls, so subsequent
+/// deallocation (via Box/Arc/Rc drop) only needs the pointer and size.
+#[cfg(feature = "zeroize")]
+fn zeroize_raw_bytes<S: ?Sized + StringToFromBytes>(s: &mut S) {
+    let len = S::self_as_raw_bytes(s).len();
+    let ptr = s as *mut S as *mut u8;
+    // SAFETY: We have exclusive ownership (`&mut S`). The pointer and length are valid
+    // because we obtained them from the living reference.
+    unsafe {
+        zeroize::Zeroize::zeroize(core::slice::from_raw_parts_mut(ptr, len));
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl<'s, S: ?Sized + StringToFromBytes, R: RefCountedMut<S>> zeroize::TryZeroize
+    for FlexStr<'s, S, R>
+{
+    fn try_zeroize(&mut self) -> bool {
+        match self {
+            FlexStr::Inlined(s) => {
+                zeroize::Zeroize::zeroize(s);
+            }
+            FlexStr::Boxed(s) => {
+                zeroize_raw_bytes(&mut **s);
+            }
+            FlexStr::RefCounted(rc) => {
+                if let Some(s) = rc.try_as_mut() {
+                    zeroize_raw_bytes(s);
+                } else {
+                    // Shared reference — cannot zero the underlying data
+                    return false;
+                }
+            }
+            // Borrowed data is not owned by us — cannot zero
+            FlexStr::Borrowed(_) => return false,
+        }
+        *self = FlexStr::Inlined(InlineFlexStr::zeroed());
+        true
     }
 }

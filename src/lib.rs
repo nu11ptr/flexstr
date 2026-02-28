@@ -11,6 +11,11 @@
 
 //! A flexible, simple to use, immutable, clone-efficient [String] replacement for Rust
 
+#[cfg(all(feature = "safe", feature = "zeroize"))]
+compile_error!(
+    "The `zeroize` and `safe` features are incompatible. Secure memory zeroing requires unsafe code."
+);
+
 extern crate alloc;
 
 #[doc = include_str!("../README.md")]

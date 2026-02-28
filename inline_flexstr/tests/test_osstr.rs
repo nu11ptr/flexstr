@@ -150,6 +150,20 @@ fn test_from_str_osstr_error() {
     common::from_str::test_from_str_osstr_error();
 }
 
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_empty_after_osstr() {
+    common::zeroize::test_zeroize_empty_after::<OsStr>(OsStr::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_bytes_cleared_osstr() {
+    common::zeroize::test_zeroize_bytes_cleared::<OsStr>(OsStr::new("test"));
+}
+
 // *** AsRef Tests ***
 
 #[test]

@@ -244,6 +244,20 @@ fn test_as_ref_str() {
     common::as_ref::test_as_ref_str("test");
 }
 
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_empty_after_str() {
+    common::zeroize::test_zeroize_empty_after::<str>("test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_bytes_cleared_str() {
+    common::zeroize::test_zeroize_bytes_cleared::<str>("test");
+}
+
 // *** Serialize Tests ***
 
 #[cfg(feature = "serde")]

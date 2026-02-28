@@ -292,3 +292,41 @@ fn test_from_str_cstr_error() {
 fn test_as_ref_cstr_flex_str() {
     common::as_ref::test_as_ref_cstr_flex_str::<Arc<CStr>>(c"test");
 }
+
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inlined_cstr() {
+    common::zeroize::test_zeroize_inlined::<CStr, Arc<CStr>>(c"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_borrowed_cstr() {
+    common::zeroize::test_zeroize_borrowed::<CStr, Arc<CStr>>(c"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_cstr() {
+    common::zeroize::test_zeroize_ref_counted::<CStr, Arc<CStr>>(Arc::from(c"test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_shared_cstr() {
+    common::zeroize::test_zeroize_ref_counted_shared::<CStr, Arc<CStr>>(Arc::from(c"test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_boxed_cstr() {
+    common::zeroize::test_zeroize_boxed::<CStr, Arc<CStr>>(c"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inline_bytes_cleared_cstr() {
+    common::zeroize::test_zeroize_inline_bytes_cleared::<CStr>(c"test");
+}

@@ -26,6 +26,12 @@ pub trait StringToFromBytes: ToOwned + 'static {
 
     /// Convert a string type to raw bytes (inludes nul for CStr)
     fn self_as_raw_bytes(&self) -> &[u8];
+
+    /// The raw bytes of an empty value of this type. For most types this is `&[]`,
+    /// but for CStr it is `&[0]` (a single NUL terminator).
+    fn empty_raw_bytes() -> &'static [u8] {
+        &[]
+    }
 }
 
 // *** StringFromBytesMut ***

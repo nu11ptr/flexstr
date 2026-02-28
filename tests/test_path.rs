@@ -287,3 +287,43 @@ fn test_mutation_boxed_path() {
         Path::new("test").into(),
     );
 }
+
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inlined_path() {
+    common::zeroize::test_zeroize_inlined::<Path, Arc<Path>>(Path::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_borrowed_path() {
+    common::zeroize::test_zeroize_borrowed::<Path, Arc<Path>>(Path::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_path() {
+    common::zeroize::test_zeroize_ref_counted::<Path, Arc<Path>>(Arc::from(Path::new("test")));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_ref_counted_shared_path() {
+    common::zeroize::test_zeroize_ref_counted_shared::<Path, Arc<Path>>(Arc::from(Path::new(
+        "test",
+    )));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_boxed_path() {
+    common::zeroize::test_zeroize_boxed::<Path, Arc<Path>>(Path::new("test"));
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_inline_bytes_cleared_path() {
+    common::zeroize::test_zeroize_inline_bytes_cleared::<Path>(Path::new("test"));
+}

@@ -96,6 +96,14 @@ impl<S: ?Sized + StringToFromBytes> InlineFlexStr<S> {
         }
     }
 
+    /// Create an empty InlineFlexStr suitable for use after zeroization.
+    /// Uses `S::empty_raw_bytes()` to produce a valid empty value for each type
+    /// (e.g., CStr requires a NUL terminator byte).
+    #[cfg(feature = "zeroize")]
+    pub fn zeroed() -> Self {
+        Self::from_bytes(S::empty_raw_bytes())
+    }
+
     #[cfg(feature = "safe")]
     pub(crate) fn from_bytes(s: &[u8]) -> Self {
         let mut inline = [0u8; INLINE_CAPACITY];
@@ -401,6 +409,16 @@ where
 {
     fn serialize<SER: Serializer>(&self, serializer: SER) -> Result<SER::Ok, SER::Error> {
         S::serialize(self.as_ref_type(), serializer)
+    }
+}
+
+// *** Zeroize ***
+
+#[cfg(feature = "zeroize")]
+impl<S: ?Sized + StringToFromBytes> zeroize::Zeroize for InlineFlexStr<S> {
+    fn zeroize(&mut self) {
+        self.inline.zeroize();
+        self.len.zeroize();
     }
 }
 

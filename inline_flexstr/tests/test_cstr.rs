@@ -177,6 +177,20 @@ fn test_as_ref_cstr() {
     common::as_ref::test_as_ref_cstr(c"test");
 }
 
+// *** Zeroize Tests ***
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_empty_after_cstr() {
+    common::zeroize::test_zeroize_empty_after::<CStr>(c"test");
+}
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn test_zeroize_bytes_cleared_cstr() {
+    common::zeroize::test_zeroize_bytes_cleared::<CStr>(c"test");
+}
+
 // *** CStr Specific Tests ***
 
 #[test]
