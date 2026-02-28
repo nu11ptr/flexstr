@@ -543,4 +543,63 @@ fn prost_inline_str_too_long() {
     assert!(result.is_err(), "should fail for string too long for inline storage");
 }
 
+// *** Prost Cross-Type Interoperability Tests ***
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_cross_type_wire_compat_shared_str() {
+    common::prost::cross_type_wire_compat::<SharedStr>("test");
+    common::prost::cross_type_wire_compat::<SharedStr>("hello 🌍🚀");
+    common::prost::cross_type_wire_compat::<SharedStr>("");
+    common::prost::cross_type_wire_compat::<SharedStr>(
+        "this is a very long string that definitely won't fit inline",
+    );
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_cross_type_wire_compat_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::prost::cross_type_wire_compat::<InlineStr>("test");
+    common::prost::cross_type_wire_compat::<InlineStr>("");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_shared_str_decode_string() {
+    common::prost::encode_flex_decode_string::<SharedStr>("test");
+    common::prost::encode_flex_decode_string::<SharedStr>("hello 🌍🚀");
+    common::prost::encode_flex_decode_string::<SharedStr>("");
+    common::prost::encode_flex_decode_string::<SharedStr>(
+        "this is a very long string that definitely won't fit inline",
+    );
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_inline_str_decode_string() {
+    use inline_flexstr::InlineStr;
+    common::prost::encode_flex_decode_string::<InlineStr>("test");
+    common::prost::encode_flex_decode_string::<InlineStr>("");
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_string_decode_shared_str() {
+    common::prost::encode_string_decode_flex::<SharedStr>("test");
+    common::prost::encode_string_decode_flex::<SharedStr>("hello 🌍🚀");
+    common::prost::encode_string_decode_flex::<SharedStr>("");
+    common::prost::encode_string_decode_flex::<SharedStr>(
+        "this is a very long string that definitely won't fit inline",
+    );
+}
+
+#[cfg(feature = "prost")]
+#[test]
+fn prost_encode_string_decode_inline_str() {
+    use inline_flexstr::InlineStr;
+    common::prost::encode_string_decode_flex::<InlineStr>("test");
+    common::prost::encode_string_decode_flex::<InlineStr>("");
+}
+
 // *** Serialize Tests ***
