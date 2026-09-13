@@ -47,6 +47,7 @@ str = ["flexstr_support/str", "inline_flexstr/str"]
 [dependencies.serde]
 version = "1"
 default-features = false
+features = ["alloc"]
 optional = true
 
 [dependencies.prost]

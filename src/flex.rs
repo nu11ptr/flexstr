@@ -1,4 +1,6 @@
 use alloc::borrow::{Borrow, Cow};
+#[cfg(all(feature = "serde", any(feature = "bytes", feature = "cstr")))]
+use alloc::vec::Vec;
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box};
 use alloc::{rc::Rc, sync::Arc};
@@ -7,6 +9,11 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::ops::{Deref, Index};
 use core::slice::SliceIndex;
+#[cfg(all(
+    feature = "serde",
+    any(feature = "str", feature = "path", feature = "bytes", feature = "cstr")
+))]
+use core::{any::TypeId, marker::PhantomData};
 #[cfg(feature = "std")]
 use std::{io, net::ToSocketAddrs};
 
@@ -722,12 +729,65 @@ where
     Box<S>: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // TODO: See TODO in InlineFlexStr::deserialize for more details.
-        // This one isn't as egregious since Boxed isn't inherently wrong here.
+        // These type checks preserve the generic implementation for custom S.
+        // Each visitor may interpret validated bytes as S only because its type
+        // is checked here; the checks are constant for each monomorphization.
+        #[cfg(feature = "str")]
+        if TypeId::of::<S>() == TypeId::of::<str>() {
+            return deserializer.deserialize_str(crate::str::StrVisitor(PhantomData));
+        }
+        #[cfg(feature = "path")]
+        if TypeId::of::<S>() == TypeId::of::<std::path::Path>() {
+            return deserializer.deserialize_str(crate::path::PathVisitor(PhantomData));
+        }
+        #[cfg(feature = "bytes")]
+        if TypeId::of::<S>() == TypeId::of::<[u8]>() {
+            // [u8] is serialized as a sequence, not Serde's byte-buffer type.
+            return deserializer.deserialize_seq(crate::bytes::BytesVisitor(PhantomData));
+        }
+        #[cfg(feature = "cstr")]
+        if TypeId::of::<S>() == TypeId::of::<core::ffi::CStr>() {
+            return deserializer.deserialize_bytes(crate::cstr::CStrVisitor(PhantomData));
+        }
+
+        // OsStr uses Serde's platform-dependent enum representation. Keep its
+        // boxed fallback, and continue supporting custom backing types too.
         Box::deserialize(deserializer)
             .map(FlexStr::Boxed)
             .map(FlexStr::optimize)
     }
+}
+
+// Small sequences never allocate. Consult the untrusted size hint only after
+// an extra byte forces a spill, and cap it like Serde's collection visitors.
+#[cfg(all(feature = "serde", any(feature = "bytes", feature = "cstr")))]
+pub(crate) fn deserialize_byte_sequence<'a, 'de, A: serde::de::SeqAccess<'de>>(
+    mut seq: A,
+    inline: &'a mut [u8],
+) -> Result<Cow<'a, [u8]>, A::Error> {
+    for len in 0..inline.len() {
+        match seq.next_element()? {
+            Some(byte) => inline[len] = byte,
+            None => return Ok(Cow::Borrowed(&inline[..len])),
+        }
+    }
+
+    let Some(byte) = seq.next_element()? else {
+        return Ok(Cow::Borrowed(inline));
+    };
+    let capacity = seq
+        .size_hint()
+        .unwrap_or(0)
+        .saturating_add(inline.len() + 1)
+        .min(1024 * 1024)
+        .max(inline.len() * 2);
+    let mut bytes = Vec::with_capacity(capacity);
+    bytes.extend_from_slice(inline);
+    bytes.push(byte);
+    while let Some(byte) = seq.next_element()? {
+        bytes.push(byte);
+    }
+    Ok(Cow::Owned(bytes))
 }
 
 // *** Zeroize ***

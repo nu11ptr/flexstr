@@ -10,12 +10,17 @@ use core::{
     convert::Infallible,
     str::{FromStr, Utf8Error},
 };
+#[cfg(feature = "serde")]
+use core::{fmt, marker::PhantomData};
 #[cfg(feature = "std")]
 use std::{ffi::OsStr, path::Path};
 
 use crate::flex::{FlexStr, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl};
 
 use flexstr_support::StringToFromBytes;
+
+#[cfg(feature = "serde")]
+use serde::de::{Error, Unexpected, Visitor};
 
 /// Local `str` type (NOTE: This can't be shared between threads)
 pub type LocalStr = FlexStr<'static, str, Rc<str>>;
@@ -283,5 +288,30 @@ impl<'s, R: RefCounted<str>> utoipa::PartialSchema for FlexStr<'s, str, R> {
 impl<'s, R: RefCounted<str>> utoipa::ToSchema for FlexStr<'s, str, R> {
     fn name() -> Cow<'static, str> {
         Cow::Borrowed("String")
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+pub(crate) struct StrVisitor<S: ?Sized, R>(pub(crate) PhantomData<(fn() -> S, R)>);
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Visitor<'de> for StrVisitor<S, R> {
+    type Value = FlexStr<'static, S, R>;
+
+    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("a UTF-8 string")
+    }
+
+    fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
+        // The type guard in FlexStr::deserialize limits S to str.
+        Ok(FlexStr::from_borrowed(S::bytes_as_self(value.as_bytes())).into_owned())
+    }
+
+    fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+        let value = core::str::from_utf8(value)
+            .map_err(|_| E::invalid_value(Unexpected::Bytes(value), &self))?;
+        self.visit_str(value)
     }
 }

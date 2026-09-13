@@ -1,16 +1,27 @@
 use alloc::{borrow::Cow, ffi::CString, rc::Rc, sync::Arc};
+#[cfg(feature = "serde")]
+use alloc::{string::String, vec::Vec};
 use core::{
     ffi::{CStr, FromBytesWithNulError},
     str::FromStr,
 };
+#[cfg(feature = "serde")]
+use core::{fmt, marker::PhantomData};
 
+#[cfg(feature = "serde")]
+use crate::flex::deserialize_byte_sequence;
 use crate::flex::{
     FlexStr, ImmutableBytes, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl,
 };
 
 pub use flexstr_support::InteriorNulError;
 use flexstr_support::StringToFromBytes;
+#[cfg(feature = "serde")]
+use inline_flexstr::INLINE_CAPACITY;
 use inline_flexstr::{InlineFlexStr, TooLongOrNulError};
+
+#[cfg(feature = "serde")]
+use serde::de::{Error, SeqAccess, Visitor};
 
 /// Local `CStr` type (NOTE: This can't be shared between threads)
 pub type LocalCStr = FlexStr<'static, CStr, Rc<CStr>>;
@@ -143,5 +154,64 @@ impl<R: RefCounted<CStr>> FromStr for FlexStr<'static, CStr, R> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         FlexStr::try_from_bytes_with_or_without_nul(s.as_bytes()).map(FlexStr::into_owned)
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+pub(crate) struct CStrVisitor<S: ?Sized, R>(pub(crate) PhantomData<(fn() -> S, R)>);
+
+#[cfg(feature = "serde")]
+impl<S: ?Sized + StringToFromBytes, R: RefCounted<S>> CStrVisitor<S, R> {
+    fn from_bytes<E: Error>(bytes: Cow<'_, [u8]>) -> Result<FlexStr<'static, S, R>, E> {
+        // Serde encodes CStr without its terminator. Even a trailing NUL
+        // in the input must be rejected, just as CString::new rejects it.
+        if let Some(position) = bytes.iter().position(|&byte| byte == 0) {
+            return Err(E::custom(InteriorNulError { position }));
+        }
+        match InlineFlexStr::try_from_bytes_with_or_without_nul(&bytes) {
+            Ok(inline) => {
+                Ok(FlexStr::from_borrowed(S::bytes_as_self(inline.as_raw_bytes())).into_owned())
+            }
+            Err(_) => {
+                let value = CString::new(bytes.into_owned()).map_err(E::custom)?;
+                Ok(
+                    FlexStr::from_borrowed(S::bytes_as_self(value.as_bytes_with_nul()))
+                        .into_owned(),
+                )
+            }
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Visitor<'de> for CStrVisitor<S, R> {
+    type Value = FlexStr<'static, S, R>;
+
+    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("bytes without NUL")
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
+        // Reserve room for the terminator in inline storage.
+        let mut inline = [0; INLINE_CAPACITY - 1];
+        Self::from_bytes(deserialize_byte_sequence(seq, &mut inline)?)
+    }
+
+    fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+        Self::from_bytes(Cow::Borrowed(value))
+    }
+
+    fn visit_byte_buf<E: Error>(self, value: Vec<u8>) -> Result<Self::Value, E> {
+        Self::from_bytes(Cow::Owned(value))
+    }
+
+    fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
+        self.visit_bytes(value.as_bytes())
+    }
+
+    fn visit_string<E: Error>(self, value: String) -> Result<Self::Value, E> {
+        self.visit_byte_buf(value.into_bytes())
     }
 }

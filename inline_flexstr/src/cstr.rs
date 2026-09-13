@@ -1,4 +1,6 @@
 use alloc::{borrow::Cow, ffi::CString};
+#[cfg(feature = "serde")]
+use core::marker::PhantomData;
 use core::{
     ffi::{CStr, FromBytesWithNulError},
     fmt,
@@ -6,8 +8,12 @@ use core::{
 };
 
 use crate::inline::{INLINE_CAPACITY, InlineFlexStr, TooLongForInlining, inline_partial_eq_impl};
+#[cfg(feature = "serde")]
+use crate::inline::{deserialize_byte_sequence, deserialize_too_long};
 
 use flexstr_support::{InteriorNulError, StringToFromBytes};
+#[cfg(feature = "serde")]
+use serde::de::{Error, SeqAccess, Visitor};
 
 /// Inline `CStr` type
 pub type InlineCStr = InlineFlexStr<CStr>;
@@ -123,5 +129,41 @@ impl FromStr for InlineFlexStr<CStr> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         InlineFlexStr::try_from_bytes_with_or_without_nul(s.as_bytes())
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+pub(crate) struct CStrVisitor<S: ?Sized>(pub(crate) PhantomData<S>);
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringToFromBytes> Visitor<'de> for CStrVisitor<S> {
+    type Value = InlineFlexStr<S>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("byte array")
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, sequence: A) -> Result<Self::Value, A::Error> {
+        let (bytes, length) = deserialize_byte_sequence(sequence, INLINE_CAPACITY - 1)?;
+        self.visit_bytes(&bytes[..length])
+    }
+
+    fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+        // Serde serializes CStr without its terminator and rejects every input NUL.
+        if let Some(position) = value.iter().position(|&byte| byte == 0) {
+            return Err(E::custom(InteriorNulError { position }));
+        }
+        if value.len() >= INLINE_CAPACITY {
+            return Err(deserialize_too_long(value.len().saturating_add(1)));
+        }
+        let mut inline = Self::Value::from_bytes(value);
+        inline.append_nul_zero();
+        Ok(inline)
+    }
+
+    fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
+        self.visit_bytes(value.as_bytes())
     }
 }

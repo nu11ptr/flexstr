@@ -1,5 +1,7 @@
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 use core::{convert::Infallible, str::FromStr};
+#[cfg(feature = "serde")]
+use core::{fmt, marker::PhantomData};
 use std::{
     ffi::{OsStr, OsString},
     path::{Path, PathBuf},
@@ -10,6 +12,9 @@ use crate::flex::{
 };
 
 use flexstr_support::StringToFromBytes;
+
+#[cfg(feature = "serde")]
+use serde::de::{Error, Unexpected, Visitor};
 
 /// Local `Path` type (NOTE: This can't be shared between threads)
 pub type LocalPath = FlexStr<'static, Path, Rc<Path>>;
@@ -98,5 +103,30 @@ impl<R: RefCounted<Path>> FromStr for FlexStr<'static, Path, R> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(FlexStr::from_borrowed(Path::new(s)).into_owned())
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+pub(crate) struct PathVisitor<S: ?Sized, R>(pub(crate) PhantomData<(fn() -> S, R)>);
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Visitor<'de> for PathVisitor<S, R> {
+    type Value = FlexStr<'static, S, R>;
+
+    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("a UTF-8 string")
+    }
+
+    fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
+        // The type guard in FlexStr::deserialize limits S to Path; UTF-8 is valid on Windows too.
+        Ok(FlexStr::from_borrowed(S::bytes_as_self(value.as_bytes())).into_owned())
+    }
+
+    fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+        let value = core::str::from_utf8(value)
+            .map_err(|_| E::invalid_value(Unexpected::Bytes(value), &self))?;
+        self.visit_str(value)
     }
 }

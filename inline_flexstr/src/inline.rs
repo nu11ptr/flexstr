@@ -1,6 +1,11 @@
 use alloc::borrow::{Borrow, BorrowMut};
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String};
+#[cfg(all(
+    feature = "serde",
+    any(feature = "str", feature = "path", feature = "bytes", feature = "cstr")
+))]
+use core::any::TypeId;
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
@@ -12,8 +17,10 @@ use std::{io, net::ToSocketAddrs};
 
 use flexstr_support::{StringFromBytesMut, StringLike, StringToFromBytes};
 
+#[cfg(all(feature = "serde", any(feature = "bytes", feature = "cstr")))]
+use serde::de::SeqAccess;
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 
 macro_rules! inline_partial_eq_impl {
     ($type:ty, $str_type:ty) => {
@@ -412,16 +419,6 @@ where
     }
 }
 
-// *** Zeroize ***
-
-#[cfg(feature = "zeroize")]
-impl<S: ?Sized + StringToFromBytes> zeroize::Zeroize for InlineFlexStr<S> {
-    fn zeroize(&mut self) {
-        self.inline.zeroize();
-        self.len.zeroize();
-    }
-}
-
 // *** Deserialize ***
 
 #[cfg(feature = "serde")]
@@ -430,17 +427,61 @@ where
     Box<S>: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // TODO: This is inefficent, we should ideally deserialize directly into the InlineFlexStr type.
-        // However, Deserialize is not implmented for all types of &S, so likely that would mean
-        // a non-generic implementation for each type of S, likely via a Visitor pattern. That also
-        // means we'd have to understand how serde serializes each type, and this might be brittle if
-        // that ever changes (for example, OsStr is a bit special). For now, this is a quick way to
-        // make it work, albeit at the cost of an allocation and a copy.
-        let s = Box::deserialize(deserializer)?;
+        // These guards ensure each private visitor only builds the backing type
+        // whose representation it validates, while preserving the generic impl.
+        #[cfg(feature = "str")]
+        if TypeId::of::<S>() == TypeId::of::<str>() {
+            return deserializer.deserialize_str(crate::str::StrVisitor(PhantomData));
+        }
+        #[cfg(feature = "path")]
+        if TypeId::of::<S>() == TypeId::of::<std::path::Path>() {
+            return deserializer.deserialize_str(crate::path::PathVisitor(PhantomData));
+        }
+        #[cfg(feature = "bytes")]
+        if TypeId::of::<S>() == TypeId::of::<[u8]>() {
+            return deserializer.deserialize_seq(crate::bytes::BytesVisitor(PhantomData));
+        }
+        #[cfg(feature = "cstr")]
+        if TypeId::of::<S>() == TypeId::of::<core::ffi::CStr>() {
+            return deserializer.deserialize_bytes(crate::cstr::CStrVisitor(PhantomData));
+        }
 
-        InlineFlexStr::try_from_type(&*s).map_err(|_| {
-            let bytes = S::self_as_raw_bytes(&*s);
-            serde::de::Error::invalid_length(bytes.len(), &"string too long for inline storage")
-        })
+        // OsStr has a platform-specific enum representation in Serde, including
+        // UTF-16 conversion on Windows. Keep delegating it and custom backing
+        // types to Serde rather than reproducing their representations here.
+        let value = Box::<S>::deserialize(deserializer)?;
+        Self::try_from_type(&value).map_err(|error| deserialize_too_long(error.length))
+    }
+}
+
+#[cfg(feature = "serde")]
+pub(crate) fn deserialize_too_long<E: Error>(length: usize) -> E {
+    E::invalid_length(length, &"string too long for inline storage")
+}
+
+#[cfg(all(feature = "serde", any(feature = "bytes", feature = "cstr")))]
+pub(crate) fn deserialize_byte_sequence<'de, A: SeqAccess<'de>>(
+    mut sequence: A,
+    capacity: usize,
+) -> Result<([u8; INLINE_CAPACITY], usize), A::Error> {
+    let mut bytes = [0; INLINE_CAPACITY];
+    let mut length = 0;
+    while let Some(byte) = sequence.next_element()? {
+        if length == capacity {
+            return Err(deserialize_too_long(INLINE_CAPACITY + 1));
+        }
+        bytes[length] = byte;
+        length += 1;
+    }
+    Ok((bytes, length))
+}
+
+// *** Zeroize ***
+
+#[cfg(feature = "zeroize")]
+impl<S: ?Sized + StringToFromBytes> zeroize::Zeroize for InlineFlexStr<S> {
+    fn zeroize(&mut self) {
+        self.inline.zeroize();
+        self.len.zeroize();
     }
 }

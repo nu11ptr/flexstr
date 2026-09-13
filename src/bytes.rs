@@ -2,10 +2,19 @@
 use alloc::vec::Vec;
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
 use core::{convert::Infallible, str::FromStr};
+#[cfg(feature = "serde")]
+use core::{fmt, marker::PhantomData};
 
+#[cfg(feature = "serde")]
+use crate::flex::deserialize_byte_sequence;
 use crate::flex::{FlexStr, RefCounted, RefCountedMut, partial_eq_impl, ref_counted_mut_impl};
 
 use flexstr_support::StringToFromBytes;
+#[cfg(feature = "serde")]
+use inline_flexstr::INLINE_CAPACITY;
+
+#[cfg(feature = "serde")]
+use serde::de::{SeqAccess, Visitor};
 
 /// Local `[u8]` type (NOTE: This can't be shared between threads)
 pub type LocalBytes = FlexStr<'static, [u8], Rc<[u8]>>;
@@ -72,5 +81,25 @@ impl<R: RefCounted<[u8]>> FromStr for FlexStr<'static, [u8], R> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(FlexStr::from_borrowed(s.as_bytes()).into_owned())
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+pub(crate) struct BytesVisitor<S: ?Sized, R>(pub(crate) PhantomData<(fn() -> S, R)>);
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringToFromBytes, R: RefCounted<S>> Visitor<'de> for BytesVisitor<S, R> {
+    type Value = FlexStr<'static, S, R>;
+
+    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("a sequence of bytes")
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
+        let mut inline = [0; INLINE_CAPACITY];
+        let bytes = deserialize_byte_sequence(seq, &mut inline)?;
+        Ok(FlexStr::from_borrowed(S::bytes_as_self(&bytes)).into_owned())
     }
 }

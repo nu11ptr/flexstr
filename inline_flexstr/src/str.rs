@@ -1,4 +1,6 @@
 use alloc::{borrow::Cow, fmt, string::String};
+#[cfg(feature = "serde")]
+use core::marker::PhantomData;
 use core::{
     error::Error,
     str::{FromStr, Utf8Error},
@@ -6,9 +8,13 @@ use core::{
 #[cfg(feature = "std")]
 use std::{ffi::OsStr, path::Path};
 
+#[cfg(feature = "serde")]
+use crate::inline::deserialize_too_long;
 use crate::inline::{InlineFlexStr, TooLongForInlining, inline_partial_eq_impl};
 
 use flexstr_support::StringToFromBytes;
+#[cfg(feature = "serde")]
+use serde::de::{Error as DeserializeError, Unexpected, Visitor};
 
 /// Inline `str` type
 pub type InlineStr = InlineFlexStr<str>;
@@ -233,6 +239,32 @@ where
 
     fn array_compatible(ty: &sqlx::postgres::PgTypeInfo) -> bool {
         <&str as sqlx::postgres::PgHasArrayType>::array_compatible(ty)
+    }
+}
+
+// *** Deserialize ***
+
+#[cfg(feature = "serde")]
+pub(crate) struct StrVisitor<S: ?Sized>(pub(crate) PhantomData<S>);
+
+#[cfg(feature = "serde")]
+impl<'de, S: ?Sized + StringToFromBytes> Visitor<'de> for StrVisitor<S> {
+    type Value = InlineFlexStr<S>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a string")
+    }
+
+    fn visit_str<E: DeserializeError>(self, value: &str) -> Result<Self::Value, E> {
+        // The Deserialize type guard limits S to str, so UTF-8 bytes are valid.
+        InlineFlexStr::try_from_type(S::bytes_as_self(value.as_bytes()))
+            .map_err(|error| deserialize_too_long(error.length))
+    }
+
+    fn visit_bytes<E: DeserializeError>(self, value: &[u8]) -> Result<Self::Value, E> {
+        let value = core::str::from_utf8(value)
+            .map_err(|_| E::invalid_value(Unexpected::Bytes(value), &self))?;
+        self.visit_str(value)
     }
 }
 
